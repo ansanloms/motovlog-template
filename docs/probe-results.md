@@ -342,3 +342,66 @@ env LD_LIBRARY_PATH=/usr/lib/wsl/lib ffmpeg -y -hwaccel cuda -t 1200 -i public/p
 `probe-a.mp4` (元ファイルへのシンボリックリンク) は失敗条件の再現用であり、`ln -sf "/mnt/c/dev/movie/20260813_浄土平/assets/movies/DASHCAM_20260816_133345_466_541(1).mp4" public/probe-a.mp4` で作成できる。
 
 なお、Studio (`npm run dev`) 上での体感確認用に、`src/Root.tsx` へ `Probe-B-hevc` (probe-b をフル尺で再生)・`Probe-E-nvenc` (probe-e を再生) を登録している。`Probe` (probe-c、1200 秒) をそのまま Studio での確認に使い、フル尺の検証は `Probe-B-hevc` (76932 フレーム) を使う。本文中の `Probe` 使用のコマンドはすべて frame 34500 以下 (および frames=18000-18299) で、現在の durationInFrames=36000 の範囲内にあるため、今回の変更で再現性は失われない。
+
+## 再検証 (ext4 プロキシ方式の確定に向けて)
+
+上記の外挿・単発計測を、より長い区間・より実運用に近い条件で裏取りするため、以下の 3 点を追加で実測した。
+
+### R1: NVENC 全尺変換の実測
+
+```
+env LD_LIBRARY_PATH=/usr/lib/wsl/lib ffmpeg -y -hwaccel cuda -i public/probe-b.mp4 -r 30 -c:v h264_nvenc -preset p4 -cq 23 -g 30 -c:a aac -b:a 128k -movflags +faststart public/probe-full.mp4
+```
+
+成功した。所要時間 (real) 8:47.71 (527.71 秒)、ffmpeg 報告の最終 speed=5.02x。出力サイズ (ffprobe format.size 実測) 4,796,492,954 bytes (約 4.80 GB decimal / 4.47 GiB)。
+
+`ffprobe` による `probe-full.mp4` の実測:
+
+- 映像ストリーム: codec=h264, 1920x1080, 30fps, duration=2564.366667 秒
+- コンテナ (format): duration=2564.373333 秒
+
+期待値 (約 2564.4 秒) と一致した。
+
+既存の外挿値 (1200 秒分の実測からの比例計算、real 486.3 秒・約 5.00 GB decimal) との差は次の通り。
+
+- 所要時間: 実測 527.71 秒 は外挿 486.3 秒 より 41.41 秒 (+8.5%) 長い。
+- 出力サイズ: 実測 4,796,492,954 bytes は外挿 5,001,773,000 bytes (約 5.00 GB decimal) より 205,280,046 bytes (-4.1%) 小さい。
+
+いずれも外挿との乖離は 1 割未満で、全尺変換でも 1200 秒分の外挿からの大きな逸脱は見られない。
+
+### R2: 持続レンダーの実測
+
+`Probe-B-hevc` (durationInFrames=76932) の props で src を `probe-full.mp4` (R1 で生成したフル尺プロキシ) に差し替え、タイムライン 2000 秒地点 (frame=60000) から 60 秒分 (1800 フレーム) をレンダーした。
+
+```
+npx remotion render Probe-B-hevc out/render-full-60s.mp4 --frames=60000-61799 --props='{"src":"probe-full.mp4"}' --log=verbose
+```
+
+成功した。所要時間 (real) 6:43.16 (403.16 秒)。
+
+`ffprobe` による `out/render-full-60s.mp4` の実測:
+
+- 映像ストリーム: codec=h264, 30fps, duration=60.000000 秒
+- コンテナ (format): duration=60.053333 秒 (音声トラック分のずれ)
+
+期待通り 60 秒・30fps だった。
+
+verbose ログ (`/tmp/render-verbose.log`) を `fallback|offthread` (大小文字無視) で grep したところ、該当行は **0 件** だった。並列レンダー (このレンダーはデフォルトの並列 worker 数で実行) においてもフォールバック発生を示す警告ログは確認されなかった。
+
+1 フレームあたりの所要時間は 403.16 ÷ 1800 ≈ 0.2240 秒/フレーム。既存の 10 秒レンダー (条件 C、frames=18000-18299、59.593 秒 ÷ 300 フレーム ≈ 0.1986 秒/フレーム) と比較すると、+0.0254 秒/フレーム (+12.8%) 遅い。タイムライン上の深い位置 (2000 秒地点) からの 60 秒レンダーでも、10 秒レンダーからの単純な比例計算 (0.1986 秒/フレーム × 1800 ≈ 357.5 秒) に対して実測は 403.16 秒であり、大きくは外れないものの、やや上振れしている。
+
+### R3: disallowFallbackToOffthreadVideo での確認
+
+`@remotion/media` の `<Video>` に `disallowFallbackToOffthreadVideo` prop が存在することを `node_modules/@remotion/media/dist/index.d.ts` の型定義で確認した (`disallowFallbackToOffthreadVideo: boolean` として `Partial<{...}>` に含まれる、オプショナルな boolean prop)。`src/Root.tsx` の `Probe` コンポーネントの `<Video>` に一時的にこの prop を追加し、`npm run lint` (`tsc`) がエラー無く通ることを確認した。
+
+```
+npx remotion still Probe out/still-nofallback.jpeg --frame=1800 --props='{"src":"probe-c.mp4"}'
+```
+
+成功した。所要時間 (real) 5.833 秒。`out/still-nofallback.jpeg` (234KB) が生成された。フォールバックを明示的に禁止した状態でも still の取得に失敗しなかったことから、`@remotion/media` 本来の経路 (OffthreadVideo へのフォールバック無し) で処理が完了したことの確定的な証拠が得られた。
+
+計測後、`git checkout -- src/Root.tsx` で `disallowFallbackToOffthreadVideo` の追加を含む一時変更を取り消した。この prop はコードには残していない。
+
+### まとめ
+
+R1〜R3 のいずれも、既存の外挿・単発計測 (10 秒レンダー、単発 still) から推定される範囲を大きく外れる結果は得られなかった。全尺変換 (R1) は外挿の 1 割未満の差、持続レンダー (R2) は 1 フレームあたりの所要時間が既存の 10 秒レンダーから 1 割強遅い程度、フォールバックの有無 (R3) は明示的な禁止 prop を付与した状態でも成功することを確認しており、条件 C (H.264 プロキシ、ext4 実体) で観測されていた挙動が全尺・深い位置のレンダーでも崩れないことを裏付けている。
