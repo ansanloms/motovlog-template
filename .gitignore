@@ -10,10 +10,8 @@ out
 apm_modules/
 
 # ADR-0002: コミットしない素材
-# 各ディレクトリの .gitkeep はディレクトリを保持するための placeholder で、素材ではない
 public/projects/*
-!public/projects/.gitkeep
 public/assets/bgm/*
-!public/assets/bgm/.gitkeep
 public/assets/fonts/*
-!public/assets/fonts/.gitkeep
+# .gitkeep はディレクトリを保持するための placeholder で、素材ではない
+!.gitkeep
