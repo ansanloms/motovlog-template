@@ -1,0 +1,14 @@
+name: motovlog-template
+version: 1.0.0
+description: APM project for motovlog-template
+author: ansanloms
+dependencies:
+  apm:
+    - remotion-dev/skills#f54682712abc4a68cdc7c41513bd3b3298829873
+    - ansanloms/skills/adr
+    - ansanloms/skills/ja-tech-proofread
+  mcp: []
+targets:
+  - claude
+includes: auto
+scripts: {}
