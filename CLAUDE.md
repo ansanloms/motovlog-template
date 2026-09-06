@@ -10,10 +10,9 @@
 
 **このリポジトリでは、Remotion のライブラリ仕様の調査に限り、`find-docs` (Context7) より `remotion-docs` (または `remotion-best-practices` 経由) を優先して使う。** WebFetch 禁止の明示的な例外とする。
 
-理由:
-- `remotion-docs/SKILL.md` の `version` フィールドが、このリポジトリにインストールされている Remotion のバージョンに追従している。Context7 のスナップショットにはバージョン注記が付かないことがあり (2026-09-06 実測)、インストール済みバージョンとの対応がこちらの方が明確。
-- remotion.dev を直接ソースとするため、Context7 経由の GitHub ミラーより反映の遅延が小さい可能性がある (未検証)。
-
 適用範囲: このリポジトリでの Remotion ライブラリ仕様の調査のみ。他のライブラリの調査は `research.md` ルールに従い `find-docs` を使う。メインループ・subagent (`research-worker` 等) を問わず適用する。
 
-グローバルルール側の一般原則化は ansanloms/dotfiles#79 で追跡中。
+理由は次の通り。
+
+- `remotion-docs/SKILL.md` の `version` フィールドが、このリポジトリにインストールされている Remotion のバージョンに追従している。Context7 のスナップショットにはバージョン注記が付かないことがあり (2026-09-06 実測)、インストール済みバージョンとの対応がこちらの方が明確。
+- remotion.dev を直接ソースとするため、Context7 経由の GitHub ミラーより反映の遅延が小さい可能性がある (未検証)。
