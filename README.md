@@ -29,6 +29,8 @@ Remotion でモトブログ動画を作るためのエンジン。動画 1 本 =
 7. レンダリング: `npx remotion render Motovlog out/<slug>.mp4 --props=projects/<slug>/timeline.json`
 8. 公開したら `git tag render/<slug>` を打つ。再現はタグを checkout して `npm ci` し、素材を復元して render する。
 
+具体的なコマンドと timeline.json の書き換え箇所は [docs/howto-new-project.md](docs/howto-new-project.md) にある。
+
 ### クレジット
 
 使用した素材 (音声合成のキャラクター、立ち絵の作者、BGM 等) の利用規約に従ったクレジットを `ending.credits.text` に書く。
