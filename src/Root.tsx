@@ -1,6 +1,6 @@
 import React from "react";
 import { Composition } from "remotion";
-import sampleTimeline from "../projects/20260906-sample/timeline.json";
+import sampleTimeline from "../projects/00000000-sample/timeline.json";
 import { calculateMetadata, Motovlog } from "./compositions/Motovlog";
 import { timelineSchema } from "./timeline/schema";
 

@@ -1,6 +1,6 @@
 ---
 status: accepted
-date: 2026-09-06T13:59:17Z
+date: 2026-09-06T15:04:24Z
 refs: [1]
 tags: [layout, remotion]
 ---
@@ -46,7 +46,7 @@ Remotion には次の制約がある。
 - timeline 定義は `projects/<slug>/timeline.json` に置き、コミットする。エンジンは `remotion render --props=projects/<slug>/timeline.json` の形でこのファイルを受け取り、`calculateMetadata` で schema の検証と尺の算出をする。
 - 動画固有の素材 (プロキシ・セリフ音声・口パクのタイミング等) は `public/projects/<slug>/` に置く。`public/projects/` はコミットしない。
 - 動画をまたいで使う共通素材は `public/assets/<種別>/` に置く。種別は `bgm`・`se`・`characters/<name>`・`fonts` とする。
-- `public/assets/` 配下は既定でコミットしない。`.gitignore` で `public/assets/` 配下を除外し、`.gitkeep` と、再配布できる自作素材のディレクトリだけを否定パターンで明示してコミットする。
+- `public/assets/` 配下は既定でコミットしない。`.gitignore` で `public/assets/` 配下を除外し、`.gitkeep` と、再配布できる自作素材のディレクトリまたはファイルだけを否定パターンで明示してコミットする (書式は `.gitignore` の注記に従う)。
 - 第三者の素材は、種別を問わずコミットしない。コミットしない素材とドラレコの原本はリポジトリの外 (外部ストレージ) に保管する。`public/projects/<slug>/` に置くのは変換後のプロキシと生成物だけにする。
 - timeline から素材を参照するパスは public ディレクトリ相対とする (`assets/bgm/<file>`、`projects/<slug>/<file>`)。
 - 動画を公開したら、その時点のコミットにタグ `render/<slug>` を打つ。再現はタグを checkout し依存を復元して render する。
@@ -96,3 +96,4 @@ Remotion には次の制約がある。
 - https://www.remotion.dev/docs/passing-props : `--props` で JSON ファイルを渡す方法。
 - https://www.remotion.dev/docs/calculate-metadata : props から尺や解像度を算出する仕組み。
 - https://www.remotion.dev/docs/dataset-render : 1 つのコードベースから複数の動画を作るパターン。
+- ユーザとの検討 (2026-09-07、書き換え): 否定パターンをディレクトリ単位に限らずファイル単位も認める。成果物が無いため ADR-0000 の例外条項で本文を書き換えた。

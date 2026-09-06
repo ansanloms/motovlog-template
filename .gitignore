@@ -9,9 +9,22 @@ out
 # APM dependencies
 apm_modules/
 
-# ADR-0002: コミットしない素材
+# ADR-0002: 素材は既定でコミットしない。
+# public/assets/ 直下のファイルと、各種別ディレクトリ (bgm・se・fonts・characters/<name>) の中身を除外する。
+# 再配布できる自作素材をコミットするときは、このファイルの末尾 (下の除外パターンより後) に
+# 否定パターンを追記する。前に書くと効かない。書式は次の 3 つ:
+#   ファイル 1 つ:            !public/assets/se/click.wav
+#   ディレクトリ丸ごと:       !public/assets/characters/aoyama/**
+#   種別より深い階層のファイル: 親ディレクトリを先に戻してからファイルを書く
+#                             (!public/assets/bgm/album  の次の行に  !public/assets/bgm/album/x.wav)
+# 除外済みのディレクトリの下にあるファイルは、親を戻さない限りどこに書いても効かない。
+# ディレクトリ丸ごと戻した配下はすべて追跡されるので、その中に第三者の素材を混ぜない。
+# .gitkeep は種別ディレクトリ (characters/<name> を含む) までの placeholder。
 public/projects/*
-public/assets/bgm/*
-public/assets/fonts/*
-# .gitkeep はディレクトリを保持するための placeholder で、素材ではない
+public/assets/*
+!public/assets/*/
+public/assets/*/*
+!public/assets/characters/*/
+public/assets/characters/*/*
 !.gitkeep
+# ここから下に、コミットする自作素材の否定パターンを追記する。
