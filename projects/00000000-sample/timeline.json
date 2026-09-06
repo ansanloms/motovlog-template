@@ -6,7 +6,7 @@
   },
   "clips": [
     {
-      "src": "projects/20260906-sample/clip1.mp4",
+      "src": "projects/00000000-sample/clip1.mp4",
       "duration": 12,
       "sourceFrom": 0,
       "volume": 0.3,
@@ -17,7 +17,7 @@
   "overlays": [],
   "bgm": [
     {
-      "src": "projects/20260906-sample/bgm.wav",
+      "src": "projects/00000000-sample/bgm.wav",
       "start": 0,
       "duration": 12,
       "sourceFrom": 0,
@@ -29,7 +29,7 @@
   "lines": [
     {
       "id": "line1",
-      "audio": "projects/20260906-sample/line1.wav",
+      "audio": "projects/00000000-sample/line1.wav",
       "start": 1,
       "duration": 3,
       "text": "こんにちは、\nモトブログです。",
@@ -37,7 +37,7 @@
     },
     {
       "id": "line2",
-      "audio": "projects/20260906-sample/line2.wav",
+      "audio": "projects/00000000-sample/line2.wav",
       "start": 5,
       "duration": 3,
       "text": "今日はいい天気ですね。",

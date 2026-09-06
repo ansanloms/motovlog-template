@@ -15,15 +15,15 @@ Remotion でモトブログ動画を作るためのエンジン。動画 1 本 =
 - `src/`: エンジン (Composition・コンポーネント・schema)
 - `projects/<slug>/timeline.json`: 動画の定義。コミットする
 - `public/projects/<slug>/`: 動画固有の素材 (プロキシ・セリフ音声等)。コミットしない
-- `public/assets/<種別>/`: 共通素材。`bgm`・`se`・`characters/<name>`・`fonts`。`characters`・`se` はコミット、`bgm`・`fonts` はコミットしない
+- `public/assets/<種別>/`: 共通素材。`bgm`・`se`・`characters/<name>`・`fonts`。既定でコミットしない。再配布できる自作素材は `.gitignore` の否定パターンで明示してコミットする
 - `<slug>` は `YYYYMMDD-<name>` (例: `20260817-jododaira`)
 
 ## 新しい動画を作る
 
-1. slug を決めて `projects/<slug>/timeline.json` を作る。`projects/20260906-sample/timeline.json` をコピーして書き換えるのが早い。
+1. slug を決めて `projects/<slug>/timeline.json` を作る。`projects/00000000-sample/timeline.json` をコピーして書き換えるのが早い。
 2. ドラレコ原本をプロキシに変換する: `scripts/make-proxy.sh <slug> <原本>...`。出力は `public/projects/<slug>/<basename>.mp4`。詳細は「プロキシ生成」。
 3. セリフ音声 (wav) を `public/projects/<slug>/` に置く。VOICEVOX で書き出す場合、口パクデータの生成 (issue #2) と立ち絵 (issue #3) は未実装で、現状は音声と字幕だけになる。
-4. BGM・効果音は `public/assets/bgm/`・`public/assets/se/` に置く。
+4. BGM・効果音は `public/assets/bgm/`・`public/assets/se/` に置く。`public/assets/` 配下は既定でコミットされない。自作の素材をコミットするときは `.gitignore` の末尾に否定パターンを足す (除外パターンより前に書くと効かない)。書式はファイル 1 つなら `!public/assets/se/click.wav`、ディレクトリ丸ごとなら `!public/assets/characters/aoyama/**`、種別より深い階層のファイルだけなら親ディレクトリを先に戻してから書く (`!public/assets/bgm/album` の次の行に `!public/assets/bgm/album/x.wav`)。第三者の素材はコミットしない。
 5. timeline.json に clips・lines・bgm 等を書く (「timeline.json の書き方」)。素材のパスは `public/` 相対 (`projects/<slug>/clip1.mp4`、`assets/bgm/xxx.wav`)。
 6. プレビュー: `npx remotion studio --props=projects/<slug>/timeline.json`
 7. レンダリング: `npx remotion render Motovlog out/<slug>.mp4 --props=projects/<slug>/timeline.json`
@@ -35,14 +35,16 @@ Remotion でモトブログ動画を作るためのエンジン。動画 1 本 =
 
 ## サンプル project
 
-`projects/20260906-sample/timeline.json` が同梱されている。素材はコミットされていないので、次の ffmpeg で合成素材を作れば `--props` 無しでも Studio と render が動く。
+slug の日付部分は `00000000` にしている (実際の project は `YYYYMMDD` を使う。サンプルだけの例外)。
+
+`projects/00000000-sample/timeline.json` が同梱されている。素材はコミットされていないので、次の ffmpeg で合成素材を作れば `--props` 無しでも Studio と render が動く。
 
 ```sh
-mkdir -p public/projects/20260906-sample
-ffmpeg -f lavfi -i testsrc=size=1920x1080:rate=30:duration=12 -f lavfi -i sine=frequency=440:duration=12 -pix_fmt yuv420p -shortest public/projects/20260906-sample/clip1.mp4
-ffmpeg -f lavfi -i sine=frequency=220:duration=20 public/projects/20260906-sample/bgm.wav
-ffmpeg -f lavfi -i sine=frequency=880:duration=2 public/projects/20260906-sample/line1.wav
-ffmpeg -f lavfi -i sine=frequency=880:duration=2 public/projects/20260906-sample/line2.wav
+mkdir -p public/projects/00000000-sample
+ffmpeg -f lavfi -i testsrc=size=1920x1080:rate=30:duration=12 -f lavfi -i sine=frequency=440:duration=12 -pix_fmt yuv420p -shortest public/projects/00000000-sample/clip1.mp4
+ffmpeg -f lavfi -i sine=frequency=220:duration=20 public/projects/00000000-sample/bgm.wav
+ffmpeg -f lavfi -i sine=frequency=880:duration=2 public/projects/00000000-sample/line1.wav
+ffmpeg -f lavfi -i sine=frequency=880:duration=2 public/projects/00000000-sample/line2.wav
 ```
 
 ## timeline.json の書き方
