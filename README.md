@@ -39,15 +39,25 @@ Remotion でモトブログ動画を作るためのエンジン。動画 1 本 =
 
 slug の日付部分は `00000000` にしている (実際の project は `YYYYMMDD` を使う。サンプルだけの例外)。
 
-`projects/00000000-sample/timeline.json` が同梱されている。素材はコミットされていないので、次の ffmpeg で合成素材を作れば `--props` 無しでも Studio と render が動く。
+`projects/00000000-sample/timeline.json` が同梱されている。素材はコミットされていないので、次の 3 種類を `public/` 配下に用意する。
+
+| 素材                                                                             | 内容                                                                                                                                                                                              |
+| -------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `public/projects/00000000-sample/VID_20260802_074903_00_287_359_DASHCAM1.mp4`     | ドラレコのプロキシ。`scripts/make-proxy.sh 00000000-sample <原本>` で作る。別のファイルを使うなら timeline.json の `clips[0].src` を出力名に合わせる                                             |
+| `public/assets/bgm/m1.wav`                                                        | BGM                                                                                                                                                                                              |
+| `public/projects/00000000-sample/line1.wav`・`line2.wav`                          | セリフ音声。VOICEVOX で「今日は浄土平まで走ってきた。」「磐梯吾妻スカイラインは、紅葉の時期が一番きれいだ。」を合成したもの。生成の自動化は [ADR-0006](docs/adr/0006-generate-voice-and-lipsync-from-voicevox-api.md) の実装待ち |
+
+素材が手元に無い場合は、次の ffmpeg で同名の合成素材を作れば代わりに使える。既に同名のファイルがあれば `-n` により上書きせずに終了する。本物の素材 (特に `public/assets/bgm/m1.wav`) を上書きしないため。
 
 ```sh
-mkdir -p public/projects/00000000-sample
-ffmpeg -f lavfi -i testsrc=size=1920x1080:rate=30:duration=12 -f lavfi -i sine=frequency=440:duration=12 -pix_fmt yuv420p -shortest public/projects/00000000-sample/clip1.mp4
-ffmpeg -f lavfi -i sine=frequency=220:duration=20 public/projects/00000000-sample/bgm.wav
-ffmpeg -f lavfi -i sine=frequency=880:duration=2 public/projects/00000000-sample/line1.wav
-ffmpeg -f lavfi -i sine=frequency=880:duration=2 public/projects/00000000-sample/line2.wav
+mkdir -p public/projects/00000000-sample public/assets/bgm
+ffmpeg -n -f lavfi -i testsrc=size=1920x1080:rate=30:duration=12 -f lavfi -i sine=frequency=440:duration=12 -pix_fmt yuv420p -shortest public/projects/00000000-sample/VID_20260802_074903_00_287_359_DASHCAM1.mp4
+ffmpeg -n -f lavfi -i sine=frequency=220:duration=20 public/assets/bgm/m1.wav
+ffmpeg -n -f lavfi -i sine=frequency=880:duration=2.2 public/projects/00000000-sample/line1.wav
+ffmpeg -n -f lavfi -i sine=frequency=880:duration=4 public/projects/00000000-sample/line2.wav
 ```
+
+素材を置けば `--props` 無しでも Studio と render が動く。代替の合成動画はプロキシと同じファイル名なので、実素材に切り替えるときは `public/projects/00000000-sample/` の代替ファイルを消してから `scripts/make-proxy.sh` を実行する (既存があると skip される)。
 
 ## timeline.json の書き方
 
