@@ -1,6 +1,6 @@
 ---
 status: accepted
-date: 2026-09-06T12:25:08Z
+date: 2026-09-06T13:59:17Z
 refs: [1]
 tags: [layout, remotion]
 ---
@@ -17,7 +17,7 @@ Remotion には次の制約がある。
 - `remotion render --props=<file>` で JSON ファイルを入力にでき、`calculateMetadata` がその内容から尺と解像度を決められる。1 つのコードベースから複数の動画を作る公式のパターンはこの形で、動画間の差分はコードではなく入力データになる。
 - 長尺の HEVC 原本は直接読めず、H.264 のプロキシへ変換した上で public 配下に置く必要がある (2026-09-02 の検証)。
 
-素材は由来とライセンスが混在する。ドラレコ映像とセリフ音声は動画ごとに固有で自作、立ち絵と効果音は動画をまたいで使う自作素材、BGM は動画をまたいで使う第三者の素材で再配布に制限が付くことが多い。
+素材は由来とライセンスが混在する。ドラレコ映像とセリフ音声は動画ごとに固有で自作。立ち絵は VOICEVOX のキャラクター (青山龍星) の第三者制作の素材で、リポジトリで再配布する前提にない。BGM や効果音は第三者の素材を使うことがあり、再配布の可否は素材ごとに異なる。自作の素材 (効果音・図版等) も今後増える見込みで、これは版管理したい。
 
 既存のテンプレート実装 (未マージのブランチ) は、素材を `public/sample/`、プロキシを `public/proxies/`、timeline を `src/data/sample.ts` にハードコードしている。
 
@@ -32,11 +32,12 @@ Remotion には次の制約がある。
 
 ## Considered Options
 
-1. 単一リポジトリで、timeline を `projects/<slug>/timeline.json`、動画固有の素材を `public/projects/<slug>/`、共通素材を `public/assets/<種別>/` に置く — 採用。素材はすべて public 配下にあり Remotion が配信できる。timeline は JSON なので `--props` で渡せ、他のプログラムからも生成できる。素材の git 管理をディレクトリ単位で分けられる。
+1. 単一リポジトリで、timeline を `projects/<slug>/timeline.json`、動画固有の素材を `public/projects/<slug>/`、共通素材を `public/assets/<種別>/` に置き、共通素材のコミット可否はライセンスで決める — 採用。素材はすべて public 配下にあり Remotion が配信できる。timeline は JSON なので `--props` で渡せ、他のプログラムからも生成できる。`public/assets/` は既定でコミットせず、再配布できる自作素材だけを `.gitignore` の否定パターンで明示するため、判断を忘れた素材が混入しない。
 2. 単一リポジトリで、timeline を `src/data/<slug>.ts`、素材を `public/videos/<slug>/` に置く (issue での先行提案) — 却下。timeline が TypeScript だと Remotion 以外から生成しにくく、動画を増やすたびに Composition の登録かエントリの切り替えをコードに書くことになる。
 3. 単一リポジトリで、timeline と素材を `projects/<slug>/` にまとめて置く — 却下。素材が public の外になり Remotion が配信できない。`--public-dir` を project ごとに切り替えると共通素材が届かなくなる。
 4. 動画ごとに別リポジトリを作る — 却下。エンジンの更新が各動画に伝播せず、数 KB の timeline のためにリポジトリと依存の複製を抱える。
 5. 素材をすべて git (LFS を含む) で管理する — 却下。GB 単位のプロキシと再配布制限のある BGM を含むため、リポジトリを公開・移行できなくなる。
+6. 共通素材のコミット可否を種別単位で決める (`characters`・`se` はコミット、`bgm`・`fonts` はコミットしない) — 却下。同じ種別に自作と第三者の素材が混ざり、種別では判断できない。
 
 ## Decision
 
@@ -45,8 +46,8 @@ Remotion には次の制約がある。
 - timeline 定義は `projects/<slug>/timeline.json` に置き、コミットする。エンジンは `remotion render --props=projects/<slug>/timeline.json` の形でこのファイルを受け取り、`calculateMetadata` で schema の検証と尺の算出をする。
 - 動画固有の素材 (プロキシ・セリフ音声・口パクのタイミング等) は `public/projects/<slug>/` に置く。`public/projects/` はコミットしない。
 - 動画をまたいで使う共通素材は `public/assets/<種別>/` に置く。種別は `bgm`・`se`・`characters/<name>`・`fonts` とする。
-- `public/assets/` のコミット可否は種別単位で決める。`characters` と `se` はコミットし、`bgm` と `fonts` はコミットしない。
-- コミットしない素材とドラレコの原本はリポジトリの外 (外部ストレージ) に保管する。`public/projects/<slug>/` に置くのは変換後のプロキシと生成物だけにする。
+- `public/assets/` 配下は既定でコミットしない。`.gitignore` で `public/assets/` 配下を除外し、`.gitkeep` と、再配布できる自作素材のディレクトリだけを否定パターンで明示してコミットする。
+- 第三者の素材は、種別を問わずコミットしない。コミットしない素材とドラレコの原本はリポジトリの外 (外部ストレージ) に保管する。`public/projects/<slug>/` に置くのは変換後のプロキシと生成物だけにする。
 - timeline から素材を参照するパスは public ディレクトリ相対とする (`assets/bgm/<file>`、`projects/<slug>/<file>`)。
 - 動画を公開したら、その時点のコミットにタグ `render/<slug>` を打つ。再現はタグを checkout し依存を復元して render する。
 
@@ -56,13 +57,14 @@ Remotion には次の制約がある。
 
 - エンジンの修正が 1 か所で済み、すべての動画に効く。
 - timeline がテキストで diff でき、公開時点をタグで固定できる。
-- 素材のパスを見れば共通素材か動画固有かが分かり、gitignore の境界がディレクトリと一致する。
+- 素材のパスを見れば共通素材か動画固有かが分かる。何を版管理しているかは `.gitignore` の否定パターンに現れ、判断の記録になる。
 - timeline が JSON なので、音声合成やタイミング生成のスクリプトが Remotion と別のランタイムで書ける。
 
 ### 代償
 
 - 動画 1 本の構成要素が `projects/<slug>/` と `public/projects/<slug>/` の 2 か所に分かれる。
-- コミットしない素材 (BGM・フォント・プロキシ・原本) は外部ストレージでの保管と復元手順が要り、タグだけでは再現できない。
+- コミットしない素材 (第三者の素材・プロキシ・原本) は外部ストレージでの保管と復元手順が要り、タグだけでは再現できない。
+- 自作素材をコミットするたびに `.gitignore` に否定パターンを足す手間が要る。
 - timeline を JSON で書くため、TypeScript の型補完は効かない。誤りは schema の検証で検出する。
 
 ### 禁止事項
@@ -70,7 +72,9 @@ Remotion には次の制約がある。
 - 素材を public ディレクトリの外に置いて timeline から参照すること。
 - シンボリックリンクで素材を public 配下に見せること。
 - 動画固有の素材を `public/assets/` に置くこと、および共通素材を `public/projects/<slug>/` に置くこと。
-- `public/projects/`・`public/assets/bgm/`・`public/assets/fonts/` をコミットすること。
+- `public/projects/` をコミットすること。
+- 再配布できない第三者の素材を、`public/assets/` のどの種別であってもコミットすること。
+- `.gitignore` の否定パターン無しに `public/assets/` 配下の素材をコミットすること。
 
 ## Assumptions
 
@@ -86,6 +90,7 @@ Remotion には次の制約がある。
 - issue での先行提案 (2026-09-06): timeline をこのリポジトリに集約し、素材はリポジトリ外で管理して `public/videos/<slug>/` を作業場にする案と、Remotion 公式のデータ駆動パターンを根拠とする整理。
 - 長尺・大容量ドラレコ動画の取り込み検証 (2026-09-01〜02): シンボリックリンクが配信されないこと、プロキシを public 配下の実体として置くこと、`--public-dir` の挙動の確認。
 - ユーザとの検討 (2026-09-06): 単一リポジトリでの管理、公開時のタグ、slug の形式、共通素材の種別と BGM をコミットしない判断。
+- ユーザとの検討 (2026-09-06、書き換え): 立ち絵が第三者素材だと分かり、共通素材のコミット可否を種別からライセンスに変えた。動画を 1 本も作っていない段階のため、ADR-0000 の例外条項に基づき supersede でなく本文の書き換えで対応した。
 - https://www.remotion.dev/docs/miscellaneous/absolute-paths : 絶対パスが使えない理由と public ディレクトリの位置づけ。
 - https://www.remotion.dev/docs/terminology/public-dir : public ディレクトリの定義。
 - https://www.remotion.dev/docs/passing-props : `--props` で JSON ファイルを渡す方法。
