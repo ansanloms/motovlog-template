@@ -1,6 +1,6 @@
 ---
 status: accepted
-date: 2026-09-06T11:25:16Z
+date: 2026-09-06T13:59:17Z
 ---
 
 # ADR-0000: 設計上の決定を ADR として記録する
@@ -32,6 +32,7 @@ date: 2026-09-06T11:25:16Z
   - 「やらない」と決めたこと (スコープの切り捨て)
 - 命名規約やフォーマッタ設定など、変えても影響が局所的な決定は ADR にしない。
 - status は次の順にだけ遷移させる。本文を変更できるのは proposed の間だけとし、決定を覆すときは新しい ADR で supersede する。
+- 例外として、accepted の ADR でも、その決定に基づく成果物 (実装・素材・動画) がまだ無い間は Decision を書き換えてよい。書き換えたときは date を更新し、References に変更の日付と内容を残す。成果物ができた後の変更は supersede に限る。
   - proposed から accepted または rejected へ
   - accepted から deprecated または superseded へ
   - deprecated から superseded へ
@@ -64,3 +65,4 @@ date: 2026-09-06T11:25:16Z
 
 - https://github.com/ansanloms/skills/tree/main/adr (この運用を定めた skill)
 - ユーザからの依頼 (2026-09-06): このリポジトリと移行先のリポジトリで意思決定を ADR にまとめたい。issue 等は次のリポジトリに移行できないため。
+- ユーザとの検討 (2026-09-06): 動画を 1 本も作っていない初期段階では決定が頻繁に変わるため、成果物が無い間の accepted の ADR の書き換えを認める条項を追加した。
