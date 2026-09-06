@@ -9,7 +9,7 @@ tags: [remotion, ffmpeg, proxy]
 
 ## Context
 
-ADR-0001 で Remotion を採用し、ADR-0002 で動画固有の素材は `public/projects/<slug>/` に置くと決めた。モトブログの背景映像はドラレコの原本で、1 本が HEVC・1080p・24fps・約 43 分・約 8GB の長尺ファイルになる。原本は Windows 側のストレージ (WSL からは 9P 経由の `/mnt/c`) にあり、Remotion のプロジェクトは WSL の ext4 上にある。
+[ADR-0001](./0001-use-remotion-for-video-production.md) で Remotion を採用し、[ADR-0002](./0002-project-directory-layout.md) で動画固有の素材は `public/projects/<slug>/` に置くと決めた。モトブログの背景映像はドラレコの原本で、1 本が HEVC・1080p・24fps・約 43 分・約 8GB の長尺ファイルになる。原本は Windows 側のストレージ (WSL からは 9P 経由の `/mnt/c`) にあり、Remotion のプロジェクトは WSL の ext4 上にある。
 
 Remotion の映像コンポーネントには次の事実がある。
 
@@ -46,7 +46,7 @@ Remotion の映像コンポーネントには次の事実がある。
 - ドラレコ原本 (HEVC) を timeline から直接参照しない。原本 1 ファイルを 1 つの H.264 プロキシに変換し、`public/projects/<slug>/` に実体として置く。
 - プロキシは H.264・AAC・faststart とし、フレームレートは composition の fps に合わせる。GOP 長はフレームレートと同じ値 (1 秒ごとにキーフレーム) とする。
 - 変換は ffmpeg で行う。NVENC (`h264_nvenc`、`-preset p4 -cq 23`) を優先し、失敗したときは libx264 (`-preset veryfast -crf 22`) にフォールバックする。WSL では `LD_LIBRARY_PATH=/usr/lib/wsl/lib` を付けて実行する。
-- 原本に触れるのは変換時の読み取り 1 回だけとし、原本は書き換えない。原本の保管場所は ADR-0002 に従いリポジトリの外とする。
+- 原本に触れるのは変換時の読み取り 1 回だけとし、原本は書き換えない。原本の保管場所は [ADR-0002](./0002-project-directory-layout.md) に従いリポジトリの外とする。
 - 使う区間は timeline で指定し、Remotion の `trimBefore`・`trimAfter` で切る。区間や台本の変更で再変換しない。
 - 映像の描画には `@remotion/media` の `<Video>` を使う。
 - プロキシのファイル名は原本のファイル名の拡張子を `.mp4` に変えたものとし、既に存在するプロキシは再変換しない。
@@ -75,16 +75,16 @@ Remotion の映像コンポーネントには次の事実がある。
 
 ## Assumptions
 
-| 前提                                                            | 状態   | 確認方法 / 結果                                                                    |
-| --------------------------------------------------------------- | ------ | ---------------------------------------------------------------------------------- |
-| `-cq 23` の NVENC 出力が公開する動画の画質として足りる          | 未検証 | 完成した動画を公開解像度で視聴し、ブロックノイズや帯域不足が目立たないかを確認する |
-| 作業環境で NVENC が使い続けられる                               | 未検証 | 環境を変えたときに `make-proxy` の NVENC 経路が通るかを確認する                    |
-| 持続レンダリングの速度 (0.224 秒/フレーム) が試行錯誤を妨げない | 未検証 | ADR-0001 の同じ前提と合わせて、実際の動画で計測する                                |
+| 前提                                                            | 状態   | 確認方法 / 結果                                                                                    |
+| --------------------------------------------------------------- | ------ | -------------------------------------------------------------------------------------------------- |
+| `-cq 23` の NVENC 出力が公開する動画の画質として足りる          | 未検証 | 完成した動画を公開解像度で視聴し、ブロックノイズや帯域不足が目立たないかを確認する                 |
+| 作業環境で NVENC が使い続けられる                               | 未検証 | 環境を変えたときに `make-proxy` の NVENC 経路が通るかを確認する                                    |
+| 持続レンダリングの速度 (0.224 秒/フレーム) が試行錯誤を妨げない | 未検証 | [ADR-0001](./0001-use-remotion-for-video-production.md) の同じ前提と合わせて、実際の動画で計測する |
 
 ## References
 
-- ADR-0001 (`docs/adr/0001-use-remotion-for-video-production.md`): Remotion 採用の決定。
-- ADR-0002 (`docs/adr/0002-project-directory-layout.md`): プロキシの置き場 `public/projects/<slug>/` と原本の保管場所の決定。
+- [ADR-0001](./0001-use-remotion-for-video-production.md): Remotion 採用の決定。
+- [ADR-0002](./0002-project-directory-layout.md): プロキシの置き場 `public/projects/<slug>/` と原本の保管場所の決定。
 - 長尺・大容量ドラレコ動画の取り込み検証 (2026-09-01〜02): 原本 1 本 (HEVC・8.06GB・2564 秒) を使った静止画・レンダリング・変換速度の実測と、9P 参照案の撤回。
 - ユーザとの検討 (2026-09-06): プロキシの fps を composition に合わせる判断。
 - https://www.remotion.dev/docs/video-tags : `<Video>` (`@remotion/media`) の推奨と対応コーデック、`<OffthreadVideo>` との速度差。
