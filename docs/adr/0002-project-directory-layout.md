@@ -9,7 +9,7 @@ tags: [layout, remotion]
 
 ## Context
 
-ADR-0001 で動画作成に Remotion を採用し、動画の内容はコードまたはテキストデータとして版管理すると決めた。モトブログは同じ構成の動画を数多く作る用途で、動画 1 本の定義 (timeline) は数 KB のテキストである一方、素材 (ドラレコ映像のプロキシ・音声) は GB 単位になる。
+[ADR-0001](./0001-use-remotion-for-video-production.md) で動画作成に Remotion を採用し、動画の内容はコードまたはテキストデータとして版管理すると決めた。モトブログは同じ構成の動画を数多く作る用途で、動画 1 本の定義 (timeline) は数 KB のテキストである一方、素材 (ドラレコ映像のプロキシ・音声) は GB 単位になる。
 
 Remotion には次の制約がある。
 
@@ -82,7 +82,7 @@ Remotion には次の制約がある。
 
 ## References
 
-- ADR-0001 (`docs/adr/0001-use-remotion-for-video-production.md`): Remotion 採用と、動画の内容をテキストデータとして版管理する決定。
+- [ADR-0001](./0001-use-remotion-for-video-production.md): Remotion 採用と、動画の内容をテキストデータとして版管理する決定。
 - issue での先行提案 (2026-09-06): timeline をこのリポジトリに集約し、素材はリポジトリ外で管理して `public/videos/<slug>/` を作業場にする案と、Remotion 公式のデータ駆動パターンを根拠とする整理。
 - 長尺・大容量ドラレコ動画の取り込み検証 (2026-09-01〜02): シンボリックリンクが配信されないこと、プロキシを public 配下の実体として置くこと、`--public-dir` の挙動の確認。
 - ユーザとの検討 (2026-09-06): 単一リポジトリでの管理、公開時のタグ、slug の形式、共通素材の種別と BGM をコミットしない判断。
