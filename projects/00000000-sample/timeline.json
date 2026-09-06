@@ -6,7 +6,7 @@
   },
   "clips": [
     {
-      "src": "projects/00000000-sample/clip1.mp4",
+      "src": "projects/00000000-sample/VID_20260802_074903_00_287_359_DASHCAM1.mp4",
       "duration": 12,
       "sourceFrom": 0,
       "volume": 0.3,
@@ -17,7 +17,7 @@
   "overlays": [],
   "bgm": [
     {
-      "src": "projects/00000000-sample/bgm.wav",
+      "src": "assets/bgm/m1.wav",
       "start": 0,
       "duration": 12,
       "sourceFrom": 0,
@@ -31,16 +31,16 @@
       "id": "line1",
       "audio": "projects/00000000-sample/line1.wav",
       "start": 1,
-      "duration": 3,
-      "text": "こんにちは、\nモトブログです。",
+      "duration": 2.165,
+      "text": "今日は浄土平まで走ってきた。",
       "subtitleTail": 0.4
     },
     {
       "id": "line2",
       "audio": "projects/00000000-sample/line2.wav",
-      "start": 5,
-      "duration": 3,
-      "text": "今日はいい天気ですね。",
+      "start": 4,
+      "duration": 3.957,
+      "text": "磐梯吾妻スカイラインは、\n紅葉の時期が一番きれいだ。",
       "subtitleTail": 0.4
     }
   ],
