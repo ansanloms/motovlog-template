@@ -13,7 +13,7 @@ describe("computeBandSpans", () => {
     const spans = computeBandSpans([{ start: 1, duration: 2 }], opts);
 
     expect(spans).toEqual([
-      { start: 0.76, duration: 3 + 4.8 + 0.48 - 0.76, fadeIn: 0.24 },
+      { start: 0.8, duration: 3 + 5 + 0.4 - 0.8, fadeIn: 0.2 },
     ]);
   });
 
@@ -32,7 +32,7 @@ describe("computeBandSpans", () => {
   });
 
   it("次の line との隙間が閾値以内なら 1 区間に統合する", () => {
-    // 1 本目: [0, 3)。2 本目: start 8.5。隙間 5.5 <= 閾値 5.52。
+    // 1 本目: [0, 3)。2 本目: start 8.5。隙間 5.5 <= 閾値 5.6。
     const spans = computeBandSpans(
       [
         { start: 0, duration: 3 },
@@ -44,8 +44,8 @@ describe("computeBandSpans", () => {
     expect(spans).toHaveLength(1);
   });
 
-  it("隙間 5.4 秒 (閾値 5.52 以内) でも 1 区間に統合する", () => {
-    // 1 本目: [0, 3)。2 本目: start 8.4。隙間 5.4 <= 閾値 5.52。
+  it("隙間 5.4 秒 (閾値 5.6 以内) でも 1 区間に統合する", () => {
+    // 1 本目: [0, 3)。2 本目: start 8.4。隙間 5.4 <= 閾値 5.6。
     const spans = computeBandSpans(
       [
         { start: 0, duration: 3 },
@@ -58,7 +58,7 @@ describe("computeBandSpans", () => {
   });
 
   it("次の line との隙間が閾値を超えると 2 区間に分け、区間同士は重ならない", () => {
-    // 1 本目: [0, 3)。2 本目: start 9。隙間 6 > 閾値 5.52。
+    // 1 本目: [0, 3)。2 本目: start 9。隙間 6 > 閾値 5.6。
     const spans = computeBandSpans(
       [
         { start: 0, duration: 3 },
@@ -84,7 +84,7 @@ describe("computeBandSpans", () => {
     );
 
     expect(spans).toHaveLength(1);
-    expect(spans[0].start + spans[0].duration).toBe(10 + 5.28);
+    expect(spans[0].start + spans[0].duration).toBe(10 + 5.4);
   });
 
   it("3 グループに分かれる入力では 3 区間になる", () => {
