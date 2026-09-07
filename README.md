@@ -57,7 +57,7 @@ ffmpeg -n -f lavfi -i sine=frequency=880:duration=2.2 public/projects/00000000-s
 ffmpeg -n -f lavfi -i sine=frequency=880:duration=4 public/projects/00000000-sample/line2.wav
 ```
 
-素材を置けば Studio と render が動く (`REMOTION_PROJECT` は未設定でよく、既定でこのサンプルを読む)。代替の合成動画は変換済み素材と同じファイル名なので、実素材に切り替えるときは `public/projects/00000000-sample/` の代替ファイルを消してから `npm run convert` を実行する (既存があると skip される)。
+素材を置けば Studio と render が動く (`REMOTION_PROJECT` は未設定でよく、既定でこのサンプルを読む)。代替の合成動画は変換済み素材と同じファイル名なので、実素材に切り替えるときは `public/projects/00000000-sample/` の代替ファイルを消してから `npm run convert -- 00000000-sample <原本>` を実行する (既存があると skip される)。
 
 ## timeline.ts の書き方
 
