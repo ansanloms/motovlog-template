@@ -27,7 +27,7 @@ tags: [remotion, timeline, schema, theme]
 
 - timeline schema から `style` と `subtitleBands` を外す。
 - 見た目の値は `src/theme.ts` に置き、コンポーネントはそこから読む。
-- 暗がりの区間は lines の start と duration から `src/timeline/darkness.ts` で導く。
+- 暗がりの区間は lines の start と duration から `src/timeline/band.ts` で導く。
 - 見た目を変えるときは theme と T&M 文書を変え、timeline は変えない。
 - `version` は 1 のままとする。理由: 運用開始前で既存の timeline は無い ([ADR-0000](./0000-record-architecture-decisions.md) の例外)。
 

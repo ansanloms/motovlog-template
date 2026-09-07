@@ -28,7 +28,7 @@ export const subtitleLayout = {
 } as const;
 
 // T&M「画面配置」「字幕の出し方」節。
-export const darkness = {
+export const band = {
   height: 348, // 134 + 44 * 1.45 * 2 + 86 (字幕 2 行分)
   gradient:
     "linear-gradient(to top, rgba(0, 0, 0, 0.65), rgba(0, 0, 0, 0.3) 45%, rgba(0, 0, 0, 0))",

@@ -1,12 +1,12 @@
 import React from "react";
 import { AbsoluteFill } from "remotion";
-import { SubtitleDarkness } from "../components/SubtitleDarkness";
+import { SubtitleBand } from "../components/SubtitleBand";
 import { Subtitles } from "../components/Subtitles";
-import { computeDarknessSpans } from "../timeline/darkness";
+import { computeBandSpans } from "../timeline/band";
 import type { VoicedTimeline } from "../timeline/schema";
-import { darkness } from "../theme";
+import { band } from "../theme";
 
-// SubtitleDarkness・Subtitles 単体の確認用。timeline を使わず固定 props で描く。
+// SubtitleBand・Subtitles 単体の確認用。timeline を使わず固定 props で描く。
 const lines: VoicedTimeline["lines"] = [
   {
     id: "g1",
@@ -30,7 +30,7 @@ export const galleryFps = 30;
 
 // lines から導いた暗がりの最後の区間の終端まで表示できる尺にする。
 // 区間が無い場合でも Remotion の durationInFrames は 1 以上を要求するため下限を設ける。
-const galleryEndSeconds = computeDarknessSpans(lines, darkness).reduce(
+const galleryEndSeconds = computeBandSpans(lines, band).reduce(
   (max, span) => Math.max(max, span.start + span.duration),
   0,
 );
@@ -48,7 +48,7 @@ export const SubtitlesGallery: React.FC = () => {
         background: "linear-gradient(to bottom, #cfe3f0 50%, #6b6b6b 50%)",
       }}
     >
-      <SubtitleDarkness lines={lines} />
+      <SubtitleBand lines={lines} />
       <Subtitles lines={lines} />
     </AbsoluteFill>
   );

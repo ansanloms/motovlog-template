@@ -9,12 +9,12 @@
 //   (フェードアウトと次のフェードインが重ならないよう、フェードの分を足した
 //   値で判定する)。
 
-export type DarknessSpan = { start: number; duration: number; fadeIn: number }; // 秒。フェードイン・アウトを含む区間。fadeIn は leadIn を start の 0 clamp 分だけ短縮した実効フェードイン秒
+export type BandSpan = { start: number; duration: number; fadeIn: number }; // 秒。フェードイン・アウトを含む区間。fadeIn は leadIn を start の 0 clamp 分だけ短縮した実効フェードイン秒
 
-export const computeDarknessSpans = (
+export const computeBandSpans = (
   lines: ReadonlyArray<{ start: number; duration: number }>,
   opts: { leadIn: number; silenceGap: number; fadeOut: number },
-): DarknessSpan[] => {
+): BandSpan[] => {
   const { leadIn, silenceGap, fadeOut } = opts;
 
   if (lines.length === 0) {
@@ -24,7 +24,7 @@ export const computeDarknessSpans = (
   const sorted = [...lines].sort((a, b) => a.start - b.start);
   const mergeThreshold = silenceGap + fadeOut + leadIn;
 
-  const spans: DarknessSpan[] = [];
+  const spans: BandSpan[] = [];
   let groupStart = sorted[0].start;
   let groupEnd = sorted[0].start + sorted[0].duration;
 
@@ -53,7 +53,7 @@ const toSpan = (
   leadIn: number,
   silenceGap: number,
   fadeOut: number,
-): DarknessSpan => {
+): BandSpan => {
   const start = Math.max(0, groupStart - leadIn);
   const end = groupEnd + silenceGap + fadeOut;
   // groupStart - start と等価だが、浮動小数の誤差 (例: 1 - 0.7) を避けるため

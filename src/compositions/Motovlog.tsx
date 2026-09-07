@@ -6,7 +6,7 @@ import { CharacterLayer } from "../components/CharacterLayer";
 import { DashcamTrack } from "../components/DashcamTrack";
 import { Ending } from "../components/Ending";
 import { Overlays } from "../components/Overlays";
-import { SubtitleDarkness } from "../components/SubtitleDarkness";
+import { SubtitleBand } from "../components/SubtitleBand";
 import { Subtitles } from "../components/Subtitles";
 import { VoiceLines } from "../components/VoiceLines";
 import { resolveClipSpans } from "../timeline/clips";
@@ -94,7 +94,7 @@ export const Motovlog: React.FC<MotovlogProps> = ({ timeline }) => {
       <DashcamTrack clips={timeline.clips} />
       <Overlays overlays={timeline.overlays} />
       <CharacterLayer segments={timeline.characterSegments} />
-      <SubtitleDarkness lines={timeline.lines} />
+      <SubtitleBand lines={timeline.lines} />
       <Subtitles lines={timeline.lines} />
       <Bgm bgm={timeline.bgm} />
       <VoiceLines lines={timeline.lines} />
