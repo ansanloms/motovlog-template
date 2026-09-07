@@ -1,0 +1,17 @@
+.layer {
+  justify-content: flex-end;
+  align-items: center;
+  padding-bottom: var(--subtitle-bottom-offset);
+}
+
+.text {
+  font-family: var(--font);
+  font-weight: var(--w-regular);
+  font-size: var(--video-subtitle);
+  line-height: var(--subtitle-line-height);
+  color: var(--ink-video);
+  text-align: center;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  max-width: var(--subtitle-max-width);
+}

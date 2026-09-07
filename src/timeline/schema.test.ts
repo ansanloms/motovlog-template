@@ -184,11 +184,24 @@ describe("default 値の補完", () => {
     expect(parsed.lines[0].subtitleTail).toBe(0.4);
     expect(parsed.overlays).toEqual([]);
     expect(parsed.bgm).toEqual([]);
-    expect(parsed.subtitleBands).toEqual([]);
     expect(parsed.characterSegments).toEqual([]);
     expect(parsed.ending).toBeUndefined();
-    expect(parsed.style.subtitle.fontSize).toBe(40);
-    expect(parsed.style.band.color).toBe("#262672");
+  });
+
+  // 見た目 (style) と手置きの帯 (subtitleBands) は schema から外した
+  // (ADR-0007, ADR-0008)。zod の object は未知キーを捨てるため、これらを
+  // 書いた既存の timeline.ts も parse は通り、結果にキーが残らない。
+  // ただし defineTimeline の型検査では余分なキーとして弾かれる (TS2353)
+  // ので、timeline.ts から書く場合は削除が要る。
+  it("style・subtitleBands を書いても zod の parse は通り、結果にキーが残らない", () => {
+    const parsed = timelineSchema.parse({
+      clips: minimalClips,
+      style: { subtitle: { fontSize: 40 } },
+      subtitleBands: [{ start: 0, duration: 1 }],
+    });
+
+    expect("style" in parsed).toBe(false);
+    expect("subtitleBands" in parsed).toBe(false);
   });
 });
 

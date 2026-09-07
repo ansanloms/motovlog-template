@@ -49,7 +49,7 @@ npm run convert -- 20260817-jododaira /mnt/c/path/to/DASHCAM_20260816_133345.MP4
 - `lines`: セリフごとに `id`・`start`・`text` (字幕)。`audio`・`duration` は timeline.ts には書かず、音声生成スクリプトが `voice.json` に書く (「3. セリフ音声を生成する」)。音声区間が重なると `voice.json` との合成後に検証エラーになる。
 - `bgm`: `src` は `assets/bgm/<file>`、`start`・`duration`、`fadeIn`・`fadeOut`。
 - `ending`: 暗転を始める秒 `fadeToBlackStart` と、`text`・`start`・`duration` を持つ `credits`。クレジットには使用した音声合成のキャラクター・立ち絵の作者・BGM の表記を、各素材の利用規約に従って書く。
-- `overlays`・`subtitleBands`・`characterSegments`: 使わなければコンテナごと省略できる。
+- `overlays`・`characterSegments`: 使わなければコンテナごと省略できる。
 
 項目の一覧と既定値は README の「timeline.ts の書き方」にある。
 

@@ -1,41 +1,43 @@
-import React from "react";
+import React, { useMemo } from "react";
 import {
   AbsoluteFill,
   Sequence,
   useCurrentFrame,
   useVideoConfig,
 } from "remotion";
+import { computeBandSpans } from "../timeline/band";
 import { fadeEnvelope, secondsToFrames, toFrameSpan } from "../timeline/frames";
-import type { Timeline } from "../timeline/schema";
+import type { VoicedTimeline } from "../timeline/schema";
+import { bandTiming } from "../theme";
+import styles from "./SubtitleBand.module.css";
 
 type Props = {
-  bands: Timeline["subtitleBands"];
-  style: Timeline["style"]["band"];
+  lines: VoicedTimeline["lines"];
 };
 
-// 字幕背景帯。
-export const SubtitleBand: React.FC<Props> = ({ bands, style }) => {
+// 下部の暗がり。lines の語り区間から自動で表示区間を導く (ADR-0007, ADR-0008)。
+export const SubtitleBand: React.FC<Props> = ({ lines }) => {
   const { fps } = useVideoConfig();
+  const spans = useMemo(() => computeBandSpans(lines, bandTiming), [lines]);
 
   return (
     <>
-      {bands.map((band, index) => {
+      {spans.map((span, index) => {
         const { from, durationInFrames } = toFrameSpan(
-          band.start,
-          band.duration,
+          span.start,
+          span.duration,
           fps,
         );
 
         return (
           <Sequence
-            key={`${band.start}-${band.duration}-${index}`}
+            key={`${span.start}-${span.duration}-${index}`}
             from={from}
             durationInFrames={durationInFrames}
           >
             <BandItem
-              band={band}
-              style={style}
               durationInFrames={durationInFrames}
+              fadeIn={span.fadeIn}
             />
           </Sequence>
         );
@@ -44,15 +46,14 @@ export const SubtitleBand: React.FC<Props> = ({ bands, style }) => {
   );
 };
 
-const BandItem: React.FC<{
-  band: Timeline["subtitleBands"][number];
-  style: Timeline["style"]["band"];
-  durationInFrames: number;
-}> = ({ band, style, durationInFrames }) => {
+const BandItem: React.FC<{ durationInFrames: number; fadeIn: number }> = ({
+  durationInFrames,
+  fadeIn,
+}) => {
   const { fps } = useVideoConfig();
   const frame = useCurrentFrame();
-  const fadeInFrames = secondsToFrames(band.fadeIn, fps);
-  const fadeOutFrames = secondsToFrames(band.fadeOut, fps);
+  const fadeInFrames = secondsToFrames(fadeIn, fps);
+  const fadeOutFrames = secondsToFrames(bandTiming.fadeOut, fps);
 
   const opacity = fadeEnvelope({
     frame,
@@ -62,18 +63,8 @@ const BandItem: React.FC<{
   });
 
   return (
-    <AbsoluteFill
-      style={{
-        justifyContent: "flex-end",
-        opacity: opacity * style.opacity,
-      }}
-    >
-      <div
-        style={{
-          height: style.height,
-          background: `linear-gradient(transparent, ${style.color})`,
-        }}
-      />
+    <AbsoluteFill className={styles.layer} style={{ opacity }}>
+      <div className={styles.band} />
     </AbsoluteFill>
   );
 };

@@ -1,0 +1,11 @@
+# git worktree 作成時に git-worktree-include がメイン worktree からコピーする
+# ローカル資産の一覧 (gitignore 構文。マッチしたファイルが新しい worktree へ複製される)。
+# 素材は ADR-0002 でコミットしないため、worktree で Studio・render を動かすには複製が要る。
+# 共通素材は丸ごと複製する。project の素材は 1 本が数 GB になるため、すべての
+# project を複製せずサンプルだけを対象にする。
+
+# 共通素材 (bgm・se・fonts・characters)
+public/assets/
+
+# サンプル project の素材 (セリフ wav と変換済み mp4)
+public/projects/00000000-sample/
