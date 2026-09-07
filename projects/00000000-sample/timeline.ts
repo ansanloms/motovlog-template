@@ -6,7 +6,7 @@ export default defineTimeline({
     height: 1080,
     fps: 30,
   },
-  // ドラレコのプロキシ 1 本 (scripts/make-proxy.sh で生成)。
+  // ドラレコの変換済み素材 1 本 (scripts/convert-movie.sh で生成)。
   clips: [
     {
       src: "projects/00000000-sample/VID_20260802_074903_00_287_359_DASHCAM1.mp4",

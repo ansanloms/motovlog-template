@@ -5,7 +5,7 @@ Remotion でモトブログ動画を作るためのエンジン。動画 1 本 =
 ## 前提
 
 - Node.js と npm (`npm ci` で依存を入れる)
-- ffmpeg (プロキシ変換。NVENC を使う場合は NVIDIA GPU。WSL では `/usr/lib/wsl/lib` のライブラリを使う)
+- ffmpeg (原本の変換。NVENC を使う場合は NVIDIA GPU。WSL では `/usr/lib/wsl/lib` のライブラリを使う)
 
 ## ディレクトリ構成
 
@@ -14,14 +14,14 @@ Remotion でモトブログ動画を作るためのエンジン。動画 1 本 =
 - `src/`: エンジン (Composition・コンポーネント・schema)
 - `projects/<slug>/timeline.ts`: 動画の定義。コミットする
 - `projects/<slug>/voice.json`: 音声生成の結果 (`lines[].audio`・`duration` 等)。コミットする ([ADR-0006](docs/adr/0006-generate-voice-and-lipsync-from-voicevox-api.md))
-- `public/projects/<slug>/`: 動画固有の素材 (プロキシ・セリフ音声等)。コミットしない
+- `public/projects/<slug>/`: 動画固有の素材 (変換済み素材・セリフ音声等)。コミットしない
 - `public/assets/<種別>/`: 共通素材。`bgm`・`se`・`characters/<name>`・`fonts`。既定でコミットしない。再配布できる自作素材は `.gitignore` の否定パターンで明示してコミットする
 - `<slug>` は `YYYYMMDD-<name>` (例: `20260817-jododaira`)
 
 ## 新しい動画を作る
 
 1. slug を決めて `projects/<slug>/timeline.ts` を作る。`projects/00000000-sample/timeline.ts` をコピーして書き換えるのが早い。
-2. ドラレコ原本をプロキシに変換する: `scripts/make-proxy.sh <slug> <原本>...`。出力は `public/projects/<slug>/<basename>.mp4`。詳細は「プロキシ生成」。
+2. ドラレコ原本を変換済み素材に変換する: `scripts/convert-movie.sh <slug> <原本>...`。出力は `public/projects/<slug>/<basename>.mp4`。詳細は「変換済み素材の生成」。
 3. セリフ音声 (wav) を `public/projects/<slug>/` に置く。音声生成スクリプトで `projects/<slug>/voice.json` を生成する ([ADR-0006](docs/adr/0006-generate-voice-and-lipsync-from-voicevox-api.md))。口パクデータの生成 (issue #2) と立ち絵 (issue #3) は未実装で、現状は音声と字幕だけになる。
 4. BGM・効果音は `public/assets/bgm/`・`public/assets/se/` に置く。`public/assets/` 配下は既定でコミットされない。自作の素材をコミットするときは `.gitignore` の末尾に否定パターンを足す (除外パターンより前に書くと効かない)。書式はファイル 1 つなら `!public/assets/se/click.wav`、ディレクトリ丸ごとなら `!public/assets/characters/aoyama/**`、種別より深い階層のファイルだけなら親ディレクトリを先に戻してから書く (`!public/assets/bgm/album` の次の行に `!public/assets/bgm/album/x.wav`)。第三者の素材はコミットしない。
 5. timeline.ts に clips・lines・bgm 等を書く (「timeline.ts の書き方」)。素材のパスは `public/` 相対 (`projects/<slug>/clip1.mp4`、`assets/bgm/xxx.wav`)。
@@ -43,7 +43,7 @@ slug の日付部分は `00000000` にしている (実際の project は `YYYYM
 
 | 素材                                                                             | 内容                                                                                                                                                                                              |
 | -------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `public/projects/00000000-sample/VID_20260802_074903_00_287_359_DASHCAM1.mp4`     | ドラレコのプロキシ。`scripts/make-proxy.sh 00000000-sample <原本>` で作る。別のファイルを使うなら timeline.ts の `clips[0].src` を出力名に合わせる                                             |
+| `public/projects/00000000-sample/VID_20260802_074903_00_287_359_DASHCAM1.mp4`     | ドラレコの変換済み素材。`scripts/convert-movie.sh 00000000-sample <原本>` で作る。別のファイルを使うなら timeline.ts の `clips[0].src` を出力名に合わせる                                             |
 | `public/assets/bgm/m1.wav`                                                        | BGM                                                                                                                                                                                              |
 | `public/projects/00000000-sample/line1.wav`・`line2.wav`                          | セリフ音声。VOICEVOX で「今日は浄土平まで走ってきた。」「磐梯吾妻スカイラインは、紅葉の時期が一番きれいだ。」を合成したもの。実尺は `voice.json` に書く ([ADR-0006](docs/adr/0006-generate-voice-and-lipsync-from-voicevox-api.md)) |
 
@@ -57,7 +57,7 @@ ffmpeg -n -f lavfi -i sine=frequency=880:duration=2.2 public/projects/00000000-s
 ffmpeg -n -f lavfi -i sine=frequency=880:duration=4 public/projects/00000000-sample/line2.wav
 ```
 
-素材を置けば Studio と render が動く (`REMOTION_PROJECT` は未設定でよく、既定でこのサンプルを読む)。代替の合成動画はプロキシと同じファイル名なので、実素材に切り替えるときは `public/projects/00000000-sample/` の代替ファイルを消してから `scripts/make-proxy.sh` を実行する (既存があると skip される)。
+素材を置けば Studio と render が動く (`REMOTION_PROJECT` は未設定でよく、既定でこのサンプルを読む)。代替の合成動画は変換済み素材と同じファイル名なので、実素材に切り替えるときは `public/projects/00000000-sample/` の代替ファイルを消してから `scripts/convert-movie.sh` を実行する (既存があると skip される)。
 
 ## timeline.ts の書き方
 
@@ -106,13 +106,13 @@ project の選択は環境変数 `REMOTION_PROJECT` (slug) で行う。`.env` �
 
 ネットワークに依存したくない場合 (オフライン環境・CI 等) は、`@remotion/fonts` を使って `public/assets/fonts/` 配下に置いたローカルフォントファイルへ差し替えられる ([ADR-0002](docs/adr/0002-project-directory-layout.md))。
 
-## プロキシ生成
+## 変換済み素材の生成
 
-ドラレコ原本 (HEVC) は Remotion に直接読ませず、H.264 のプロキシに変換して使う ([ADR-0003](docs/adr/0003-convert-dashcam-footage-to-h264-proxy.md))。
+ドラレコ原本 (HEVC) は Remotion に直接読ませず、H.264 の変換済み素材に変換して使う ([ADR-0003](docs/adr/0003-convert-dashcam-footage-to-h264-proxy.md))。この変換は非可逆の再エンコードで、変換済み素材の画質が完成動画の画質の上限になる。`remotion render` は Chrome が描いたフレームをさらに再エンコードする (H.264 の既定 CRF は 18) ため、完成動画は 2 回の非可逆エンコードを経る。変換のエンコード設定は NVENC の `-cq 23` と libx264 の `-crf 22` のどちらか一方が使われる。
 
-    scripts/make-proxy.sh <slug> <入力ファイル>...
+    scripts/convert-movie.sh <slug> <入力ファイル>...
 
-または `npm run proxy -- <slug> <入力ファイル>...`。`npm run` はリポジトリルートを cwd にして実行するため、入力ファイルは絶対パスで渡す。
+または `npm run convert -- <slug> <入力ファイル>...`。`npm run` はリポジトリルートを cwd にして実行するため、入力ファイルは絶対パスで渡す。
 
 - 出力先は `public/projects/<slug>/<basename>.mp4` ([ADR-0002](docs/adr/0002-project-directory-layout.md))。既に存在するファイルはスキップする。
 - `<slug>` は `YYYYMMDD-<name>` (ASCII 小文字の kebab-case)。形式が違うとエラーになる。

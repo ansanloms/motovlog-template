@@ -1,11 +1,11 @@
 # 新しい動画 project を作る手順
 
-README の「新しい動画を作る」を、具体的なコマンドと timeline.ts の書き換え箇所まで落とした手順。例として slug `20260817-jododaira` (2026-08-17 撮影の浄土平) を使う。構成の決定は [ADR-0002](adr/0002-project-directory-layout.md)、プロキシ変換は [ADR-0003](adr/0003-convert-dashcam-footage-to-h264-proxy.md)、timeline の形式は [ADR-0004](adr/0004-timeline-schema-design.md) にある。
+README の「新しい動画を作る」を、具体的なコマンドと timeline.ts の書き換え箇所まで落とした手順。例として slug `20260817-jododaira` (2026-08-17 撮影の浄土平) を使う。構成の決定は [ADR-0002](adr/0002-project-directory-layout.md)、変換済み素材への変換は [ADR-0003](adr/0003-convert-dashcam-footage-to-h264-proxy.md)、timeline の形式は [ADR-0004](adr/0004-timeline-schema-design.md) にある。
 
 ## 前提
 
 - `npm ci` が済んでいる (初回だけ)。
-- ffmpeg が入っている。NVENC を使うなら NVIDIA GPU。WSL では `/usr/lib/wsl/lib` のライブラリを `make-proxy.sh` が自動で読む。
+- ffmpeg が入っている。NVENC を使うなら NVIDIA GPU。WSL では `/usr/lib/wsl/lib` のライブラリを `convert-movie.sh` が自動で読む。
 - ドラレコの原本 (HEVC) は Windows 側 (`/mnt/c`) に置いたままでよい。触るのは変換時の読み取り 1 回だけで、書き換えない。
 
 ## 手順
@@ -19,16 +19,16 @@ mkdir -p projects/20260817-jododaira
 cp projects/00000000-sample/timeline.ts projects/20260817-jododaira/timeline.ts
 ```
 
-### 2. ドラレコ原本をプロキシに変換する
+### 2. ドラレコ原本を変換済み素材に変換する
 
 ```
-scripts/make-proxy.sh 20260817-jododaira /mnt/c/path/to/DASHCAM_20260816_133345.MP4
+scripts/convert-movie.sh 20260817-jododaira /mnt/c/path/to/DASHCAM_20260816_133345.MP4
 ```
 
 - 出力は `public/projects/20260817-jododaira/DASHCAM_20260816_133345.mp4` (原本の basename + `.mp4`)。既にあればスキップする。
 - フレームレートは `projects/<slug>/timeline.ts` の `meta.fps` に合わせる (timeline.ts を先に作っておく。無い・読めない場合はエラーになる)。
 - 原本 1 本 (約 43 分・8GB) で NVENC なら約 9 分、出力は約 5GB。NVENC が使えない環境では libx264 で約 10 倍かかる。
-- `npm run proxy -- <slug> <原本>` でも呼べるが、`npm run` はリポジトリルートを cwd にするので原本は絶対パスで渡す。
+- `npm run convert -- <slug> <原本>` でも呼べるが、`npm run` はリポジトリルートを cwd にするので原本は絶対パスで渡す。
 
 ### 3. セリフ音声を生成する
 
@@ -45,7 +45,7 @@ scripts/make-proxy.sh 20260817-jododaira /mnt/c/path/to/DASHCAM_20260816_133345.
 時間はすべて秒。サンプルからコピーした `defineTimeline({...})` の中身を、少なくとも次のように直す。
 
 - `meta`: 1920×1080・30fps ならそのまま。
-- `clips`: 順序リスト。`src` はプロキシのパス (`projects/20260817-jododaira/DASHCAM_20260816_133345.mp4`)、`sourceFrom` は原本の何秒目から使うか、`duration` は使う長さ。2 本目以降は `gapBefore` で間を空けるか、`crossfadeIn` で重ねて繋ぐ。両方は指定できない。
+- `clips`: 順序リスト。`src` は変換済み素材のパス (`projects/20260817-jododaira/DASHCAM_20260816_133345.mp4`)、`sourceFrom` は原本の何秒目から使うか、`duration` は使う長さ。2 本目以降は `gapBefore` で間を空けるか、`crossfadeIn` で重ねて繋ぐ。両方は指定できない。
 - `lines`: セリフごとに `id`・`start`・`text` (字幕)。`audio`・`duration` は timeline.ts には書かず、音声生成スクリプトが `voice.json` に書く (「3. セリフ音声を生成する」)。音声区間が重なると `voice.json` との合成後に検証エラーになる。
 - `bgm`: `src` は `assets/bgm/<file>`、`start`・`duration`、`fadeIn`・`fadeOut`。
 - `ending`: 暗転を始める秒 `fadeToBlackStart` と、`text`・`start`・`duration` を持つ `credits`。クレジットには使用した音声合成のキャラクター・立ち絵の作者・BGM の表記を、各素材の利用規約に従って書く。
@@ -78,7 +78,7 @@ git tag render/20260817-jododaira
 git push origin main render/20260817-jododaira
 ```
 
-再現するときはタグを checkout して `npm ci` し、素材 (プロキシ・音声・BGM) を復元して render する。素材はコミットされていないので、原本と生成物の保管場所を別に持つ。
+再現するときはタグを checkout して `npm ci` し、素材 (変換済み素材・音声・BGM) を復元して render する。素材はコミットされていないので、原本と生成物の保管場所を別に持つ。
 
 ## git で扱うもの
 

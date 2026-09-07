@@ -1,14 +1,14 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# 使い方: scripts/make-proxy.sh <slug> <入力ファイル>...
+# 使い方: scripts/convert-movie.sh <slug> <入力ファイル>...
 # 各入力を public/projects/<slug>/<basename>.mp4 へ変換する (ADR-0003)。
 # フレームレートは projects/<slug>/timeline.ts の meta.fps に合わせる。
 # 起動時に nvenc が使えるかを確認し、使えなければ libx264 を使う。nvenc が使える場合でも、
 # あるファイルの変換に失敗したときはそのファイルだけ libx264 で再試行する。
 
 if [ "$#" -lt 2 ]; then
-  echo "usage: scripts/make-proxy.sh <slug> <入力ファイル>..." >&2
+  echo "usage: scripts/convert-movie.sh <slug> <入力ファイル>..." >&2
   exit 1
 fi
 
@@ -31,7 +31,7 @@ repo_root="$(cd "${script_dir}/.." && pwd)"
 out_dir="${repo_root}/public/projects/${slug}"
 
 # 変換に入る前に、出力先が未生成の入力ファイルが読めることを確認する。
-# 出力が既に存在する入力はプロキシ生成済みで原本が未マウントの場合があるため確認をスキップする。
+# 出力が既に存在する入力は変換済みで原本が未マウントの場合があるため確認をスキップする。
 for in_file in "$@"; do
   base_name="$(basename "${in_file}")"
   out_file="${out_dir}/${base_name%.*}.mp4"
@@ -53,19 +53,19 @@ nvenc_env_ld="/usr/lib/wsl/lib${LD_LIBRARY_PATH:+:${LD_LIBRARY_PATH}}"
 # ADR-0003 の「composition の fps に合わせる」を破るため、timeline.ts が
 # 無い・読めない場合はフォールバックせずエラーで止める (set -e により、
 # scripts/timeline-fps.ts の失敗でこのスクリプトも終了する)。
-proxy_fps="$(cd "${repo_root}" && npx tsx scripts/timeline-fps.ts "${slug}")"
+convert_fps="$(cd "${repo_root}" && npx tsx scripts/timeline-fps.ts "${slug}")"
 
-if ! [[ "${proxy_fps}" =~ ^[0-9]+(\.[0-9]+)?$ ]]; then
-  echo "error: meta.fps が数値ではありません: ${proxy_fps}" >&2
+if ! [[ "${convert_fps}" =~ ^[0-9]+(\.[0-9]+)?$ ]]; then
+  echo "error: meta.fps が数値ではありません: ${convert_fps}" >&2
   exit 1
 fi
 
 # ffmpeg の -g は整数しか受けないため、fps を四捨五入した値を GOP 長 (1 秒ごとのキーフレーム) にする。
-gop="$(printf '%.0f' "${proxy_fps}")"
+gop="$(printf '%.0f' "${convert_fps}")"
 
 # fps が 0 または 0.x だと gop が 0 になり、ffmpeg の -g に渡せない。
 if [ "${gop}" -lt 1 ]; then
-  echo "error: meta.fps が不正です (正の数で、丸めた値が 1 以上): ${proxy_fps}" >&2
+  echo "error: meta.fps が不正です (正の数で、丸めた値が 1 以上): ${convert_fps}" >&2
   exit 1
 fi
 
@@ -74,8 +74,8 @@ fi
 # 最小フレームサイズ未満で失敗し、GOP を 1 にすると B フレーム数の制約で失敗するため、
 # 本番と同じ fps・GOP の 1 秒のテスト映像を使う。
 encoder="nvenc"
-if ! env LD_LIBRARY_PATH="${nvenc_env_ld}" ffmpeg -v error -f lavfi -i "testsrc=duration=1:size=320x240:rate=${proxy_fps}" \
-  -r "${proxy_fps}" -c:v h264_nvenc -pix_fmt yuv420p -preset p4 -cq 23 -g "${gop}" -f null -; then
+if ! env LD_LIBRARY_PATH="${nvenc_env_ld}" ffmpeg -v error -f lavfi -i "testsrc=duration=1:size=320x240:rate=${convert_fps}" \
+  -r "${convert_fps}" -c:v h264_nvenc -pix_fmt yuv420p -preset p4 -cq 23 -g "${gop}" -f null -; then
   encoder="libx264"
   echo "warn: nvenc が使えないため libx264 で変換します" >&2
 fi
@@ -124,15 +124,15 @@ for in_file in "$@"; do
   # 拡張子は .mp4 のまま隠しファイル名で一時出力する。
   tmp_file="${out_dir}/.tmp.${base_name%.*}.mp4"
 
-  echo "encode: ${in_file} -> ${out_file} (${encoder}, fps=${proxy_fps})"
+  echo "encode: ${in_file} -> ${out_file} (${encoder}, fps=${convert_fps})"
   used_encoder="${encoder}"
   if [ "${encoder}" = "nvenc" ]; then
     if ! env LD_LIBRARY_PATH="${nvenc_env_ld}" ffmpeg -y -hwaccel cuda -i "${in_file}" \
-      -r "${proxy_fps}" -c:v h264_nvenc -pix_fmt yuv420p -preset p4 -cq 23 -g "${gop}" \
+      -r "${convert_fps}" -c:v h264_nvenc -pix_fmt yuv420p -preset p4 -cq 23 -g "${gop}" \
       -c:a aac -b:a 128k -movflags +faststart "${tmp_file}"; then
       echo "warn: nvenc に失敗したため libx264 で再試行します: ${in_file}" >&2
       ffmpeg -y -i "${in_file}" \
-        -r "${proxy_fps}" -c:v libx264 -pix_fmt yuv420p -preset veryfast -crf 22 -g "${gop}" \
+        -r "${convert_fps}" -c:v libx264 -pix_fmt yuv420p -preset veryfast -crf 22 -g "${gop}" \
         -c:a aac -b:a 128k -movflags +faststart "${tmp_file}"
       used_encoder="libx264"
       # 一度失敗した nvenc を残りのファイルでも試すと同じ失敗を繰り返すだけなので、
@@ -142,7 +142,7 @@ for in_file in "$@"; do
     fi
   else
     ffmpeg -y -i "${in_file}" \
-      -r "${proxy_fps}" -c:v libx264 -pix_fmt yuv420p -preset veryfast -crf 22 -g "${gop}" \
+      -r "${convert_fps}" -c:v libx264 -pix_fmt yuv420p -preset veryfast -crf 22 -g "${gop}" \
       -c:a aac -b:a 128k -movflags +faststart "${tmp_file}"
   fi
   mv -f "${tmp_file}" "${out_file}"
