@@ -1,5 +1,5 @@
 // projects/<slug>/timeline.ts の meta.fps を stdout に数値だけ出力する。
-// make-proxy.sh がプロキシの fps を composition に合わせるために使う
+// convert-movie.sh が変換済み素材の fps を composition に合わせるために使う
 // (ADR-0003)。npx tsx scripts/timeline-fps.ts <slug> の形で呼ぶ。
 
 import path from "node:path";

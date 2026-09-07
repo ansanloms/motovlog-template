@@ -32,6 +32,6 @@
     "upgrade": "remotion upgrade",
     "lint": "eslint src scripts projects && tsc && prettier --check src scripts projects",
     "test": "vitest run",
-    "proxy": "scripts/make-proxy.sh"
+    "convert": "scripts/convert-movie.sh"
   }
 }
