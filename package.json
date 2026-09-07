@@ -32,6 +32,6 @@
     "upgrade": "remotion upgrade",
     "lint": "eslint src scripts projects && tsc && prettier --check src scripts projects",
     "test": "vitest run",
-    "convert": "scripts/convert-movie.sh"
+    "convert": "tsx scripts/convert-movie.ts"
   }
 }
