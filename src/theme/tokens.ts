@@ -96,6 +96,12 @@ export const thumbLayout = {
   titleShadowBlur: 12, // 0.6cqw。design サンプルの text-shadow
   titleShadowAlpha: 0.9,
   scrimAlpha: 0.92,
+  // 立ち絵 (design サンプル C の配置。cqw 換算、サムネ配置専用)。
+  characterRight: 10, // 0.5cqw
+  characterBoxWidth: 624, // 32.5cqw
+  characterBoxHeight: 1037, // 54cqw
+  characterOffset: 48, // 2.5cqw
+  characterHeight: 1937, // 100.9cqw
 } as const;
 
 /** ED (T&M「OP・ED・サムネ用フレーム」節 + design サンプル E の cqw 換算)。 */
