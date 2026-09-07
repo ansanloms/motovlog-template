@@ -3,12 +3,12 @@ import type { CalculateMetadataFunction } from "remotion";
 import { Bgm } from "../components/Bgm";
 import { CharacterLayer } from "../components/CharacterLayer";
 import { DashcamTrack } from "../components/DashcamTrack";
-import { Ending } from "../components/Ending";
+import { LegacyEnding } from "../components/LegacyEnding";
 import { Overlays } from "../components/Overlays";
 import { SubtitleBand } from "../components/SubtitleBand";
 import { Subtitles } from "../components/Subtitles";
 import { VoiceLines } from "../components/VoiceLines";
-import { ThemeRoot } from "../theme";
+import { palette, ThemeRoot } from "../theme";
 import { resolveClipSpans } from "../timeline/clips";
 import { toFrameSpan } from "../timeline/frames";
 import { loadProject, resolveProjectSlug } from "../timeline/load";
@@ -89,8 +89,7 @@ export const Motovlog: React.FC<MotovlogProps> = ({ timeline }) => {
   }
 
   return (
-    // 暗転の色は ED の再設計で theme に寄せる。
-    <ThemeRoot style={{ backgroundColor: "#000000" }}>
+    <ThemeRoot style={{ backgroundColor: palette.black }}>
       <DashcamTrack clips={timeline.clips} />
       <Overlays overlays={timeline.overlays} />
       <CharacterLayer segments={timeline.characterSegments} />
@@ -98,7 +97,7 @@ export const Motovlog: React.FC<MotovlogProps> = ({ timeline }) => {
       <Subtitles lines={timeline.lines} />
       <Bgm bgm={timeline.bgm} />
       <VoiceLines lines={timeline.lines} />
-      <Ending ending={timeline.ending} />
+      <LegacyEnding ending={timeline.ending} />
     </ThemeRoot>
   );
 };

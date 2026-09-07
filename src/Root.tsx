@@ -7,6 +7,10 @@ import {
   galleryDurationInFrames as chapterTitleGalleryDurationInFrames,
 } from "./gallery/ChapterTitleGallery";
 import {
+  EndingGallery,
+  galleryDurationInFrames as endingGalleryDurationInFrames,
+} from "./gallery/EndingGallery";
+import {
   galleryDurationInFrames as openingFrameGalleryDurationInFrames,
   OpeningFrameGallery,
 } from "./gallery/OpeningFrameGallery";
@@ -75,6 +79,14 @@ export const RemotionRoot: React.FC = () => {
         height={1080}
         fps={galleryFps}
         durationInFrames={openingFrameGalleryDurationInFrames}
+      />
+      <Composition
+        id="Gallery-Ending"
+        component={EndingGallery}
+        width={1920}
+        height={1080}
+        fps={galleryFps}
+        durationInFrames={endingGalleryDurationInFrames}
       />
     </>
   );

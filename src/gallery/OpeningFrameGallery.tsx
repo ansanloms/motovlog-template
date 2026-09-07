@@ -1,5 +1,6 @@
 import React from "react";
 import { staticFile } from "remotion";
+import { episodeBadge } from "../components/episode";
 import { OpeningFrame } from "../components/OpeningFrame";
 import { openingTiming, ThemeRoot } from "../theme";
 import { galleryFps } from "./shared";
@@ -14,7 +15,11 @@ export const OpeningFrameGallery: React.FC = () => {
     <ThemeRoot>
       <OpeningFrame
         photo={staticFile("assets/samples/still-02.jpg")}
-        episode="#12 愛媛 / 国道378号"
+        episode={episodeBadge({
+          number: 12,
+          area: "愛媛",
+          road: "国道378号",
+        })}
         title={"国道378号を\n西へ走った"}
         character={staticFile("assets/characters/4.png")}
       />

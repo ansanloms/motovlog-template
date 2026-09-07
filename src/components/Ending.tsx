@@ -1,116 +1,66 @@
 import React from "react";
-import {
-  AbsoluteFill,
-  interpolate,
-  Sequence,
-  useCurrentFrame,
-  useVideoConfig,
-} from "remotion";
-import { fontFamily } from "../fonts";
-import { toFrameSpan } from "../timeline/frames";
-import type { Timeline } from "../timeline/schema";
-import { fontWeight, palette } from "../theme";
+import { AbsoluteFill } from "remotion";
+import styles from "./Ending.module.css";
 
 type Props = {
-  ending: Timeline["ending"];
+  episode: string; // episodeHeader() 済み (例 "EP.12 / 愛媛")
+  date: string; // "2026.08.15-17"
+  distance: string; // "318 km"
+  ridingTime: string; // "8:12"
+  route: readonly string[]; // 5〜7 か所 (コードでは縛らない)
+  credits: readonly string[]; // 例 ["VOICEVOX: 青山龍星", "立ち絵: Jacca さま"]
 };
 
-// エンディング。fadeToBlackStart から fadeDuration かけて黒へフェードし、
-// フェード完了後はコンポジション終端まで黒を維持する。credits があれば
-// テキストを重ねる。
-export const Ending: React.FC<Props> = ({ ending }) => {
-  const { fps, durationInFrames } = useVideoConfig();
-
-  if (!ending) {
-    return null;
-  }
-
-  const { from, durationInFrames: fadeDurationInFrames } = toFrameSpan(
-    ending.fadeToBlackStart,
-    ending.fadeDuration,
-    fps,
-  );
-  // フェード開始がコンポジション終端以降なら、フェード自体を描画しない。
-  const remainingFrames = durationInFrames - from;
-
-  if (remainingFrames <= 0) {
-    return null;
-  }
-
-  // フェード完了後、コンポジション終端まで黒を維持する区間。
-  const holdFrom = from + fadeDurationInFrames;
-  const holdDurationInFrames = durationInFrames - holdFrom;
-
-  return (
-    <>
-      <Sequence from={from} durationInFrames={fadeDurationInFrames}>
-        <FadeToBlack durationInFrames={fadeDurationInFrames} />
-      </Sequence>
-      {holdDurationInFrames > 0 ? (
-        <Sequence from={holdFrom} durationInFrames={holdDurationInFrames}>
-          {/* 暗転の色は ED の再設計で theme に寄せる。 */}
-          <AbsoluteFill style={{ backgroundColor: "#000000" }} />
-        </Sequence>
-      ) : null}
-      {ending.credits ? <Credits credits={ending.credits} /> : null}
-    </>
-  );
-};
-
-const FadeToBlack: React.FC<{ durationInFrames: number }> = ({
-  durationInFrames,
+// ED (T&M「OP・ED・サムネ用フレーム」節)。罫線だけの計器表示。RIDE LOG と
+// 話数、DATE / DISTANCE / RIDING TIME と ROUTE、クレジットを出す。カットイン
+// (フェードなし) は組み立て側 (EndingTrack) が扱う。固定 props で、フレーム
+// 依存の値は無い。
+export const Ending: React.FC<Props> = ({
+  episode,
+  date,
+  distance,
+  ridingTime,
+  route,
+  credits,
 }) => {
-  const frame = useCurrentFrame();
-  // 最終フレームで 1 に達する。1 フレームのフェードは常に黒。
-  const last = durationInFrames - 1;
-  const opacity =
-    last <= 0
-      ? 1
-      : interpolate(frame, [0, last], [0, 1], {
-          extrapolateLeft: "clamp",
-          extrapolateRight: "clamp",
-        });
-
-  // 暗転の色は ED の再設計で theme に寄せる。
-  return <AbsoluteFill style={{ backgroundColor: "#000000", opacity }} />;
-};
-
-const Credits: React.FC<{
-  credits: NonNullable<NonNullable<Timeline["ending"]>["credits"]>;
-}> = ({ credits }) => {
-  const { fps } = useVideoConfig();
-
-  // credits.start はタイムライン絶対秒なので、そのまま絶対フレームの
-  // Sequence として置く (フェード開始基準の Sequence へネストしない)。
-  const { from, durationInFrames } = toFrameSpan(
-    credits.start,
-    credits.duration,
-    fps,
-  );
-
   return (
-    <Sequence from={from} durationInFrames={durationInFrames}>
-      <AbsoluteFill
-        style={{
-          justifyContent: "center",
-          alignItems: "center",
-        }}
-      >
-        {/* ED の見た目は T&M の ED 節に沿った再設計 (別 issue) で置き換える。
-        それまで暫定。 */}
-        <div
-          style={{
-            fontFamily,
-            fontWeight: fontWeight.medium,
-            fontSize: 32,
-            color: palette.inkVideo,
-            textAlign: "center",
-            whiteSpace: "pre-wrap",
-          }}
-        >
-          {credits.text}
+    <AbsoluteFill className={styles.screen}>
+      <div className={styles.header}>
+        <div className={styles.title}>
+          <span className={styles.prompt}>&gt;&nbsp;</span>RIDE LOG
         </div>
-      </AbsoluteFill>
-    </Sequence>
+        <div>{episode}</div>
+      </div>
+      <div className={styles.rows}>
+        <div className={styles.row}>
+          <div className={styles.label}>DATE</div>
+          <div className={styles.value}>{date}</div>
+        </div>
+        <div className={styles.row}>
+          <div className={styles.label}>DISTANCE</div>
+          <div className={styles.value}>{distance}</div>
+        </div>
+        <div className={styles.row}>
+          <div className={styles.label}>RIDING TIME</div>
+          <div className={styles.value}>{ridingTime}</div>
+        </div>
+        <div className={styles.routeRow}>
+          <div className={styles.label}>ROUTE</div>
+          <div className={styles.route}>
+            {route.map((place, index) => (
+              <React.Fragment key={`${place}-${index}`}>
+                {index > 0 ? <span className={styles.arrow}> → </span> : null}
+                {place}
+              </React.Fragment>
+            ))}
+          </div>
+        </div>
+      </div>
+      <div className={styles.footer}>
+        {credits.map((credit, index) => (
+          <span key={index}>{credit}</span>
+        ))}
+      </div>
+    </AbsoluteFill>
   );
 };
