@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { timelineSchema } from "./schema";
+import { assertVoiced, timelineSchema } from "./schema";
 
 const minimalClips = [{ src: "clip1.mp4", duration: 1 }];
 
@@ -140,6 +140,187 @@ describe("lines", () => {
     });
 
     expect(result.success).toBe(true);
+  });
+
+  it("speaker・lipsync を指定できる", () => {
+    const result = timelineSchema.safeParse({
+      clips: minimalClips,
+      lines: [
+        {
+          id: "line1",
+          audio: "line1.wav",
+          start: 0,
+          duration: 1,
+          text: "a",
+          speaker: 13,
+          lipsync: "projects/slug/lines/line1.lipsync.json",
+        },
+      ],
+    });
+
+    expect(result.success).toBe(true);
+  });
+
+  it("duration の省略は parse を通す", () => {
+    const result = timelineSchema.safeParse({
+      clips: minimalClips,
+      lines: [
+        {
+          id: "line1",
+          start: 0,
+          text: "a",
+        },
+      ],
+    });
+
+    expect(result.success).toBe(true);
+  });
+
+  it("id に英数字・_・- 以外の文字が含まれると拒否する", () => {
+    const result = timelineSchema.safeParse({
+      clips: minimalClips,
+      lines: [
+        {
+          id: "line/1",
+          start: 0,
+          text: "a",
+        },
+      ],
+    });
+
+    expect(result.success).toBe(false);
+  });
+
+  it("id が英数字・_・- だけなら許可する", () => {
+    const result = timelineSchema.safeParse({
+      clips: minimalClips,
+      lines: [
+        {
+          id: "line_1-A",
+          start: 0,
+          text: "a",
+        },
+      ],
+    });
+
+    expect(result.success).toBe(true);
+  });
+
+  it("読み仮名の記法 {漢字|よみ} が閉じていない text を拒否する", () => {
+    const result = timelineSchema.safeParse({
+      clips: minimalClips,
+      lines: [
+        {
+          id: "line1",
+          start: 0,
+          text: "今日は{浄土平|じょうどだいらまで行った。",
+        },
+      ],
+    });
+
+    expect(result.success).toBe(false);
+  });
+
+  it("読み仮名の記法として閉じていれば許可する", () => {
+    const result = timelineSchema.safeParse({
+      clips: minimalClips,
+      lines: [
+        {
+          id: "line1",
+          start: 0,
+          text: "本当に{浄土平|じょうどだいら}まで行くのか？",
+        },
+      ],
+    });
+
+    expect(result.success).toBe(true);
+  });
+
+  it("記法外の | は字幕の文字として許可する", () => {
+    const result = timelineSchema.safeParse({
+      clips: minimalClips,
+      lines: [
+        {
+          id: "line1",
+          start: 0,
+          text: "60|80 km/h",
+        },
+      ],
+    });
+
+    expect(result.success).toBe(true);
+  });
+
+  it("duration の無い line は重なり検証の対象外になる", () => {
+    // line1 は duration 省略、line2 は line1 と start が重なるが、line1 に
+    // duration が無いため検証をすり抜けて parse は通る。
+    const result = timelineSchema.safeParse({
+      clips: minimalClips,
+      lines: [
+        {
+          id: "line1",
+          start: 0,
+          text: "a",
+        },
+        {
+          id: "line2",
+          audio: "line2.wav",
+          start: 0,
+          duration: 1,
+          text: "b",
+        },
+      ],
+    });
+
+    expect(result.success).toBe(true);
+  });
+});
+
+describe("voice", () => {
+  it("トップレベルの voice.speaker を指定できる", () => {
+    const result = timelineSchema.safeParse({
+      clips: minimalClips,
+      voice: { speaker: 13 },
+    });
+
+    expect(result.success).toBe(true);
+  });
+});
+
+describe("assertVoiced", () => {
+  it("audio・duration が揃っていれば通す", () => {
+    const parsed = timelineSchema.parse({
+      clips: minimalClips,
+      lines: [
+        {
+          id: "line1",
+          audio: "line1.wav",
+          start: 0,
+          duration: 1,
+          text: "a",
+        },
+      ],
+    });
+
+    const voiced = assertVoiced(parsed);
+
+    expect(voiced.lines[0].audio).toBe("line1.wav");
+    expect(voiced.lines[0].duration).toBe(1);
+  });
+
+  it("duration が無い line があれば拒否する", () => {
+    const parsed = timelineSchema.parse({
+      clips: minimalClips,
+      lines: [
+        {
+          id: "line1",
+          start: 0,
+          text: "a",
+        },
+      ],
+    });
+
+    expect(() => assertVoiced(parsed)).toThrow(/line1/);
   });
 });
 

@@ -30,22 +30,17 @@ scripts/make-proxy.sh 20260817-jododaira /mnt/c/path/to/DASHCAM_20260816_133345.
 - 原本 1 本 (約 43 分・8GB) で NVENC なら約 9 分、出力は約 5GB。NVENC が使えない環境では libx264 で約 10 倍かかる。
 - `npm run proxy -- <slug> <原本>` でも呼べるが、`npm run` はリポジトリルートを cwd にするので原本は絶対パスで渡す。
 
-### 3. セリフ音声を置く
+### 3. セリフ音声・口パクデータを生成する
 
-VOICEVOX で書き出した wav を `public/projects/<slug>/` に置く。
-
-```
-mkdir -p public/projects/20260817-jododaira
-cp ~/somewhere/line1.wav ~/somewhere/line2.wav public/projects/20260817-jododaira/
-```
-
-各 wav の実尺は timeline の `lines[].duration` に書く。ffprobe で取れる。
+timeline.json の `lines` に `text` (読みは `{漢字|よみ}` で書く) を書き、`voice.speaker` (VOICEVOX の style id) を設定する。`lines[].speaker` で line ごとに話者を上書きすることもできる。VOICEVOX ENGINE が稼働している URL を渡してスクリプトを実行する ([ADR-0006](adr/0006-generate-voice-and-lipsync-from-voicevox-api.md))。
 
 ```
-ffprobe -v error -show_entries format=duration -of csv=p=0 public/projects/20260817-jododaira/line1.wav
+VOICEVOX_URL=http://ceres:50021 npm run voice -- 20260817-jododaira
 ```
 
-口パクデータの生成 (issue #2) と立ち絵 (issue #3) は未実装で、今は音声と字幕だけになる。
+wav (`<id>.wav`) と口パクデータ (`<id>.lipsync.json`) が `public/projects/20260817-jododaira/lines/` に生成され、`lines[].audio`・`lines[].lipsync`・`lines[].duration` (wav の実尺) が timeline.json に書き戻される。同じ `text` と `speaker` で生成済みの line は再生成せずスキップする。強制的に再生成するときは `--force` を付ける。
+
+立ち絵 (issue #3) は未実装で、今は音声・字幕・口パクデータのタイミングだけになる。
 
 ### 4. BGM・効果音を置く
 
@@ -56,8 +51,9 @@ ffprobe -v error -show_entries format=duration -of csv=p=0 public/projects/20260
 時間はすべて秒。サンプルからコピーした後、少なくとも次を直す。
 
 - `meta`: 1920×1080・30fps ならそのまま。
+- `voice`: `speaker` に既定の話者 (VOICEVOX の style id) を書く。`lines[].speaker` を省略した line に使われる。
 - `clips`: 順序リスト。`src` はプロキシのパス (`projects/20260817-jododaira/DASHCAM_20260816_133345.mp4`)、`sourceFrom` は原本の何秒目から使うか、`duration` は使う長さ。2 本目以降は `gapBefore` で間を空けるか、`crossfadeIn` で重ねて繋ぐ。両方は指定できない。
-- `lines`: セリフごとに `id`・`audio` (`projects/20260817-jododaira/line1.wav`)・`start`・`duration` (wav の実尺)・`text` (字幕)。音声区間が重なると検証エラーになる。
+- `lines`: セリフごとに `id`・`start`・`text` (字幕。読みは `{漢字|よみ}`)・`speaker` (省略時は `voice.speaker`) を書く。`audio`・`lipsync`・`duration` は `npm run voice` が生成・書き戻すので手で書かない (「3. セリフ音声・口パクデータを生成する」)。音声区間が重なると検証エラーになる (`duration` が無い line は対象外)。
 - `bgm`: `src` は `assets/bgm/<file>`、`start`・`duration`、`fadeIn`・`fadeOut`。
 - `ending`: 暗転を始める秒 `fadeToBlackStart` と、`text`・`start`・`duration` を持つ `credits`。クレジットには使用した音声合成のキャラクター・立ち絵の作者・BGM の表記を、各素材の利用規約に従って書く。
 - `overlays`・`subtitleBands`・`characterSegments`: 使わなければコンテナごと省略できる。`--props` で渡した timeline はサンプルの値と混ざらない。

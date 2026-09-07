@@ -22,7 +22,7 @@ Remotion でモトブログ動画を作るためのエンジン。動画 1 本 =
 
 1. slug を決めて `projects/<slug>/timeline.json` を作る。`projects/00000000-sample/timeline.json` をコピーして書き換えるのが早い。
 2. ドラレコ原本をプロキシに変換する: `scripts/make-proxy.sh <slug> <原本>...`。出力は `public/projects/<slug>/<basename>.mp4`。詳細は「プロキシ生成」。
-3. セリフ音声 (wav) を `public/projects/<slug>/` に置く。VOICEVOX で書き出す場合、口パクデータの生成 (issue #2) と立ち絵 (issue #3) は未実装で、現状は音声と字幕だけになる。
+3. `lines` に `text` (読みは `{漢字|よみ}` で書く) を書き、`voice.speaker` (VOICEVOX の style id) を設定して `VOICEVOX_URL=<engine> npm run voice -- <slug>` を実行する。wav と口パクデータが `public/projects/<slug>/lines/` に生成され、`audio`・`lipsync`・`duration` が timeline.json に書き戻される ([ADR-0006](docs/adr/0006-generate-voice-and-lipsync-from-voicevox-api.md))。立ち絵 (issue #3) は未実装。
 4. BGM・効果音は `public/assets/bgm/`・`public/assets/se/` に置く。`public/assets/` 配下は既定でコミットされない。自作の素材をコミットするときは `.gitignore` の末尾に否定パターンを足す (除外パターンより前に書くと効かない)。書式はファイル 1 つなら `!public/assets/se/click.wav`、ディレクトリ丸ごとなら `!public/assets/characters/aoyama/**`、種別より深い階層のファイルだけなら親ディレクトリを先に戻してから書く (`!public/assets/bgm/album` の次の行に `!public/assets/bgm/album/x.wav`)。第三者の素材はコミットしない。
 5. timeline.json に clips・lines・bgm 等を書く (「timeline.json の書き方」)。素材のパスは `public/` 相対 (`projects/<slug>/clip1.mp4`、`assets/bgm/xxx.wav`)。
 6. プレビュー: `npx remotion studio --props=projects/<slug>/timeline.json`
@@ -45,7 +45,7 @@ slug の日付部分は `00000000` にしている (実際の project は `YYYYM
 | -------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `public/projects/00000000-sample/VID_20260802_074903_00_287_359_DASHCAM1.mp4`     | ドラレコのプロキシ。`scripts/make-proxy.sh 00000000-sample <原本>` で作る。別のファイルを使うなら timeline.json の `clips[0].src` を出力名に合わせる                                             |
 | `public/assets/bgm/m1.wav`                                                        | BGM                                                                                                                                                                                              |
-| `public/projects/00000000-sample/line1.wav`・`line2.wav`                          | セリフ音声。VOICEVOX で「今日は浄土平まで走ってきた。」「磐梯吾妻スカイラインは、紅葉の時期が一番きれいだ。」を合成したもの。生成の自動化は [ADR-0006](docs/adr/0006-generate-voice-and-lipsync-from-voicevox-api.md) の実装待ち |
+| `public/projects/00000000-sample/line1.wav`・`line2.wav`                          | セリフ音声。VOICEVOX で「今日は浄土平まで走ってきた。」「磐梯吾妻スカイラインは、紅葉の時期が一番きれいだ。」を合成したもの。`npm run voice` で生成できる ([ADR-0006](docs/adr/0006-generate-voice-and-lipsync-from-voicevox-api.md)) |
 
 素材が手元に無い場合は、次の ffmpeg で同名の合成素材を作れば代わりに使える。既に同名のファイルがあれば `-n` により上書きせずに終了する。本物の素材 (特に `public/assets/bgm/m1.wav`) を上書きしないため。
 
@@ -59,6 +59,8 @@ ffmpeg -n -f lavfi -i sine=frequency=880:duration=4 public/projects/00000000-sam
 
 素材を置けば `--props` 無しでも Studio と render が動く。代替の合成動画はプロキシと同じファイル名なので、実素材に切り替えるときは `public/projects/00000000-sample/` の代替ファイルを消してから `scripts/make-proxy.sh` を実行する (既存があると skip される)。
 
+`voice.speaker` があるので `npm run voice -- 00000000-sample` で音声を再生成できる (生成先は `lines/` 配下になり、timeline の `audio` が書き換わる)。
+
 ## timeline.json の書き方
 
 timeline 定義は `src/timeline/schema.ts` の zod スキーマ (`timelineSchema`) に従う ([ADR-0004](docs/adr/0004-timeline-schema-design.md))。時間はすべて秒 (number) で指定する。`version` (省略時 1) を持ち、互換性を切る変更をするときに上げる。
@@ -70,7 +72,8 @@ timeline 定義は `src/timeline/schema.ts` の zod スキーマ (`timelineSchem
 | `clips`             | メイン映像トラック (走行映像)。`start` を持たない順序リストで、各クリップの絶対位置は `gapBefore`/`crossfadeIn`/`duration` から導出される (`gapBefore`: 直前クリップ終端からの空白秒。先頭クリップはタイムライン先頭からの空白。`crossfadeIn`: 直前クリップとのオーバーラップ秒)。`gapBefore` と `crossfadeIn` の同時指定、先頭クリップの `crossfadeIn` 指定、直前クリップの露出長 (`duration - crossfadeIn`) を超える `crossfadeIn` は不可 |
 | `overlays`          | 写真・動画の差し込み (フェード・位置指定)。`scale` はフレームに収めた上での倍率。`volume`/`sourceFrom` は `kind: "video"` 専用で、`kind: "image"` の要素に 0 以外を指定するとスキーマ検証エラーになる (`volume` の既定は無音、`sourceFrom` は元動画内の開始秒)。video overlay の `fadeIn`/`fadeOut` は映像の不透明度と音量の両方のフェードに使われる |
 | `bgm`               | BGM トラック (フェードイン/アウト)                                                                                                                                                                                                                                                                                                                                                                                    |
-| `lines`             | セリフ (音声 + 字幕表示文)。音声区間 `[start, start + duration)` は互いに重ならないこと (重なると検証エラー)。字幕は次のセリフの開始で切れる                                                                                                                                                                                                                                                                          |
+| `voice`             | セリフ音声の既定値。`voice.speaker` は既定の話者 (VOICEVOX の style id)。`lines[].speaker` が省略された line に使われる ([ADR-0006](docs/adr/0006-generate-voice-and-lipsync-from-voicevox-api.md))                                                                                                                                                                                                                 |
+| `lines`             | セリフ (音声 + 字幕表示文)。`text` の読みは `` {漢字\|よみ} `` で書く (字幕には漢字側、音声合成には読み側を使う)。漢字側・よみ側に `\|` は含められない (含めると記法として認識されず、読み仮名の記法が閉じていないとして検証エラーになる)。`{` と `}` はこの記法専用で、字幕の文字としては使えない (記法外の `\|` は字幕にそのまま表示され、音声合成の読みにもそのまま渡る。VOICEVOX ENGINE がどう読むかは保証しない)。`lines[].speaker` は話者を line ごとに上書きする (省略時は `voice.speaker`)。`audio`・`duration`・`lipsync` は `npm run voice -- <slug>` が生成・書き戻すため省略できる (手で書かない)。音声区間 `[start, start + duration)` は互いに重ならないこと (重なると検証エラー。`duration` が無い line は対象外)。字幕は次のセリフの開始で切れる |
 | `subtitleBands`     | 字幕背景帯の表示区間                                                                                                                                                                                                                                                                                                                                                                                                  |
 | `characterSegments` | 立ち絵の表示区間 (現状は枠のみ。中身は issue #3)                                                                                                                                                                                                                                                                                                                                                                      |
 | `ending`            | エンディング (黒フェード + クレジット文言)。フェード長は `fadeDuration` (既定 1.0 秒)                                                                                                                                                                                                                                                                                                                                 |

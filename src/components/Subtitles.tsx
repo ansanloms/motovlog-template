@@ -2,11 +2,12 @@ import React from "react";
 import { AbsoluteFill, Sequence, useVideoConfig } from "remotion";
 import { fontFamily } from "../fonts";
 import { toFrameSpan } from "../timeline/frames";
-import type { Timeline } from "../timeline/schema";
+import type { VoicedTimeline } from "../timeline/schema";
+import { displayText } from "../timeline/text";
 
 type Props = {
-  lines: Timeline["lines"];
-  style: Timeline["style"]["subtitle"];
+  lines: VoicedTimeline["lines"];
+  style: VoicedTimeline["style"]["subtitle"];
 };
 
 // セリフ字幕。表示区間は [start, start + duration + subtitleTail]。ただし
@@ -36,7 +37,7 @@ export const Subtitles: React.FC<Props> = ({ lines, style }) => {
             from={from}
             durationInFrames={durationInFrames}
           >
-            <SubtitleText text={line.text} style={style} />
+            <SubtitleText text={displayText(line.text)} style={style} />
           </Sequence>
         );
       })}
@@ -46,7 +47,7 @@ export const Subtitles: React.FC<Props> = ({ lines, style }) => {
 
 const SubtitleText: React.FC<{
   text: string;
-  style: Timeline["style"]["subtitle"];
+  style: VoicedTimeline["style"]["subtitle"];
 }> = ({ text, style }) => {
   const textStyle: React.CSSProperties = {
     fontFamily,

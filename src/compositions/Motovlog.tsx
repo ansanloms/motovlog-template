@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useMemo } from "react";
 import type { CalculateMetadataFunction } from "remotion";
 import { AbsoluteFill, getInputProps } from "remotion";
 import { ZodError } from "zod";
@@ -12,11 +12,14 @@ import { Subtitles } from "../components/Subtitles";
 import { VoiceLines } from "../components/VoiceLines";
 import { resolveClipSpans } from "../timeline/clips";
 import { toFrameSpan } from "../timeline/frames";
-import { timelineSchema } from "../timeline/schema";
-import type { Timeline } from "../timeline/schema";
+import { assertVoiced, timelineSchema } from "../timeline/schema";
+import type { Timeline, VoicedTimeline } from "../timeline/schema";
 
 // 全トラックのフレーム区間の終端の最大値を求める。
-const getTotalDurationInFrames = (timeline: Timeline, fps: number): number => {
+const getTotalDurationInFrames = (
+  timeline: VoicedTimeline,
+  fps: number,
+): number => {
   const spans: Array<{ from: number; durationInFrames: number }> = [
     ...resolveClipSpans(timeline.clips).map((span, index) =>
       toFrameSpan(span.start, timeline.clips[index].duration, fps),
@@ -94,18 +97,23 @@ export const calculateMetadata: CalculateMetadataFunction<Timeline> = ({
     throw error;
   }
 
-  const durationInFrames = getTotalDurationInFrames(parsed, parsed.meta.fps);
+  // 音声が未生成の line があれば、ここで明確なエラーとして拒否する (ADR-0006)。
+  const voiced = assertVoiced(parsed);
+
+  const durationInFrames = getTotalDurationInFrames(voiced, voiced.meta.fps);
 
   return {
-    width: parsed.meta.width,
-    height: parsed.meta.height,
-    fps: parsed.meta.fps,
+    width: voiced.meta.width,
+    height: voiced.meta.height,
+    fps: voiced.meta.fps,
     durationInFrames,
-    props: parsed,
+    props: voiced,
   };
 };
 
-export const Motovlog: React.FC<Timeline> = (timeline) => {
+export const Motovlog: React.FC<Timeline> = (props) => {
+  const timeline = useMemo(() => assertVoiced(props), [props]);
+
   return (
     <AbsoluteFill style={{ backgroundColor: "#000000" }}>
       <DashcamTrack clips={timeline.clips} />

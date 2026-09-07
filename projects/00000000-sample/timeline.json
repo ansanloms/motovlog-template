@@ -26,13 +26,16 @@
       "fadeOut": 1.0
     }
   ],
+  "voice": {
+    "speaker": 13
+  },
   "lines": [
     {
       "id": "line1",
       "audio": "projects/00000000-sample/line1.wav",
       "start": 1,
       "duration": 2.165,
-      "text": "今日は浄土平まで走ってきた。",
+      "text": "今日は{浄土平|じょうどだいら}まで走ってきた。",
       "subtitleTail": 0.4
     },
     {

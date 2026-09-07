@@ -1,5 +1,6 @@
 import { zColor } from "@remotion/zod-types";
 import { z } from "zod";
+import { displayText } from "./text";
 
 // タイムライン定義のスキーマ。
 //
@@ -131,12 +132,31 @@ const bgmSchema = z.object({
 });
 
 const lineSchema = z.object({
-  id: z.string(),
-  audio: z.string(),
+  // Sequence の key 等で参照されるため、英数字・_・- だけに絞る。
+  id: z.string().regex(/^[A-Za-z0-9_-]+$/, "id は英数字・_・- だけ"),
+  // 音声を生成するまで省略できる。npm run voice が書き戻す。
+  audio: z.string().optional(),
   start: z.number().nonnegative(),
-  duration: z.number().positive(),
-  // 字幕表示文。
-  text: z.string(),
+  // 音声を生成するまで省略できる。npm run voice が wav の実尺を書き戻す。
+  duration: z.number().positive().optional(),
+  // 字幕表示文。読みは {漢字|よみ} で書く (ADR-0006)。字幕には漢字側を、
+  // 音声合成には読み側を使う (src/timeline/text.ts)。
+  text: z.string().superRefine((text, ctx) => {
+    // displayText 後に {・} が残っていれば、{漢字|よみ} の記法が閉じていない
+    // (ネスト・書き忘れ等)。| は読み仮名の記法専用ではなく字幕の文字として
+    // 使う場合がある (例: "60|80 km/h") ため対象外。
+    if (/[{}]/.test(displayText(text))) {
+      ctx.addIssue({
+        code: "custom",
+        message: "読み仮名の記法 {漢字|よみ} が閉じていません",
+      });
+    }
+  }),
+  // 話者 (VOICEVOX の style id)。省略時は timeline.voice.speaker を使う。
+  speaker: z.number().int().nonnegative().optional(),
+  // 口パクデータ (public 相対のパス)。音声を生成するまで省略できる。
+  // npm run voice が書き戻す。
+  lipsync: z.string().optional(),
   // 音声終了後に字幕を残す秒。
   subtitleTail: z.number().nonnegative().default(0.4),
 });
@@ -162,16 +182,18 @@ const linesSchema = z.array(lineSchema).superRefine((lines, ctx) => {
 
   // start 昇順に並べ、隣接する line 同士の区間 [start, start + duration) が
   // 重ならないことを検証する (Subtitles.tsx の clamp は隣接前提の保険であって
-  // 重なりの許容ではない)。
+  // 重なりの許容ではない)。duration が無い line (音声未生成) は検証対象外。
   const sorted = lines
     .map((line, index) => ({ line, index }))
+    .filter((entry) => entry.line.duration !== undefined)
     .sort((a, b) => a.line.start - b.line.start);
 
   for (let i = 1; i < sorted.length; i++) {
     const prev = sorted[i - 1];
     const next = sorted[i];
+    const prevDuration = prev.line.duration as number;
 
-    if (next.line.start < prev.line.start + prev.line.duration) {
+    if (next.line.start < prev.line.start + prevDuration) {
       ctx.addIssue({
         code: "custom",
         message: `start は直前の line (index ${prev.index}) の終了 (start + duration) 以降にしてください: ${next.line.id}`,
@@ -256,6 +278,8 @@ export const timelineSchema = z.object({
   clips: clipsSchema,
   overlays: overlaysSchema.default([]),
   bgm: z.array(bgmSchema).default([]),
+  // 既定の話者 (VOICEVOX の style id)。lines[].speaker が無いときに使う (ADR-0006)。
+  voice: z.object({ speaker: z.number().int().nonnegative() }).optional(),
   lines: linesSchema.default([]),
   subtitleBands: z.array(subtitleBandSchema).default([]),
   characterSegments: z.array(characterSegmentSchema).default([]),
@@ -264,3 +288,29 @@ export const timelineSchema = z.object({
 });
 
 export type Timeline = z.infer<typeof timelineSchema>;
+
+// 音声・口パクデータを生成済みの line/timeline の型 (ADR-0006)。
+// `npm run voice` が `lines[].audio`・`lines[].duration` を書き戻した後の状態を
+// 型で保証し、計算・描画側 (Subtitles・VoiceLines・getTotalDurationInFrames 等)
+// が duration を必須として扱えるようにする。
+type Line = Timeline["lines"][number];
+
+export type VoicedLine = Line & { audio: string; duration: number };
+
+export type VoicedTimeline = Omit<Timeline, "lines"> & { lines: VoicedLine[] };
+
+// audio か duration が未生成の line があれば拒否する。calculateMetadata から
+// parse の直後に呼ぶ想定。
+export const assertVoiced = (timeline: Timeline): VoicedTimeline => {
+  const unvoiced = timeline.lines.filter(
+    (line) => line.audio === undefined || line.duration === undefined,
+  );
+
+  if (unvoiced.length > 0) {
+    throw new Error(
+      `音声が未生成のセリフがあります: ${unvoiced.map((line) => line.id).join(", ")}。npm run voice -- <slug> を実行してください`,
+    );
+  }
+
+  return timeline as VoicedTimeline;
+};
