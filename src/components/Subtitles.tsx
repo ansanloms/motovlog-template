@@ -2,10 +2,10 @@ import React from "react";
 import { AbsoluteFill, Sequence, useVideoConfig } from "remotion";
 import { fontFamily } from "../fonts";
 import { toFrameSpan } from "../timeline/frames";
-import type { Timeline } from "../timeline/schema";
+import type { Timeline, VoicedTimeline } from "../timeline/schema";
 
 type Props = {
-  lines: Timeline["lines"];
+  lines: VoicedTimeline["lines"];
   style: Timeline["style"]["subtitle"];
 };
 

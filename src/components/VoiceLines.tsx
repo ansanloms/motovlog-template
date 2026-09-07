@@ -2,10 +2,10 @@ import { Audio } from "@remotion/media";
 import React from "react";
 import { Sequence, staticFile, useVideoConfig } from "remotion";
 import { toFrameSpan } from "../timeline/frames";
-import type { Timeline } from "../timeline/schema";
+import type { VoicedTimeline } from "../timeline/schema";
 
 type Props = {
-  lines: Timeline["lines"];
+  lines: VoicedTimeline["lines"];
 };
 
 // セリフ音声トラック。字幕の表示区間 (subtitleTail 込み) は Subtitles 側で扱う。

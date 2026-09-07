@@ -3,7 +3,7 @@ set -euo pipefail
 
 # 使い方: scripts/make-proxy.sh <slug> <入力ファイル>...
 # 各入力を public/projects/<slug>/<basename>.mp4 へ変換する (ADR-0003)。
-# フレームレートは projects/<slug>/timeline.json の meta.fps に合わせる (無ければ 30)。
+# フレームレートは projects/<slug>/timeline.ts の meta.fps に合わせる。
 # 起動時に nvenc が使えるかを確認し、使えなければ libx264 を使う。nvenc が使える場合でも、
 # あるファイルの変換に失敗したときはそのファイルだけ libx264 で再試行する。
 
@@ -28,7 +28,6 @@ fi
 
 script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 repo_root="$(cd "${script_dir}/.." && pwd)"
-timeline_file="${repo_root}/projects/${slug}/timeline.json"
 out_dir="${repo_root}/public/projects/${slug}"
 
 # 変換に入る前に、出力先が未生成の入力ファイルが読めることを確認する。
@@ -50,22 +49,11 @@ done
 # WSL で NVENC を使うための LD_LIBRARY_PATH。既存の値を上書きせず前に足す。
 nvenc_env_ld="/usr/lib/wsl/lib${LD_LIBRARY_PATH:+:${LD_LIBRARY_PATH}}"
 
-# fps は composition (timeline の meta.fps) に合わせる。無ければ schema の既定値 30 を使う。
-proxy_fps="30"
-if [ -f "${timeline_file}" ]; then
-  if ! command -v jq >/dev/null; then
-    echo "error: jq が必要です (projects/${slug}/timeline.json の meta.fps を読むため)" >&2
-    exit 1
-  fi
-  fps_value="$(jq -r '.meta.fps // empty' "${timeline_file}")"
-  if [ -n "${fps_value}" ]; then
-    proxy_fps="${fps_value}"
-  else
-    echo "warn: ${timeline_file} に meta.fps が無いため fps=30 を使います" >&2
-  fi
-else
-  echo "warn: ${timeline_file} が無いため fps=30 を使います" >&2
-fi
+# fps は composition (timeline の meta.fps) に合わせる。fps がずれると
+# ADR-0003 の「composition の fps に合わせる」を破るため、timeline.ts が
+# 無い・読めない場合はフォールバックせずエラーで止める (set -e により、
+# scripts/timeline-fps.ts の失敗でこのスクリプトも終了する)。
+proxy_fps="$(cd "${repo_root}" && npx tsx scripts/timeline-fps.ts "${slug}")"
 
 if ! [[ "${proxy_fps}" =~ ^[0-9]+(\.[0-9]+)?$ ]]; then
   echo "error: meta.fps が数値ではありません: ${proxy_fps}" >&2

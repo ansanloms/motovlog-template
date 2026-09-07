@@ -1,0 +1,13 @@
+{
+  "version": 1,
+  "lines": {
+    "line1": {
+      "audio": "projects/00000000-sample/line1.wav",
+      "duration": 2.165
+    },
+    "line2": {
+      "audio": "projects/00000000-sample/line2.wav",
+      "duration": 3.957
+    }
+  }
+}
