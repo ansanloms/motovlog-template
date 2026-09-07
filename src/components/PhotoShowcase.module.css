@@ -1,0 +1,34 @@
+.frameSingle {
+  position: absolute;
+  left: var(--photo-single-side);
+  right: var(--photo-single-side);
+  top: var(--photo-top);
+  bottom: var(--photo-bottom);
+  box-shadow: var(--shadow-photo);
+}
+
+.photo {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.frameGrid {
+  position: absolute;
+  left: var(--photo-pair-side);
+  right: var(--photo-pair-side);
+  top: var(--photo-top);
+  bottom: var(--photo-bottom);
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--photo-pair-gap);
+}
+
+.cell {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  box-shadow: var(--shadow-photo);
+  display: block;
+}

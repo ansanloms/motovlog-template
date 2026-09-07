@@ -6,6 +6,10 @@ import {
   ChapterTitleGallery,
   galleryDurationInFrames as chapterTitleGalleryDurationInFrames,
 } from "./gallery/ChapterTitleGallery";
+import {
+  galleryDurationInFrames as photoShowcaseGalleryDurationInFrames,
+  PhotoShowcaseGallery,
+} from "./gallery/PhotoShowcaseGallery";
 import { galleryFps } from "./gallery/shared";
 import {
   galleryDurationInFrames as subtitlesGalleryDurationInFrames,
@@ -51,6 +55,14 @@ export const RemotionRoot: React.FC = () => {
         height={1080}
         fps={galleryFps}
         durationInFrames={verticalNoteGalleryDurationInFrames}
+      />
+      <Composition
+        id="Gallery-PhotoShowcase"
+        component={PhotoShowcaseGallery}
+        width={1920}
+        height={1080}
+        fps={galleryFps}
+        durationInFrames={photoShowcaseGalleryDurationInFrames}
       />
     </>
   );
