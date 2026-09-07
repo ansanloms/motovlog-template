@@ -1,7 +1,7 @@
 ---
 status: accepted
 date: 2026-09-07T02:26:35Z
-refs: [2]
+refs: [2, 8]
 tags: [remotion, timeline, schema]
 ---
 
@@ -53,7 +53,7 @@ Remotion には次の事実がある。
 - timeline は `version` (正の整数) を持つ。省略時は 1 とする。互換性を切る変更をするときは新しい ADR で決めて `version` を 1 つ上げ、エンジンは対応しない `version` を parse で拒否する。
 - 時間はすべて秒 (数値) で書く。フレーム換算はコンポーネント側で `meta.fps` を使って行い、区間の丸めは終端基準 (開始と終了を個別に丸めない) に統一する。
 - `meta` は `width`・`height` (偶数、既定 1920×1080) と `fps` (既定 30) を持つ。
-- トラックは `clips` (メイン映像)・`overlays` (差し込みの画像・動画)・`bgm`・`lines` (セリフ音声と字幕テキスト)・`subtitleBands` (字幕の背景帯)・`characterSegments` (立ち絵の表示区間)・`ending` (暗転とクレジット)・`style` (字幕と帯の見た目) の 8 つとする。既定値付きの項目とコンテナは省略できる。
+- トラックは `clips` (メイン映像)・`overlays` (差し込みの画像・動画)・`bgm`・`lines` (セリフ音声と字幕テキスト)・`characterSegments` (立ち絵の表示区間)・`ending` (暗転とクレジット) の 6 つとする。既定値付きの項目とコンテナは省略できる。
 - `clips` は絶対位置を持たない順序リストとし、各クリップの開始位置を `gapBefore` と `crossfadeIn` から導出する (先頭は `gapBefore`、2 つ目以降は前クリップの終端 + `gapBefore` − `crossfadeIn`)。先頭の `crossfadeIn` は 0 とし、`gapBefore` と `crossfadeIn` を同時に指定せず、`crossfadeIn` は直前クリップの露出長 (尺 − そのクリップの `crossfadeIn`) 以下とする。
 - `clips` 以外のトラックの要素は絶対時刻 (`start` と `duration`) で置く。
 - 動画の尺は全トラックの区間終端の最大値とする。
@@ -111,3 +111,4 @@ Remotion には次の事実がある。
 - https://www.remotion.dev/docs/props-resolution : input props と `defaultProps` の優先順。
 - https://www.remotion.dev/docs/composition : `schema` prop と Studio の編集 UI。
 - https://www.remotion.dev/docs/sequence : `<Sequence>` がフレーム単位であること。
+- ユーザとの検討 (2026-09-07、書き換え): 見た目を timeline で持たない決定 ([ADR-0008](./0008-fix-look-in-theme-not-timeline.md)) に伴い `style`・`subtitleBands` を track から外した。ADR-0000 の例外条項で本文を書き換えた。

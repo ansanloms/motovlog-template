@@ -45,14 +45,6 @@ export default defineTimeline({
       subtitleTail: 0.4,
     },
   ],
-  subtitleBands: [
-    {
-      start: 1,
-      duration: 7.4,
-      fadeIn: 0.5,
-      fadeOut: 0.5,
-    },
-  ],
   characterSegments: [],
   // 暗転 + クレジット。
   ending: {
@@ -62,19 +54,6 @@ export default defineTimeline({
       text: "ご視聴ありがとうございました",
       start: 10,
       duration: 2,
-    },
-  },
-  style: {
-    subtitle: {
-      fontSize: 40,
-      color: "#ffffff",
-      letterSpacing: 2,
-      bottomOffset: 120,
-    },
-    band: {
-      color: "#262672",
-      opacity: 0.8,
-      height: 160,
     },
   },
 });

@@ -1,4 +1,3 @@
-import { zColor } from "@remotion/zod-types";
 import { z } from "zod";
 
 // タイムライン定義のスキーマ。
@@ -224,13 +223,6 @@ const voicedLinesSchema = z
     checkLineOverlaps(lines, ctx);
   });
 
-const subtitleBandSchema = z.object({
-  start: z.number().nonnegative(),
-  duration: z.number().positive(),
-  fadeIn: z.number().nonnegative().default(0.5),
-  fadeOut: z.number().nonnegative().default(0.5),
-});
-
 const characterSegmentSchema = z.object({
   start: z.number().nonnegative(),
   duration: z.number().positive(),
@@ -262,36 +254,6 @@ const endingSchema = z
     },
   );
 
-const subtitleStyleSchema = z.object({
-  fontSize: z.number().default(40),
-  color: zColor().default("#ffffff"),
-  letterSpacing: z.number().default(2),
-  // 画面下端からの px。
-  bottomOffset: z.number().default(120),
-  // 未指定なら縁取りは付けない。
-  outline: z
-    .object({
-      color: zColor(),
-      width: z.number(),
-    })
-    .optional(),
-});
-
-const bandStyleSchema = z.object({
-  color: zColor().default("#262672"),
-  opacity: z.number().min(0).max(1).default(0.8),
-  height: z.number().default(160),
-});
-
-const styleSchema = z.object({
-  // ZodObject.default() は出力型 (全フィールド確定後の型) を要求するため、
-  // 全フィールドが独自に default を持つオブジェクトに対して .default({}) と
-  // 書くと型エラーになる。.prefault() は入力型 (default 持ちフィールドは
-  // 省略可) を要求するので、こちらを使う。
-  subtitle: subtitleStyleSchema.prefault({}),
-  band: bandStyleSchema.prefault({}),
-});
-
 export const timelineSchema = z.object({
   // ADR-0004: 互換性を切る変更で上げる。
   version: z.literal(1).default(1),
@@ -300,10 +262,8 @@ export const timelineSchema = z.object({
   overlays: overlaysSchema.default([]),
   bgm: z.array(bgmSchema).default([]),
   lines: linesSchema.default([]),
-  subtitleBands: z.array(subtitleBandSchema).default([]),
   characterSegments: z.array(characterSegmentSchema).default([]),
   ending: endingSchema.optional(),
-  style: styleSchema.prefault({}),
 });
 
 export type Timeline = z.infer<typeof timelineSchema>;

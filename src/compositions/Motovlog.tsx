@@ -6,7 +6,7 @@ import { CharacterLayer } from "../components/CharacterLayer";
 import { DashcamTrack } from "../components/DashcamTrack";
 import { Ending } from "../components/Ending";
 import { Overlays } from "../components/Overlays";
-import { SubtitleBand } from "../components/SubtitleBand";
+import { SubtitleDarkness } from "../components/SubtitleDarkness";
 import { Subtitles } from "../components/Subtitles";
 import { VoiceLines } from "../components/VoiceLines";
 import { resolveClipSpans } from "../timeline/clips";
@@ -30,7 +30,6 @@ const getTotalDurationInFrames = (
     ...timeline.lines.map((l) =>
       toFrameSpan(l.start, l.duration + l.subtitleTail, fps),
     ),
-    ...timeline.subtitleBands.map((b) => toFrameSpan(b.start, b.duration, fps)),
     ...timeline.characterSegments.map((s) =>
       toFrameSpan(s.start, s.duration, fps),
     ),
@@ -90,15 +89,13 @@ export const Motovlog: React.FC<MotovlogProps> = ({ timeline }) => {
   }
 
   return (
+    // 暗転の色は ED の再設計で theme に寄せる。
     <AbsoluteFill style={{ backgroundColor: "#000000" }}>
       <DashcamTrack clips={timeline.clips} />
       <Overlays overlays={timeline.overlays} />
       <CharacterLayer segments={timeline.characterSegments} />
-      <SubtitleBand
-        bands={timeline.subtitleBands}
-        style={timeline.style.band}
-      />
-      <Subtitles lines={timeline.lines} style={timeline.style.subtitle} />
+      <SubtitleDarkness lines={timeline.lines} />
+      <Subtitles lines={timeline.lines} />
       <Bgm bgm={timeline.bgm} />
       <VoiceLines lines={timeline.lines} />
       <Ending ending={timeline.ending} />

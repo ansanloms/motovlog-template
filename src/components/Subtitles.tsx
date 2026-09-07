@@ -1,20 +1,23 @@
-import React from "react";
+import React, { useMemo } from "react";
 import { AbsoluteFill, Sequence, useVideoConfig } from "remotion";
 import { fontFamily } from "../fonts";
 import { toFrameSpan } from "../timeline/frames";
-import type { Timeline, VoicedTimeline } from "../timeline/schema";
+import type { VoicedTimeline } from "../timeline/schema";
+import { colors, subtitleLayout, typeScale } from "../theme";
 
 type Props = {
   lines: VoicedTimeline["lines"];
-  style: Timeline["style"]["subtitle"];
 };
 
 // セリフ字幕。表示区間は [start, start + duration + subtitleTail]。ただし
 // 次のセリフの開始より後ろにはみ出さないよう終端を clamp する。
-export const Subtitles: React.FC<Props> = ({ lines, style }) => {
+export const Subtitles: React.FC<Props> = ({ lines }) => {
   const { fps } = useVideoConfig();
 
-  const sortedLines = [...lines].sort((a, b) => a.start - b.start);
+  const sortedLines = useMemo(
+    () => [...lines].sort((a, b) => a.start - b.start),
+    [lines],
+  );
 
   return (
     <>
@@ -36,7 +39,7 @@ export const Subtitles: React.FC<Props> = ({ lines, style }) => {
             from={from}
             durationInFrames={durationInFrames}
           >
-            <SubtitleText text={line.text} style={style} />
+            <SubtitleText text={line.text} />
           </Sequence>
         );
       })}
@@ -44,26 +47,18 @@ export const Subtitles: React.FC<Props> = ({ lines, style }) => {
   );
 };
 
-const SubtitleText: React.FC<{
-  text: string;
-  style: Timeline["style"]["subtitle"];
-}> = ({ text, style }) => {
+const SubtitleText: React.FC<{ text: string }> = ({ text }) => {
   const textStyle: React.CSSProperties = {
     fontFamily,
-    fontWeight: 900,
-    fontSize: style.fontSize,
-    color: style.color,
-    letterSpacing: style.letterSpacing,
+    fontWeight: typeScale.subtitle.fontWeight,
+    fontSize: typeScale.subtitle.fontSize,
+    lineHeight: typeScale.subtitle.lineHeight,
+    color: colors.textOnVideo,
+    textShadow: subtitleLayout.textShadow,
     textAlign: "center",
     whiteSpace: "pre-wrap",
-    ...(style.outline
-      ? {
-          WebkitTextStroke: `${style.outline.width}px ${style.outline.color}`,
-          // 縁取りをグリフの外側に塗る (既定は fill の上に stroke が乗り、
-          // 縁取りの内側半分が文字の塗りつぶしに侵食されて細く見える)。
-          paintOrder: "stroke",
-        }
-      : {}),
+    overflowWrap: "anywhere",
+    maxWidth: subtitleLayout.maxWidth,
   };
 
   return (
@@ -71,7 +66,7 @@ const SubtitleText: React.FC<{
       style={{
         justifyContent: "flex-end",
         alignItems: "center",
-        paddingBottom: style.bottomOffset,
+        paddingBottom: subtitleLayout.bottomOffset,
       }}
     >
       <div style={textStyle}>{text}</div>

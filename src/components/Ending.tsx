@@ -9,6 +9,7 @@ import {
 import { fontFamily } from "../fonts";
 import { toFrameSpan } from "../timeline/frames";
 import type { Timeline } from "../timeline/schema";
+import { colors, typeScale } from "../theme";
 
 type Props = {
   ending: Timeline["ending"];
@@ -47,6 +48,7 @@ export const Ending: React.FC<Props> = ({ ending }) => {
       </Sequence>
       {holdDurationInFrames > 0 ? (
         <Sequence from={holdFrom} durationInFrames={holdDurationInFrames}>
+          {/* 暗転の色は ED の再設計で theme に寄せる。 */}
           <AbsoluteFill style={{ backgroundColor: "#000000" }} />
         </Sequence>
       ) : null}
@@ -69,6 +71,7 @@ const FadeToBlack: React.FC<{ durationInFrames: number }> = ({
           extrapolateRight: "clamp",
         });
 
+  // 暗転の色は ED の再設計で theme に寄せる。
   return <AbsoluteFill style={{ backgroundColor: "#000000", opacity }} />;
 };
 
@@ -93,12 +96,14 @@ const Credits: React.FC<{
           alignItems: "center",
         }}
       >
+        {/* ED の見た目は T&M の ED 節に沿った再設計 (別 issue) で置き換える。
+        それまで暫定。 */}
         <div
           style={{
             fontFamily,
-            fontWeight: 900,
+            fontWeight: typeScale.chapter.fontWeight,
             fontSize: 32,
-            color: "#ffffff",
+            color: colors.textOnVideo,
             textAlign: "center",
             whiteSpace: "pre-wrap",
           }}
