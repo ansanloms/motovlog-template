@@ -28,7 +28,7 @@ export const fontWeight = {
 // design の `--video-*` と同名)。
 export const videoType = {
   title: 96,
-  chapter: 54,
+  chapter: 56,
   subtitle: 44,
   note: 24,
 } as const;
@@ -37,7 +37,7 @@ export const videoType = {
 export const subtitleLayout = {
   lineHeight: 1.45,
   bottomOffset: 86,
-  maxWidth: 1690,
+  maxWidth: 1232, // 1 行 28 文字 × 44px
 } as const;
 
 // T&M「画面配置」「字幕の出し方」節。

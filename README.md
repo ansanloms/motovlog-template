@@ -90,7 +90,7 @@ export default defineTimeline({
 
 `default` 付きの項目 (`fadeDuration`・`subtitleTail` 等) は省略可能で、省略した場合は `calculateMetadata` 内での parse で default 値が補完される。`meta` や `overlays`・`bgm`・`lines`・`characterSegments` はコンテナごと丸ごと省略可能 (`clips` は必須)。
 
-字幕・暗がり等の見た目は `docs/design/tone-and-manner.md` (ADR-0007) で固定し、`src/theme/tokens.ts` の定数から読む。timeline では変えない (ADR-0008)。下部の暗がりは `lines` から自動で出す (語り出しの 0.3 秒前にフェードイン、無音が 5 秒続くとフェードアウト)。トークン (色・書体・配置等) の正本は `src/theme/tokens.ts` に置く。静的なスタイルは各コンポーネントの `*.module.css` に書き、`var(--...)` でトークンを参照する。フレームごとに変わる値 (不透明度等) はインラインスタイルで渡す。
+字幕・暗がり等の見た目は `docs/design/tone-and-manner.md` (ADR-0007) で固定し、`src/theme/tokens.ts` の定数から読む。timeline では変えない (ADR-0008)。下部の暗がりは `lines` から自動で出す (語り出しの 0.24 秒前にフェードイン、無音が 4.8 秒続くとフェードアウト)。トークン (色・書体・配置等) の正本は `src/theme/tokens.ts` に置く。静的なスタイルは各コンポーネントの `*.module.css` に書き、`var(--...)` でトークンを参照する。フレームごとに変わる値 (不透明度等) はインラインスタイルで渡す。
 
 project の選択は環境変数 `REMOTION_PROJECT` (slug) で行う。`.env` に書くか `REMOTION_PROJECT=<slug> npx remotion studio` のように渡す。未設定・空ならサンプル project (`00000000-sample`) を読む。`--props` は使わない。
 

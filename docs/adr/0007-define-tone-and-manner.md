@@ -59,6 +59,7 @@ tags: [design, tone-and-manner]
 
 - ユーザ作成の Claude Design プロジェクト (2026-09-07): deck 10 面と画面サンプル A〜E。要点は `docs/design/tone-and-manner.md` に転記。
 - 同プロジェクトの 2026-09-08 版: CSS 変数の定義、影の削除、暗がりの濃度変更。要点は `docs/design/tone-and-manner.md` に転記。
+- 同プロジェクトの 2026-09-08 版 deck: タイミング面の追加、値の更新。要点は `docs/design/tone-and-manner.md` に転記。
 - ユーザとの検討 (2026-09-07): weight の読み替え、暗がりの高さと消え方、字幕を消すタイミングの決定。
 - [ADR-0001](./0001-use-remotion-for-video-production.md)
 - [ADR-0004](./0004-timeline-schema-design.md)
