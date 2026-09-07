@@ -5,7 +5,7 @@ import type { VoicedTimeline } from "./schema";
 export const DEFAULT_PROJECT = "00000000-sample";
 
 // ADR-0002 の slug 形式 (YYYYMMDD-<name>、ASCII 小文字の kebab-case)。
-const SLUG_PATTERN = /^[0-9]{8}-[a-z0-9]+(-[a-z0-9]+)*$/;
+export const PROJECT_SLUG_PATTERN = /^[0-9]{8}-[a-z0-9]+(-[a-z0-9]+)*$/;
 
 // REMOTION_PROJECT (未設定・空なら DEFAULT_PROJECT) を検証して slug を返す。
 export const resolveProjectSlug = (env: string | undefined): string => {
@@ -13,7 +13,7 @@ export const resolveProjectSlug = (env: string | undefined): string => {
     return DEFAULT_PROJECT;
   }
 
-  if (!SLUG_PATTERN.test(env)) {
+  if (!PROJECT_SLUG_PATTERN.test(env)) {
     throw new Error(
       `REMOTION_PROJECT の形式が不正です (YYYYMMDD-<name> の形にしてください): ${env}`,
     );

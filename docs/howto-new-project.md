@@ -5,7 +5,7 @@ README の「新しい動画を作る」を、具体的なコマンドと timeli
 ## 前提
 
 - `npm ci` が済んでいる (初回だけ)。
-- ffmpeg が入っている。NVENC を使うなら NVIDIA GPU。WSL では `/usr/lib/wsl/lib` のライブラリを `convert-movie.sh` が自動で読む。
+- ffmpeg が入っている。NVENC を使うなら NVIDIA GPU。WSL では `/usr/lib/wsl/lib` のライブラリを `scripts/convert-movie.ts` が自動で読む。
 - ドラレコの原本 (HEVC) は Windows 側 (`/mnt/c`) に置いたままでよい。触るのは変換時の読み取り 1 回だけで、書き換えない。
 
 ## 手順
@@ -22,13 +22,13 @@ cp projects/00000000-sample/timeline.ts projects/20260817-jododaira/timeline.ts
 ### 2. ドラレコ原本を変換済み素材に変換する
 
 ```
-scripts/convert-movie.sh 20260817-jododaira /mnt/c/path/to/DASHCAM_20260816_133345.MP4
+npm run convert -- 20260817-jododaira /mnt/c/path/to/DASHCAM_20260816_133345.MP4
 ```
 
 - 出力は `public/projects/20260817-jododaira/DASHCAM_20260816_133345.mp4` (原本の basename + `.mp4`)。既にあればスキップする。
 - フレームレートは `projects/<slug>/timeline.ts` の `meta.fps` に合わせる (timeline.ts を先に作っておく。無い・読めない場合はエラーになる)。
 - 原本 1 本 (約 43 分・8GB) で NVENC なら約 9 分、出力は約 5GB。NVENC が使えない環境では libx264 で約 10 倍かかる。
-- `npm run convert -- <slug> <原本>` でも呼べるが、`npm run` はリポジトリルートを cwd にするので原本は絶対パスで渡す。
+- `npm run` はリポジトリルートを cwd にするので原本は絶対パスで渡す。
 
 ### 3. セリフ音声を生成する
 
