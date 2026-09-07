@@ -1,10 +1,8 @@
 import React from "react";
 import { Composition } from "remotion";
-import sampleTimeline from "../projects/00000000-sample/timeline.json";
+import { z } from "zod";
 import { calculateMetadata, Motovlog } from "./compositions/Motovlog";
-import { timelineSchema } from "./timeline/schema";
-
-const defaultProps = timelineSchema.parse(sampleTimeline);
+import { voicedTimelineSchema } from "./timeline/schema";
 
 export const RemotionRoot: React.FC = () => {
   return (
@@ -12,8 +10,8 @@ export const RemotionRoot: React.FC = () => {
       <Composition
         id="Motovlog"
         component={Motovlog}
-        schema={timelineSchema}
-        defaultProps={defaultProps}
+        schema={z.object({ timeline: voicedTimelineSchema.nullable() })}
+        defaultProps={{ timeline: null }}
         calculateMetadata={calculateMetadata}
       />
     </>

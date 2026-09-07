@@ -77,6 +77,7 @@ Remotion には次の事実がある。
 - schema の検証規則が増えるほど、timeline を手で書くときのエラーの読み解きが要る。
 - project の切り替えが環境変数経由になり、Studio で複数の project を同時に見るには別プロセスが要る。
 - timeline.ts は TypeScript として評価されるため、式の誤りは Studio の読み込み時に分かる。
+- 動的 import は Rspack の context module になり、`projects/*/timeline.ts` と `voice.json` を全部コンパイルする。1 つの project の build 時エラー (timeline.ts の構文・import 解決、voice.json の JSON 構文) で全 project の Studio と render が止まる。実行時エラー (schema 違反・voice.json の欠落) は選んだ project に閉じる。
 
 ### 禁止事項
 

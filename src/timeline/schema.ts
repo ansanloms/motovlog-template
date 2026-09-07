@@ -130,39 +130,25 @@ const bgmSchema = z.object({
   fadeOut: z.number().nonnegative().default(1.0),
 });
 
+// audio・duration は voice.json との合成後にしか定まらない (ADR-0006)。
+// timeline.ts 側の line はここには持たず、合成後の voicedLineSchema に足す。
 const lineSchema = z.object({
   id: z.string(),
-  audio: z.string(),
   start: z.number().nonnegative(),
-  duration: z.number().positive(),
   // 字幕表示文。
   text: z.string(),
   // 音声終了後に字幕を残す秒。
   subtitleTail: z.number().nonnegative().default(0.4),
 });
 
-// lines は id を key として参照される想定 (Sequence の key 等) のため、
-// 重複があると描画・追跡が破綻する。
-const linesSchema = z.array(lineSchema).superRefine((lines, ctx) => {
-  const seen = new Map<string, number>();
-
-  lines.forEach((line, index) => {
-    const firstIndex = seen.get(line.id);
-
-    if (firstIndex !== undefined) {
-      ctx.addIssue({
-        code: "custom",
-        message: `id が index ${firstIndex} と重複しています: ${line.id}`,
-        path: [index, "id"],
-      });
-    } else {
-      seen.set(line.id, index);
-    }
-  });
-
-  // start 昇順に並べ、隣接する line 同士の区間 [start, start + duration) が
-  // 重ならないことを検証する (Subtitles.tsx の clamp は隣接前提の保険であって
-  // 重なりの許容ではない)。
+// start 昇順に並べ、隣接する line 同士の区間 [start, start + duration) が
+// 重ならないことを検証する (Subtitles.tsx の clamp は隣接前提の保険であって
+// 重なりの許容ではない)。timeline.ts 単体では duration が定まらないため、
+// audio・duration を合成済みの voicedLinesSchema からだけ呼ぶ。
+const checkLineOverlaps = (
+  lines: Array<{ id: string; start: number; duration: number }>,
+  ctx: z.core.$RefinementCtx,
+) => {
   const sorted = lines
     .map((line, index) => ({ line, index }))
     .sort((a, b) => a.line.start - b.line.start);
@@ -179,7 +165,64 @@ const linesSchema = z.array(lineSchema).superRefine((lines, ctx) => {
       });
     }
   }
+};
+
+// lines は id を key として参照される想定 (Sequence の key 等) のため、
+// 重複があると描画・追跡が破綻する。timeline.ts 単体 (linesSchema) と
+// voice.json 合成後 (voicedLinesSchema) の両方から呼ぶ。区間の重なり検証は
+// voice.json との合成後 (voicedLinesSchema) でだけ行う (checkLineOverlaps)。
+const checkDuplicateIds = (
+  lines: Array<{ id: string }>,
+  ctx: z.core.$RefinementCtx,
+) => {
+  const seen = new Map<string, number>();
+
+  lines.forEach((line, index) => {
+    const firstIndex = seen.get(line.id);
+
+    if (firstIndex !== undefined) {
+      ctx.addIssue({
+        code: "custom",
+        message: `id が index ${firstIndex} と重複しています: ${line.id}`,
+        path: [index, "id"],
+      });
+    } else {
+      seen.set(line.id, index);
+    }
+  });
+};
+
+const linesSchema = z
+  .array(lineSchema)
+  .superRefine((lines, ctx) => checkDuplicateIds(lines, ctx));
+
+// voice.json (ADR-0006) の line エントリ。looseObject にしているのは、
+// 作り直し中の音声生成スクリプトが speaker・reading・lipsync・generatedAt 等を
+// 今後書き足す想定のため。ここでの読み込みは audio・duration だけを使う。
+const voiceLineSchema = z.looseObject({
+  audio: z.string(),
+  duration: z.number().positive(),
 });
+
+export const voiceSchema = z.object({
+  version: z.literal(1),
+  lines: z.record(z.string(), voiceLineSchema),
+});
+
+export type Voice = z.infer<typeof voiceSchema>;
+
+// timeline.ts の line に voice.json の audio・duration を足した形。
+const voicedLineSchema = lineSchema.extend({
+  audio: z.string(),
+  duration: z.number().positive(),
+});
+
+const voicedLinesSchema = z
+  .array(voicedLineSchema)
+  .superRefine((lines, ctx) => {
+    checkDuplicateIds(lines, ctx);
+    checkLineOverlaps(lines, ctx);
+  });
 
 const subtitleBandSchema = z.object({
   start: z.number().nonnegative(),
@@ -264,3 +307,53 @@ export const timelineSchema = z.object({
 });
 
 export type Timeline = z.infer<typeof timelineSchema>;
+
+// timeline.ts の lines に voice.json の audio・duration を合成した形。
+// Composition の schema にも使う (calculateMetadata が渡す props の型)。
+export const voicedTimelineSchema = timelineSchema.extend({
+  lines: voicedLinesSchema.default([]),
+});
+
+export type VoicedTimeline = z.infer<typeof voicedTimelineSchema>;
+
+// timeline.ts に書く際の型補完用。実行時は入力をそのまま返し、parse はしない
+// (parse は timelineSchema.parse が行う。projects/<slug>/timeline.ts の
+// `export default defineTimeline({...})` の形で使う)。
+export const defineTimeline = (
+  timeline: z.input<typeof timelineSchema>,
+): z.input<typeof timelineSchema> => timeline;
+
+// timeline (schema 検証済み、audio・duration 無し) と voice (voice.json、
+// schema 検証済み) を line の id で合成し、VoicedTimeline を返す。
+//
+// 失敗は 2 種類ある。
+// - timeline.lines に、対応する voice.lines が無い id がある場合: 音声が
+//   未生成であることを示す Error (ZodError ではない) を投げる。
+// - 合成結果が voicedTimelineSchema の検証 (line 区間の重なり等) を通らない
+//   場合: parse がそのまま投げる ZodError を伝播させる。
+//
+// voice.lines にだけあり timeline.lines に無い id は無視する。
+export const mergeVoice = (
+  timeline: Timeline,
+  voice: Voice,
+  slug: string,
+): VoicedTimeline => {
+  const missingIds = timeline.lines
+    .map((line) => line.id)
+    .filter((id) => !Object.prototype.hasOwnProperty.call(voice.lines, id));
+
+  if (missingIds.length > 0) {
+    throw new Error(
+      `音声が未生成です。projects/${slug}/voice.json に次の id の生成結果がありません (ADR-0006 の音声生成スクリプトで生成する): ${missingIds.join(", ")}`,
+    );
+  }
+
+  return voicedTimelineSchema.parse({
+    ...timeline,
+    lines: timeline.lines.map((line) => ({
+      ...line,
+      audio: voice.lines[line.id].audio,
+      duration: voice.lines[line.id].duration,
+    })),
+  });
+};
