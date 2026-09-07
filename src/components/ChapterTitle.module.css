@@ -1,0 +1,32 @@
+.scrim {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: var(--scrim-height);
+  background: var(--scrim-bottom);
+}
+
+.block {
+  position: absolute;
+  left: var(--chapter-padding-side);
+  bottom: var(--chapter-padding-bottom);
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--chapter-gap);
+  font-family: var(--font);
+}
+
+.label {
+  font-size: var(--label);
+  font-weight: var(--w-regular);
+  color: var(--accent-soft);
+  letter-spacing: var(--chapter-label-letter-spacing);
+}
+
+.title {
+  font-size: var(--chapter);
+  font-weight: var(--w-medium);
+  color: var(--ink-video);
+}

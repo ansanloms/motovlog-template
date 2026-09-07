@@ -3,8 +3,12 @@ import { Composition } from "remotion";
 import { z } from "zod";
 import { calculateMetadata, Motovlog } from "./compositions/Motovlog";
 import {
-  galleryDurationInFrames,
-  galleryFps,
+  ChapterTitleGallery,
+  galleryDurationInFrames as chapterTitleGalleryDurationInFrames,
+} from "./gallery/ChapterTitleGallery";
+import { galleryFps } from "./gallery/shared";
+import {
+  galleryDurationInFrames as subtitlesGalleryDurationInFrames,
   SubtitlesGallery,
 } from "./gallery/SubtitlesGallery";
 import { voicedTimelineSchema } from "./timeline/schema";
@@ -26,7 +30,15 @@ export const RemotionRoot: React.FC = () => {
         width={1920}
         height={1080}
         fps={galleryFps}
-        durationInFrames={galleryDurationInFrames}
+        durationInFrames={subtitlesGalleryDurationInFrames}
+      />
+      <Composition
+        id="Gallery-ChapterTitle"
+        component={ChapterTitleGallery}
+        width={1920}
+        height={1080}
+        fps={galleryFps}
+        durationInFrames={chapterTitleGalleryDurationInFrames}
       />
     </>
   );

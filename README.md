@@ -25,7 +25,7 @@ Remotion でモトブログ動画を作るためのエンジン。動画 1 本 =
 3. セリフ音声 (wav) を `public/projects/<slug>/` に置く。音声生成スクリプトで `projects/<slug>/voice.json` を生成する ([ADR-0006](docs/adr/0006-generate-voice-and-lipsync-from-voicevox-api.md))。口パクデータの生成 (issue #2) と立ち絵 (issue #3) は未実装で、現状は音声と字幕だけになる。
 4. BGM・効果音は `public/assets/bgm/`・`public/assets/se/` に置く。`public/assets/` 配下は既定でコミットされない。自作の素材をコミットするときは `.gitignore` の末尾に否定パターンを足す (除外パターンより前に書くと効かない)。書式はファイル 1 つなら `!public/assets/se/click.wav`、ディレクトリ丸ごとなら `!public/assets/characters/aoyama/**`、種別より深い階層のファイルだけなら親ディレクトリを先に戻してから書く (`!public/assets/bgm/album` の次の行に `!public/assets/bgm/album/x.wav`)。第三者の素材はコミットしない。
 5. timeline.ts に clips・lines・bgm 等を書く (「timeline.ts の書き方」)。素材のパスは `public/` 相対 (`projects/<slug>/clip1.mp4`、`assets/bgm/xxx.wav`)。
-6. プレビュー: `.env` に `REMOTION_PROJECT=<slug>` を書くか、`REMOTION_PROJECT=<slug> npx remotion studio` で渡して起動する。`Gallery-Subtitles` はコンポーネント単体の確認用の composition で、Studio で選べる。
+6. プレビュー: `.env` に `REMOTION_PROJECT=<slug>` を書くか、`REMOTION_PROJECT=<slug> npx remotion studio` で渡して起動する。`Gallery-Subtitles` 等はコンポーネント単体の確認用の composition で、Studio で選べる。写真を使う Gallery の素材はサンプル project の原本から `sh scripts/make-gallery-stills.sh` で作る (出力は `public/assets/samples/` でコミットしない)。
 7. レンダリング: `REMOTION_PROJECT=<slug> npx remotion render Motovlog out/<slug>.mp4`
 8. 公開したら `git tag render/<slug>` を打つ。再現はタグを checkout して `npm ci` し、素材を復元して render する。
 

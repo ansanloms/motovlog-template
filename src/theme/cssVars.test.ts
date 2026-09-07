@@ -29,6 +29,18 @@ describe("themeCssVars", () => {
     }
   });
 
+  it("-alpha・-line-height で終わる変数は px を付けない", () => {
+    // 無単位キーの判定 (isRawValueKey) は大文字小文字を区別しないため、
+    // 小文字始まりの接尾辞 (例: characterShadow.alpha) も px を付けない。
+    const vars = themeCssVars("Noto Sans JP");
+
+    for (const [key, value] of Object.entries(vars)) {
+      if (key.endsWith("-alpha") || key.endsWith("-line-height")) {
+        expect(value.endsWith("px")).toBe(false);
+      }
+    }
+  });
+
   it("*.module.css が参照する var(--...) はすべて themeCssVars に存在する", () => {
     // CSS 変数のタイプミスは実行時に黙って効かなくなるため、ここで止める。
     const vars = themeCssVars("Noto Sans JP");

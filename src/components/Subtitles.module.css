@@ -7,7 +7,7 @@
 .text {
   font-family: var(--font);
   font-weight: var(--w-regular);
-  font-size: var(--video-subtitle);
+  font-size: var(--subtitle);
   line-height: var(--subtitle-line-height);
   color: var(--ink-video);
   text-align: center;
