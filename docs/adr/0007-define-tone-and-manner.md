@@ -27,11 +27,12 @@ tags: [design, tone-and-manner]
 
 - 見た目と出し方の値の詳細は `docs/design/tone-and-manner.md` を正とする。
 - 書体は Noto Sans JP のみで weight は 400・500・600 とする (文書「タイポグラフィ」節)。
-- 字幕は 44px 純白、影あり、縁取りと箱を使わず、下部の暗がりの上に置く (文書「タイポグラフィ」節)。
+- 字幕は 44px、`--ink-video` (#F2F4EF)、影なし、縁取りと箱を使わず下部の暗がりの上に置く (文書「タイポグラフィ」節)。
 - 暗がりは lines から自動で出す (手置きしない) (文書「字幕の出し方」節)。
 - 上部 1/3 に常設情報を置かない (文書「画面配置」節)。
 - 速度・地名・時刻の常時表示をしない (文書「やらないこと」節)。
-- T&M を変えるときは文書・`src/theme.ts`・本 ADR を更新する。
+- トークン名は design の `:root` と同名にする。
+- T&M を変えるときは文書・`src/theme/` (tokens.ts と timing.ts)・本 ADR を更新する。
 
 ## Consequences
 
@@ -57,6 +58,7 @@ tags: [design, tone-and-manner]
 ## References
 
 - ユーザ作成の Claude Design プロジェクト (2026-09-07): deck 10 面と画面サンプル A〜E。要点は `docs/design/tone-and-manner.md` に転記。
+- 同プロジェクトの 2026-09-08 版: CSS 変数の定義、影の削除、暗がりの濃度変更。要点は `docs/design/tone-and-manner.md` に転記。
 - ユーザとの検討 (2026-09-07): weight の読み替え、暗がりの高さと消え方、字幕を消すタイミングの決定。
 - [ADR-0001](./0001-use-remotion-for-video-production.md)
 - [ADR-0004](./0004-timeline-schema-design.md)

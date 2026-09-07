@@ -19,17 +19,24 @@ tags: [remotion, timeline, schema, theme]
 
 ## Considered Options
 
-1. `style`・`subtitleBands` を schema から外し、見た目は `src/theme.ts` の定数にする — 採用。
+1. `style`・`subtitleBands` を schema から外し、見た目は `src/theme/tokens.ts` の定数にする — 採用。
 2. `style` を残し既定値を T&M にする — 却下。T&M が禁じる変更を schema が許し、正本が 2 つになる。
 3. `style` を残して無視する — 却下。死んだフィールドになる。
+4. Tailwind CSS — 却下。クラス文字列でトークンを表現するため、`src/theme/tokens.ts` の値を型で縛れない。
+5. ゼロランタイム CSS-in-JS (vanilla-extract 等) — 却下。バンドラ (Rspack) 対応の検証が要り、このリポジトリの規模に見合わない。
+6. ランタイム CSS-in-JS (styled-components・Emotion 等) — 却下。両者ともメンテナンスモードに入っている。
 
 ## Decision
 
 - timeline schema から `style` と `subtitleBands` を外す。
-- 見た目の値は `src/theme.ts` に置き、コンポーネントはそこから読む。
+- 見た目の値は `src/theme/tokens.ts` に置き、秒数は `src/theme/timing.ts` に置く。コンポーネントは `src/theme` から読む。
 - 暗がりの区間は lines の start と duration から `src/timeline/band.ts` で導く。
 - 見た目を変えるときは theme と T&M 文書を変え、timeline は変えない。
 - `version` は 1 のままとする。理由: 運用開始前で既存の timeline は無い ([ADR-0000](./0000-record-architecture-decisions.md) の例外)。
+- 見た目のトークン (色・書体・文字階層・配置) の正本は `src/theme/tokens.ts` とし、CSS からは CSS 変数 (`ThemeRoot` が流し込む) で参照する。
+- 静的なスタイルは各コンポーネントの `*.module.css` に書き、トークンは `var(--...)` で参照する。色・サイズの値を CSS に直接書かない。
+- フレームごとに変わる値 (不透明度・位置・スケール) はインラインスタイルで渡す。CSS の `transition`・`@keyframes` は使わない (Remotion のフレーム独立描画と同期しないため。https://www.remotion.dev/docs/troubleshooting/css-animations)。
+- 秒数のトークンは `src/theme/timing.ts` に置き、CSS 変数にしない。
 
 ## Consequences
 
@@ -57,3 +64,5 @@ tags: [remotion, timeline, schema, theme]
 - [ADR-0004](./0004-timeline-schema-design.md)
 - [ADR-0007](./0007-define-tone-and-manner.md)
 - ユーザとの検討 (2026-09-07): コンポーネント単位で issue を切り timeline の組み立ては最後に行う判断。
+- 調査 (2026-09-08): CSS Modules は webpack・Vite・Rspack で標準サポートされ、ランタイム CSS-in-JS はメンテナンスモード、ゼロランタイム系は保守状況に差がある。
+- [CSS animations do not work correctly | Remotion](https://www.remotion.dev/docs/troubleshooting/css-animations)

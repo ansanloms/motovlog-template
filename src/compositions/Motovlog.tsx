@@ -1,6 +1,5 @@
 import React from "react";
 import type { CalculateMetadataFunction } from "remotion";
-import { AbsoluteFill } from "remotion";
 import { Bgm } from "../components/Bgm";
 import { CharacterLayer } from "../components/CharacterLayer";
 import { DashcamTrack } from "../components/DashcamTrack";
@@ -9,6 +8,7 @@ import { Overlays } from "../components/Overlays";
 import { SubtitleBand } from "../components/SubtitleBand";
 import { Subtitles } from "../components/Subtitles";
 import { VoiceLines } from "../components/VoiceLines";
+import { ThemeRoot } from "../theme";
 import { resolveClipSpans } from "../timeline/clips";
 import { toFrameSpan } from "../timeline/frames";
 import { loadProject, resolveProjectSlug } from "../timeline/load";
@@ -90,7 +90,7 @@ export const Motovlog: React.FC<MotovlogProps> = ({ timeline }) => {
 
   return (
     // 暗転の色は ED の再設計で theme に寄せる。
-    <AbsoluteFill style={{ backgroundColor: "#000000" }}>
+    <ThemeRoot style={{ backgroundColor: "#000000" }}>
       <DashcamTrack clips={timeline.clips} />
       <Overlays overlays={timeline.overlays} />
       <CharacterLayer segments={timeline.characterSegments} />
@@ -99,6 +99,6 @@ export const Motovlog: React.FC<MotovlogProps> = ({ timeline }) => {
       <Bgm bgm={timeline.bgm} />
       <VoiceLines lines={timeline.lines} />
       <Ending ending={timeline.ending} />
-    </AbsoluteFill>
+    </ThemeRoot>
   );
 };

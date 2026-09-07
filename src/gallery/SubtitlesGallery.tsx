@@ -1,10 +1,9 @@
 import React from "react";
-import { AbsoluteFill } from "remotion";
 import { SubtitleBand } from "../components/SubtitleBand";
 import { Subtitles } from "../components/Subtitles";
 import { computeBandSpans } from "../timeline/band";
 import type { VoicedTimeline } from "../timeline/schema";
-import { band } from "../theme";
+import { bandTiming, ThemeRoot } from "../theme";
 
 // SubtitleBand・Subtitles 単体の確認用。timeline を使わず固定 props で描く。
 const lines: VoicedTimeline["lines"] = [
@@ -30,7 +29,7 @@ export const galleryFps = 30;
 
 // lines から導いた暗がりの最後の区間の終端まで表示できる尺にする。
 // 区間が無い場合でも Remotion の durationInFrames は 1 以上を要求するため下限を設ける。
-const galleryEndSeconds = computeBandSpans(lines, band).reduce(
+const galleryEndSeconds = computeBandSpans(lines, bandTiming).reduce(
   (max, span) => Math.max(max, span.start + span.duration),
   0,
 );
@@ -41,7 +40,7 @@ export const galleryDurationInFrames = Math.max(
 
 export const SubtitlesGallery: React.FC = () => {
   return (
-    <AbsoluteFill
+    <ThemeRoot
       style={{
         // 確認用の背景。上半分を明るい空、下半分を路面に見立てた固定値で、
         // T&M の色ではない。
@@ -50,6 +49,6 @@ export const SubtitlesGallery: React.FC = () => {
     >
       <SubtitleBand lines={lines} />
       <Subtitles lines={lines} />
-    </AbsoluteFill>
+    </ThemeRoot>
   );
 };

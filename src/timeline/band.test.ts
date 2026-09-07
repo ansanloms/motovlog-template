@@ -1,7 +1,8 @@
 import { describe, expect, it } from "vitest";
+import { bandTiming } from "../theme";
 import { computeBandSpans } from "./band";
 
-const opts = { leadIn: 0.3, silenceGap: 5, fadeOut: 0.5 };
+const opts = bandTiming;
 
 describe("computeBandSpans", () => {
   it("空なら空配列を返す", () => {

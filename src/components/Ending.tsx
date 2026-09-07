@@ -9,7 +9,7 @@ import {
 import { fontFamily } from "../fonts";
 import { toFrameSpan } from "../timeline/frames";
 import type { Timeline } from "../timeline/schema";
-import { colors, typeScale } from "../theme";
+import { fontWeight, palette } from "../theme";
 
 type Props = {
   ending: Timeline["ending"];
@@ -101,9 +101,9 @@ const Credits: React.FC<{
         <div
           style={{
             fontFamily,
-            fontWeight: typeScale.chapter.fontWeight,
+            fontWeight: fontWeight.medium,
             fontSize: 32,
-            color: colors.textOnVideo,
+            color: palette.inkVideo,
             textAlign: "center",
             whiteSpace: "pre-wrap",
           }}

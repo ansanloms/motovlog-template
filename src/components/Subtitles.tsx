@@ -1,9 +1,8 @@
 import React, { useMemo } from "react";
 import { AbsoluteFill, Sequence, useVideoConfig } from "remotion";
-import { fontFamily } from "../fonts";
 import { toFrameSpan } from "../timeline/frames";
 import type { VoicedTimeline } from "../timeline/schema";
-import { colors, subtitleLayout, typeScale } from "../theme";
+import styles from "./Subtitles.module.css";
 
 type Props = {
   lines: VoicedTimeline["lines"];
@@ -48,28 +47,9 @@ export const Subtitles: React.FC<Props> = ({ lines }) => {
 };
 
 const SubtitleText: React.FC<{ text: string }> = ({ text }) => {
-  const textStyle: React.CSSProperties = {
-    fontFamily,
-    fontWeight: typeScale.subtitle.fontWeight,
-    fontSize: typeScale.subtitle.fontSize,
-    lineHeight: typeScale.subtitle.lineHeight,
-    color: colors.textOnVideo,
-    textShadow: subtitleLayout.textShadow,
-    textAlign: "center",
-    whiteSpace: "pre-wrap",
-    overflowWrap: "anywhere",
-    maxWidth: subtitleLayout.maxWidth,
-  };
-
   return (
-    <AbsoluteFill
-      style={{
-        justifyContent: "flex-end",
-        alignItems: "center",
-        paddingBottom: subtitleLayout.bottomOffset,
-      }}
-    >
-      <div style={textStyle}>{text}</div>
+    <AbsoluteFill className={styles.layer}>
+      <div className={styles.text}>{text}</div>
     </AbsoluteFill>
   );
 };

@@ -8,7 +8,8 @@ import {
 import { computeBandSpans } from "../timeline/band";
 import { fadeEnvelope, secondsToFrames, toFrameSpan } from "../timeline/frames";
 import type { VoicedTimeline } from "../timeline/schema";
-import { band } from "../theme";
+import { bandTiming } from "../theme";
+import styles from "./SubtitleBand.module.css";
 
 type Props = {
   lines: VoicedTimeline["lines"];
@@ -17,7 +18,7 @@ type Props = {
 // 下部の暗がり。lines の語り区間から自動で表示区間を導く (ADR-0007, ADR-0008)。
 export const SubtitleBand: React.FC<Props> = ({ lines }) => {
   const { fps } = useVideoConfig();
-  const spans = useMemo(() => computeBandSpans(lines, band), [lines]);
+  const spans = useMemo(() => computeBandSpans(lines, bandTiming), [lines]);
 
   return (
     <>
@@ -52,7 +53,7 @@ const BandItem: React.FC<{ durationInFrames: number; fadeIn: number }> = ({
   const { fps } = useVideoConfig();
   const frame = useCurrentFrame();
   const fadeInFrames = secondsToFrames(fadeIn, fps);
-  const fadeOutFrames = secondsToFrames(band.fadeOut, fps);
+  const fadeOutFrames = secondsToFrames(bandTiming.fadeOut, fps);
 
   const opacity = fadeEnvelope({
     frame,
@@ -62,13 +63,8 @@ const BandItem: React.FC<{ durationInFrames: number; fadeIn: number }> = ({
   });
 
   return (
-    <AbsoluteFill style={{ justifyContent: "flex-end", opacity }}>
-      <div
-        style={{
-          height: band.height,
-          background: band.gradient,
-        }}
-      />
+    <AbsoluteFill className={styles.layer} style={{ opacity }}>
+      <div className={styles.band} />
     </AbsoluteFill>
   );
 };

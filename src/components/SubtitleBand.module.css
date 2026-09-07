@@ -1,0 +1,8 @@
+.layer {
+  justify-content: flex-end;
+}
+
+.band {
+  height: var(--scrim-height);
+  background: var(--scrim-bottom);
+}
