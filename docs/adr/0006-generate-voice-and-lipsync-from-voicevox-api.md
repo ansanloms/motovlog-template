@@ -1,6 +1,6 @@
 ---
 status: accepted
-date: 2026-09-06T15:21:14Z
+date: 2026-09-07T02:26:35Z
 refs: [2, 4]
 tags: [voicevox, lipsync, node]
 ---
@@ -46,10 +46,10 @@ mora の母音区間をそのまま口パクのタイムラインにし、母音
 - `lines[]` に話者 `speaker` (VOICEVOX の style id) を持たせる。timeline のトップレベルに既定の話者を置き、`lines[].speaker` はそれを上書きする。
 - 読みは `{漢字|よみ}` の記法で `text` に書く。字幕には漢字を、合成には読みを使う。この展開はスクリプトが行う。繰り返し使う固有名詞は ENGINE のユーザ辞書に登録してもよい。
 - 音声と口パクデータの生成は Node.js のスクリプト (`scripts/` 配下、TypeScript) が行い、`npm run` から呼べるようにする。ENGINE の URL は環境変数で渡す。
-- スクリプトは `lines` ごとに `/audio_query` と `/synthesis` を呼び、wav を `public/projects/<slug>/lines/<id>.wav` に、口パクデータを `public/projects/<slug>/lines/<id>.lipsync.json` に書く。同じ `text` と `speaker` で生成済みの line は再生成しない。
+- スクリプトは `lines` ごとに `/audio_query` と `/synthesis` を呼び、wav を `public/projects/<slug>/lines/<id>.wav` に、口パクデータを `public/projects/<slug>/lines/<id>.lipsync.json` に書く。同じ読み (`{漢字|よみ}` を展開した合成用の文) と `speaker` で生成済みの line は再生成しない。
 - 口パクデータは母音区間の配列 (`start`・`end` は秒、`vowel` は a・i・u・e・o・N・cl・pau) とする。子音の区間は直前の母音の口形を維持する扱いで、配列には含めない。
-- スクリプトは `lines[].audio`・`lines[].lipsync`・`lines[].duration` を timeline に書き戻す。`duration` は wav の実尺とする。
-- schema は `lines[].speaker`・`lines[].lipsync` を optional で足し、`lines[].duration` は生成前に省略できるようにする。`calculateMetadata` は `duration` の無い line を「音声が未生成」として明確なエラーで拒否する。互換性を切らないため `version` は 1 のまま。
+- スクリプトは line ごとの `audio`・`lipsync`・`duration` (wav の実尺)・読み・`speaker`・生成日時を `projects/<slug>/voice.json` に書く。timeline.ts は書き換えない。`voice.json` はコミットする。
+- schema は `lines[].speaker`・`lines[].lipsync` を optional で足し、`lines[].audio`・`duration` は timeline 側では書かない (読み込み時に `voice.json` から合成する)。`calculateMetadata` は生成の無い line を「音声が未生成」として明確なエラーで拒否する。互換性を切らないため `version` は 1 のまま。
 - 立ち絵の口パクは `CharacterLayer` が口パクデータを読み、母音を口パーツに対応付けて描く。`cl`・`pau` と配列の範囲外は閉口とする。口パーツの規約は立ち絵の ADR で決める。
 
 ## Consequences
@@ -58,20 +58,20 @@ mora の母音区間をそのまま口パクのタイムラインにし、母音
 
 - 台本を timeline で直せば、`npm run` 1 回で音声・字幕・口パクが追従する。
 - 口パクのタイミングが合成エンジンの mora データから決まり、音声解析を要しない。
-- 生成物は `public/projects/<slug>/` に閉じ、timeline には人が書く値と生成結果の要点 (`duration`) だけが残る。
+- 生成物は `public/projects/<slug>/` と `voice.json` に閉じ、timeline.ts には人が書く値だけが残る。
 
 ### 代償
 
 - 動画を作るたびに VOICEVOX ENGINE が稼働している必要がある。タグからの再現でも、音声を復元するには ENGINE が要る。
 - イントネーションの手直しはエディタでできず、`text` の読み・ユーザ辞書・query の上書き (必要になったら足す) で行う。
-- スクリプトが timeline.json を書き換えるため、人の編集とスクリプトの書き戻しが同じファイルに入る。
+- timeline.ts と `voice.json` を line の `id` で対応付けて合成するため、`id` を変えると再生成が要る。
 - `tsx` 等、TypeScript をそのまま実行する devDependency が 1 つ増える。
 
 ### 禁止事項
 
 - 台本を timeline 以外の場所 (`.vvproj`・別ファイル) に正本として置くこと。
 - 生成した wav と口パクデータをコミットすること。
-- `lines[].duration` を手で書くこと (wav の実尺とずれる)。
+- `lines[].audio`・`lipsync`・`duration` を timeline.ts に手で書くこと (`voice.json` が正本で、wav の実尺とずれる)。
 
 ## Assumptions
 
@@ -86,5 +86,6 @@ mora の母音区間をそのまま口パクのタイムラインにし、母音
 - [ADR-0002](./0002-project-directory-layout.md): 生成物の置き場 `public/projects/<slug>/` と、それをコミットしない決定。
 - [ADR-0004](./0004-timeline-schema-design.md): `lines` の形式と、互換性を切らないフィールド追加の規則。
 - VOICEVOX ENGINE の API の実機確認 (2026-09-06〜07): `/audio_query` の mora データ、`/synthesis` の wav、4 文での長さの差、`{漢字|よみ}` を API が解釈しないこと、母音ごとの矩形による口パクの確認。
-- ユーザとの検討 (2026-09-06〜07): 入力を timeline の台本にする判断、`{漢字|よみ}` の記法、`duration` の書き戻し、ランタイムを Node.js にする判断。
+- ユーザとの検討 (2026-09-06〜07): 入力を timeline の台本にする判断、`{漢字|よみ}` の記法、ランタイムを Node.js にする判断。
+- ユーザとの検討 (2026-09-07、書き換え): timeline を TypeScript にしたことに伴い ([ADR-0004](./0004-timeline-schema-design.md))、生成結果の書き戻し先を timeline から `voice.json` に変更。ADR-0000 の例外条項で本文を書き換えた。
 - https://github.com/VOICEVOX/voicevox_engine : VOICEVOX ENGINE。API の仕様は稼働中のエンジンの `/openapi.json` で確認した。

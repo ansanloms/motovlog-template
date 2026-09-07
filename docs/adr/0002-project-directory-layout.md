@@ -1,6 +1,6 @@
 ---
 status: accepted
-date: 2026-09-06T15:04:24Z
+date: 2026-09-07T02:26:35Z
 refs: [1]
 tags: [layout, remotion]
 ---
@@ -27,13 +27,13 @@ Remotion には次の制約がある。
 2. timeline を git で diff でき、公開した動画の再現に必要なものをタグで固定できること
 3. Remotion が素材を配信できる配置であること
 4. 素材の git 管理を、サイズとライセンスに応じて種別ごとに分けられること
-5. timeline を Remotion 以外のプログラム (Deno 等のスクリプト) からも生成できること
+5. timeline は人が書き、音声生成などの結果と分けて扱えること
 6. 共通素材と動画固有の素材をパスで見分けられること
 
 ## Considered Options
 
-1. 単一リポジトリで、timeline を `projects/<slug>/timeline.json`、動画固有の素材を `public/projects/<slug>/`、共通素材を `public/assets/<種別>/` に置き、共通素材のコミット可否はライセンスで決める — 採用。素材はすべて public 配下にあり Remotion が配信できる。timeline は JSON なので `--props` で渡せ、他のプログラムからも生成できる。`public/assets/` は既定でコミットせず、再配布できる自作素材だけを `.gitignore` の否定パターンで明示するため、判断を忘れた素材が混入しない。
-2. 単一リポジトリで、timeline を `src/data/<slug>.ts`、素材を `public/videos/<slug>/` に置く (issue での先行提案) — 却下。timeline が TypeScript だと Remotion 以外から生成しにくく、動画を増やすたびに Composition の登録かエントリの切り替えをコードに書くことになる。
+1. 単一リポジトリで、timeline を `projects/<slug>/timeline.ts` (音声生成の結果は `voice.json`)、動画固有の素材を `public/projects/<slug>/`、共通素材を `public/assets/<種別>/` に置き、共通素材のコミット可否はライセンスで決める — 採用。素材はすべて public 配下にあり Remotion が配信できる。timeline は環境変数で選んだ project を動的 import で読む。`public/assets/` は既定でコミットせず、再配布できる自作素材だけを `.gitignore` の否定パターンで明示するため、判断を忘れた素材が混入しない。
+2. 単一リポジトリで、timeline を `src/data/<slug>.ts`、素材を `public/videos/<slug>/` に置く (issue での先行提案) — 却下。project の定義がエンジンのソースの中に混ざり、動画を増やすたびに Composition の登録かエントリの切り替えをコードに書くことになる。
 3. 単一リポジトリで、timeline と素材を `projects/<slug>/` にまとめて置く — 却下。素材が public の外になり Remotion が配信できない。`--public-dir` を project ごとに切り替えると共通素材が届かなくなる。
 4. 動画ごとに別リポジトリを作る — 却下。エンジンの更新が各動画に伝播せず、数 KB の timeline のためにリポジトリと依存の複製を抱える。
 5. 素材をすべて git (LFS を含む) で管理する — 却下。GB 単位のプロキシと再配布制限のある BGM を含むため、リポジトリを公開・移行できなくなる。
@@ -43,7 +43,7 @@ Remotion には次の制約がある。
 
 - エンジン (Composition・コンポーネント・schema) と動画 project を 1 つのリポジトリで管理する。動画ごとにリポジトリを作らない。
 - 動画 1 本を 1 つの project とし、`<slug>` で識別する。`<slug>` は `YYYYMMDD-<name>` の形とし、日付 8 桁・ハイフン・ASCII 小文字の kebab-case で書く (例: `20260817-jododaira`)。
-- timeline 定義は `projects/<slug>/timeline.json` に置き、コミットする。エンジンは `remotion render --props=projects/<slug>/timeline.json` の形でこのファイルを受け取り、`calculateMetadata` で schema の検証と尺の算出をする。
+- timeline 定義は `projects/<slug>/timeline.ts` に置き、音声生成の結果は `projects/<slug>/voice.json` に置く。どちらもコミットする。エンジンは環境変数 `REMOTION_PROJECT` で選んだ project をこの 2 ファイルから読み、`calculateMetadata` で schema の検証と尺の算出をする ([ADR-0004](./0004-timeline-schema-design.md))。
 - 動画固有の素材 (プロキシ・セリフ音声・口パクのタイミング等) は `public/projects/<slug>/` に置く。`public/projects/` はコミットしない。
 - 動画をまたいで使う共通素材は `public/assets/<種別>/` に置く。種別は `bgm`・`se`・`characters/<name>`・`fonts` とする。
 - `public/assets/` 配下は既定でコミットしない。`.gitignore` で `public/assets/` 配下を除外し、`.gitkeep` と、再配布できる自作素材のディレクトリまたはファイルだけを否定パターンで明示してコミットする (書式は `.gitignore` の注記に従う)。
@@ -58,14 +58,14 @@ Remotion には次の制約がある。
 - エンジンの修正が 1 か所で済み、すべての動画に効く。
 - timeline がテキストで diff でき、公開時点をタグで固定できる。
 - 素材のパスを見れば共通素材か動画固有かが分かる。何を版管理しているかは `.gitignore` の否定パターンに現れ、判断の記録になる。
-- timeline が JSON なので、音声合成やタイミング生成のスクリプトが Remotion と別のランタイムで書ける。
+- timeline と音声生成の結果が同じディレクトリにあり、生成スクリプトは `voice.json` だけを書く。
 
 ### 代償
 
 - 動画 1 本の構成要素が `projects/<slug>/` と `public/projects/<slug>/` の 2 か所に分かれる。
 - コミットしない素材 (第三者の素材・プロキシ・原本) は外部ストレージでの保管と復元手順が要り、タグだけでは再現できない。
 - 自作素材をコミットするたびに `.gitignore` に否定パターンを足す手間が要る。
-- timeline を JSON で書くため、TypeScript の型補完は効かない。誤りは schema の検証で検出する。
+- timeline.ts は評価が要るため、Remotion 以外のツールから読むには TypeScript を実行するランタイムが要る。
 
 ### 禁止事項
 
@@ -78,11 +78,11 @@ Remotion には次の制約がある。
 
 ## Assumptions
 
-| 前提                                                                                  | 状態   | 確認方法 / 結果                                                                                                                                 |
-| ------------------------------------------------------------------------------------- | ------ | ----------------------------------------------------------------------------------------------------------------------------------------------- |
-| Remotion Studio でも `--props` で project を切り替えてプレビューできる                | 検証済 | 公式ドキュメント (get-input-props) に `remotion studio` と `remotion render` の両方に `--props` を渡せると明記されていることを確認 (2026-09-06) |
-| `public/projects/` に GB 単位のプロキシを置いても render の準備時間が実用範囲に収まる | 未検証 | 実際の動画 1 本分のプロキシを置いて render の開始までの時間を計測する                                                                           |
-| コミットしない素材の原本が外部ストレージに保管され続ける                              | 未検証 | 公開した動画をタグから再現する際に、素材の復元手順が通るかを確認する                                                                            |
+| 前提                                                                                  | 状態   | 確認方法 / 結果                                                            |
+| ------------------------------------------------------------------------------------- | ------ | -------------------------------------------------------------------------- |
+| `REMOTION_PROJECT` で選んだ project を Studio と render の両方で読める                | 検証済 | `npx remotion compositions` で確認 (2026-09-07)。Studio は実装時に確認する |
+| `public/projects/` に GB 単位のプロキシを置いても render の準備時間が実用範囲に収まる | 未検証 | 実際の動画 1 本分のプロキシを置いて render の開始までの時間を計測する      |
+| コミットしない素材の原本が外部ストレージに保管され続ける                              | 未検証 | 公開した動画をタグから再現する際に、素材の復元手順が通るかを確認する       |
 
 ## References
 
@@ -90,10 +90,11 @@ Remotion には次の制約がある。
 - issue での先行提案 (2026-09-06): timeline をこのリポジトリに集約し、素材はリポジトリ外で管理して `public/videos/<slug>/` を作業場にする案と、Remotion 公式のデータ駆動パターンを根拠とする整理。
 - 長尺・大容量ドラレコ動画の取り込み検証 (2026-09-01〜02): シンボリックリンクが配信されないこと、プロキシを public 配下の実体として置くこと、`--public-dir` の挙動の確認。
 - ユーザとの検討 (2026-09-06): 単一リポジトリでの管理、公開時のタグ、slug の形式、共通素材の種別と BGM をコミットしない判断。
+- ユーザとの検討 (2026-09-07、書き換え): timeline を TypeScript にし、音声生成の結果を `voice.json` に分け、`--props` をやめて環境変数で project を選ぶ判断 ([ADR-0004](./0004-timeline-schema-design.md))。ADR-0000 の例外条項で本文を書き換えた。
 - ユーザとの検討 (2026-09-06、書き換え): 立ち絵が第三者素材だと分かり、共通素材のコミット可否を種別からライセンスに変えた。動画を 1 本も作っていない段階のため、ADR-0000 の例外条項に基づき supersede でなく本文の書き換えで対応した。
 - https://www.remotion.dev/docs/miscellaneous/absolute-paths : 絶対パスが使えない理由と public ディレクトリの位置づけ。
 - https://www.remotion.dev/docs/terminology/public-dir : public ディレクトリの定義。
-- https://www.remotion.dev/docs/passing-props : `--props` で JSON ファイルを渡す方法。
+- https://www.remotion.dev/docs/env-variables : `.env` の自動読み込みと `REMOTION_` 接頭辞。
 - https://www.remotion.dev/docs/calculate-metadata : props から尺や解像度を算出する仕組み。
 - https://www.remotion.dev/docs/dataset-render : 1 つのコードベースから複数の動画を作るパターン。
 - ユーザとの検討 (2026-09-07、書き換え): 否定パターンをディレクトリ単位に限らずファイル単位も認める。成果物が無いため ADR-0000 の例外条項で本文を書き換えた。
