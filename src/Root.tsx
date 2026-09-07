@@ -11,6 +11,10 @@ import {
   galleryDurationInFrames as subtitlesGalleryDurationInFrames,
   SubtitlesGallery,
 } from "./gallery/SubtitlesGallery";
+import {
+  galleryDurationInFrames as verticalNoteGalleryDurationInFrames,
+  VerticalNoteGallery,
+} from "./gallery/VerticalNoteGallery";
 import { voicedTimelineSchema } from "./timeline/schema";
 
 export const RemotionRoot: React.FC = () => {
@@ -39,6 +43,14 @@ export const RemotionRoot: React.FC = () => {
         height={1080}
         fps={galleryFps}
         durationInFrames={chapterTitleGalleryDurationInFrames}
+      />
+      <Composition
+        id="Gallery-VerticalNote"
+        component={VerticalNoteGallery}
+        width={1920}
+        height={1080}
+        fps={galleryFps}
+        durationInFrames={verticalNoteGalleryDurationInFrames}
       />
     </>
   );

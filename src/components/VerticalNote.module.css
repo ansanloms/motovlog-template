@@ -1,0 +1,16 @@
+.note {
+  position: absolute;
+  right: var(--note-right);
+  top: var(--note-top);
+  height: var(--note-max-height);
+  writing-mode: vertical-rl;
+  white-space: pre-line;
+  font-family: var(--font);
+  font-size: var(--note);
+  font-weight: var(--w-regular);
+  color: var(--ink-video);
+  letter-spacing: var(--note-letter-spacing);
+  line-height: var(--note-line-height);
+  -webkit-text-stroke: var(--note-stroke-width) var(--black);
+  paint-order: stroke fill;
+}
