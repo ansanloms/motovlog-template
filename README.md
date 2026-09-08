@@ -113,7 +113,8 @@ layer 内の item と item の間には `crossfade({ duration })` を置ける�
 
 | ファクトリ             | 内容                                                                                     |
 | ---------------------- | ---------------------------------------------------------------------------------------- |
-| `video(props)`         | 走行映像。`src` (staticFile() 済み URL)・`trimBefore?` (秒)                              |
+| `video(props)`         | 走行映像。`src` (staticFile() 済み URL)・`trimBefore?` (秒)・`volume?`                   |
+| `audio(props)`         | 音声。`src` (staticFile() 済み URL)・`trimBefore?` (秒)・`volume?`・`loop?`              |
 | `thumbnail(props)`     | OP・サムネ用フレームの絵。`photo`・`badge`・`title`・`character`                         |
 | `chapterTitle(props)`  | 章タイトル。`title`・`subtitle`                                                          |
 | `annotation(props)`    | 右端の縦書き注釈。`text`                                                                 |
@@ -121,6 +122,10 @@ layer 内の item と item の間には `crossfade({ duration })` を置ける�
 | `ending(props)`        | ED。`title`・`subtitle`・`date`・`distance`・`ridingTime`・`routes`・`credits`           |
 | `subtitle(props)`      | セリフ字幕の文字。`text` (通常は `narration()` が組むので直接は使わない)                 |
 | `subtitleBand({})`     | 字幕下の暗がり (props は無いが引数は要る、通常は `narration()` が組むので直接は使わない) |
+
+`volume` は一定値 (数値、0 以上 1 以下) または折れ線 (`{ at, volume }[]`、各点の `volume` も 0 以上 1 以下) で指定する。`at` は要素の再生開始 (`trimBefore` 適用後) からの秒で、点の間は線形補間する。最初の点より前は最初の点の値、最後の点より後は最後の点の値でクランプする。省略時は 1。`audio()` の `loop` と折れ線を併用しても `at` は周回をまたいだ通算秒として扱う (`loopVolumeCurveBehavior="extend"`)。
+
+`fade()`・`crossfade()` は不透明度にだけ効き、音には効かない。`audio()` を `fade()` で包んでも音量は変わらず、`crossfade()` の重なり区間は両方の要素の音がそのまま重なる。音のフェードは `volume` の折れ線で書く。
 
 見た目 (色・書体・配置) は `docs/design/tone-and-manner.md` ([ADR-0004](docs/adr/0004-define-tone-and-manner.md)) で固定し、`src/theme/tokens.ts` の定数から読む。演出の秒数は `src/theme/timing.ts` の定数 (`chapterTiming`・`openingTiming` 等) を使う。timeline.ts にはこれらの値をハードコードせず theme を import する ([ADR-0005](docs/adr/0005-fix-look-in-theme-not-timeline.md))。
 

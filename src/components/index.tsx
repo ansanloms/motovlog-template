@@ -1,5 +1,6 @@
 import React from "react";
 import { Annotation } from "./Annotation.tsx";
+import { Audio } from "./Audio.tsx";
 import { ChapterTitle } from "./ChapterTitle.tsx";
 import { Ending } from "./Ending.tsx";
 import { PhotoShowcase } from "./PhotoShowcase.tsx";
@@ -7,6 +8,7 @@ import { Subtitle } from "./Subtitle.tsx";
 import { SubtitleBand } from "./SubtitleBand.tsx";
 import { Thumbnail } from "./Thumbnail.tsx";
 import { Video } from "./Video.tsx";
+import { assertVolume } from "./volume.ts";
 
 /**
  * timeline.ts から各コンポーネントを関数呼び出しで並べられるようにする要素
@@ -47,7 +49,16 @@ export const subtitleBand = (
   props: React.ComponentProps<typeof SubtitleBand>,
 ) => <SubtitleBand {...props} />;
 
-/** Video の要素ファクトリ。 */
-export const video = (props: React.ComponentProps<typeof Video>) => (
-  <Video {...props} />
-);
+/** Video の要素ファクトリ。不正な volume はここで throw する。 */
+export const video = (props: React.ComponentProps<typeof Video>) => {
+  assertVolume(props.volume ?? 1);
+
+  return <Video {...props} />;
+};
+
+/** Audio の要素ファクトリ。不正な volume はここで throw する。 */
+export const audio = (props: React.ComponentProps<typeof Audio>) => {
+  assertVolume(props.volume ?? 1);
+
+  return <Audio {...props} />;
+};
