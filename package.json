@@ -10,8 +10,8 @@
     "@remotion/google-fonts": "4.0.521",
     "@remotion/media": "4.0.521",
     "@remotion/zod-types": "4.0.521",
-    "react": "19.2.3",
-    "react-dom": "19.2.3",
+    "react": "19.2.8",
+    "react-dom": "19.2.8",
     "remotion": "4.0.521",
     "temporal-polyfill": "1.0.4",
     "zod": "4.5.4"
@@ -19,7 +19,7 @@
   "devDependencies": {
     "@remotion/eslint-config-flat": "4.0.521",
     "@types/node": "26.4.1",
-    "@types/react": "19.2.7",
+    "@types/react": "19.2.18",
     "@types/web": "0.0.166",
     "eslint": "9.19.0",
     "prettier": "3.8.1",
