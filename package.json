@@ -22,7 +22,7 @@
     "@types/react": "19.2.18",
     "@types/web": "0.0.166",
     "eslint": "9.19.0",
-    "prettier": "3.8.1",
+    "prettier": "3.9.6",
     "tsx": "4.23.13",
     "typescript": "5.9.3",
     "vitest": "5.0.0"
