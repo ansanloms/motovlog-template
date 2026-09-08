@@ -1,0 +1,213 @@
+// 使い方: tsx scripts/voice.ts [slug] [--watch]
+//
+// projects/<slug>/timeline.ts を静的解析し (scripts/voice/extract.ts)、
+// line() ごとの音声キャッシュ (public/projects/<slug>/lines/<key>.{wav,json}、
+// ADR-0010) を VOICEVOX ENGINE で生成する (scripts/voice/generate.ts)。
+// slug は引数 → REMOTION_PROJECT → DEFAULT_PROJECT の順で決める。
+//
+// 既定 (--watch 無し) は 1 回生成して終了する (npm run render の前段)。
+// --watch は projects/<slug>/ ディレクトリの変更を fs.watch で監視し、
+// timeline.ts の変更のたびに再生成する (npm run dev から scripts/dev.ts が
+// 起動する)。VOICEVOX_URL は .env で渡す。未設定なら 1 回実行は非 0 で
+// 終了し、--watch は起動時に 1 度警告して何もしない (npm run dev 自体は
+// 使える)。
+
+import "temporal-polyfill/global";
+import fs from "node:fs";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+import { resolveProjectSlug } from "../src/project/load.ts";
+import { extractLines } from "./voice/extract.ts";
+import { generateMissing } from "./voice/generate.ts";
+import type { GenerateDeps } from "./voice/generate.ts";
+
+try {
+  process.loadEnvFile();
+} catch (error) {
+  const code = (error as NodeJS.ErrnoException).code;
+
+  if (code !== "ENOENT") {
+    throw error;
+  }
+}
+
+const repoRoot = path.join(path.dirname(fileURLToPath(import.meta.url)), "..");
+
+/** slug を CLI 引数 (先頭の非フラグ) → env (REMOTION_PROJECT) → 既定の順で決める。 */
+export const resolveSlugArg = (
+  argv: readonly string[],
+  env: NodeJS.ProcessEnv,
+): string => {
+  const positional = argv.find((arg) => !arg.startsWith("--"));
+
+  return resolveProjectSlug(positional ?? env.REMOTION_PROJECT);
+};
+
+/** VOICEVOX_URL を env から読む。未設定なら undefined。 */
+export const readVoicevoxUrl = (env: NodeJS.ProcessEnv): string | undefined =>
+  env.VOICEVOX_URL;
+
+/**
+ * run を要求ごとにデバウンスし、実行中に来た要求は 1 回の再実行に合流させる
+ * 関数を作る。fs.watch のイベントバースト (1 回の保存で複数回発火する) を
+ * まとめ、実行中の呼び出しと重ならないようにする。run が reject しても
+ * running は必ず戻し (finally)、その要求のエラーは onError に渡す。reject
+ * した実行中に来た再実行要求 (rerunRequested) も捨てず、次の 1 回として
+ * 続けて走らせる (run 自身は catch しないこと。二重 catch を避けるため)。
+ */
+export const createRunQueue = (
+  run: () => Promise<void>,
+  delayMs: number,
+  onError: (error: unknown) => void,
+  setTimeoutFn: typeof setTimeout = setTimeout,
+): (() => void) => {
+  let running = false;
+  let rerunRequested = false;
+  let debounceTimer: ReturnType<typeof setTimeout> | null = null;
+
+  const runLoop = async (): Promise<void> => {
+    if (running) {
+      rerunRequested = true;
+      return;
+    }
+
+    running = true;
+    try {
+      do {
+        rerunRequested = false;
+        try {
+          await run();
+        } catch (error) {
+          onError(error);
+        }
+      } while (rerunRequested);
+    } finally {
+      running = false;
+    }
+  };
+
+  return () => {
+    if (debounceTimer) {
+      clearTimeout(debounceTimer);
+    }
+
+    debounceTimer = setTimeoutFn(() => {
+      debounceTimer = null;
+      void runLoop();
+    }, delayMs);
+  };
+};
+
+const runOnce = async (slug: string, voicevoxUrl: string): Promise<void> => {
+  const timelinePath = path.join(repoRoot, "projects", slug, "timeline.ts");
+  const source = fs.readFileSync(timelinePath, "utf-8");
+  const lines = await extractLines(source, timelinePath);
+
+  const publicDir = path.join(repoRoot, "public");
+  const linesDir = path.join(publicDir, "projects", slug, "lines");
+
+  const deps: GenerateDeps = {
+    linesDir,
+    publicDir,
+    voicevoxUrl,
+    fetchImpl: fetch,
+    exists: (p) => fs.existsSync(p),
+    mkdir: (dir) => fs.mkdirSync(dir, { recursive: true }),
+    writeFile: (p, data) => fs.writeFileSync(p, data),
+    rename: (from, to) => fs.renameSync(from, to),
+    log: (line) => process.stdout.write(`${line}\n`),
+    warn: (line) => process.stderr.write(`${line}\n`),
+    now: () => Temporal.Now.instant().toString(),
+  };
+
+  await generateMissing(slug, lines, deps);
+};
+
+/** run() が返す、--watch 時の監視の後片付け手段。--watch でなければ何もしない。 */
+export type RunHandle = { close: () => void };
+
+const noopHandle: RunHandle = { close: () => {} };
+
+/**
+ * CLI 引数を解釈して 1 回生成 (既定) または --watch を起動する。
+ * scripts/dev.ts が --watch 相当を同プロセスで起動するために呼ぶ。
+ */
+export const run = async (args: readonly string[]): Promise<RunHandle> => {
+  const watch = args.includes("--watch");
+  const slug = resolveSlugArg(
+    args.filter((arg) => arg !== "--watch"),
+    process.env,
+  );
+  const voicevoxUrl = readVoicevoxUrl(process.env);
+
+  if (!voicevoxUrl) {
+    if (!watch) {
+      throw new Error(
+        "VOICEVOX_URL を設定してください (例: http://localhost:50021)",
+      );
+    }
+
+    process.stderr.write(
+      "warn: VOICEVOX_URL が未設定のため発話の生成をしません (.env を設定してください)\n",
+    );
+    return noopHandle;
+  }
+
+  if (!watch) {
+    await runOnce(slug, voicevoxUrl);
+    return noopHandle;
+  }
+
+  const projectDir = path.join(repoRoot, "projects", slug);
+
+  if (!fs.existsSync(projectDir)) {
+    process.stderr.write(
+      `warn: ${projectDir} が無いため監視しません (先に project を作ってください)\n`,
+    );
+    return noopHandle;
+  }
+
+  const logRunError = (error: unknown): void => {
+    process.stderr.write(
+      `error: ${error instanceof Error ? error.message : String(error)}\n`,
+    );
+  };
+
+  // 初回は watcher 起動前に 1 度実行する。失敗しても watch は続ける。
+  try {
+    await runOnce(slug, voicevoxUrl);
+  } catch (error) {
+    logRunError(error);
+  }
+
+  // timeline.ts に直接 fs.watch を張ると、rename 保存 (エディタの
+  // writebackup 等) で最初の保存後に監視対象が入れ替わり、以降の変更を
+  // 拾えなくなる。ディレクトリを監視し、timeline.ts のイベントだけ拾う。
+  const requestRun = createRunQueue(
+    () => runOnce(slug, voicevoxUrl),
+    200,
+    logRunError,
+  );
+
+  const watcher = fs.watch(projectDir, (_eventType, filename) => {
+    if (filename === "timeline.ts") {
+      requestRun();
+    }
+  });
+
+  process.stdout.write(`watch: ${projectDir}\n`);
+
+  return { close: () => watcher.close() };
+};
+
+// tsx で直接実行されたときだけ CLI として動く (scripts/dev.ts からの import では動かない)。
+if (
+  process.argv[1] &&
+  path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)
+) {
+  run(process.argv.slice(2)).catch((error: unknown) => {
+    const message = error instanceof Error ? error.message : String(error);
+    process.stderr.write(`error: ${message}\n`);
+    process.exitCode = 1;
+  });
+}

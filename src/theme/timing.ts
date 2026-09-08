@@ -7,9 +7,12 @@ export const fps = 30;
 
 export const bandTiming = {
   leadIn: 0.2, // 語り出しの何秒前から出すか (= フェードイン秒)
-  silenceGap: 5, // 無音が何秒続いたら消すか
+  silenceGap: 5, // 無音が何秒続いたら消すか (次の発話との統合閾値でもある)
   fadeOut: 0.4,
 } as const;
+
+/** セリフ字幕の尾 (音声終了後、字幕を残す秒数)。bandTiming.fadeOut と同値だが意味が違う。 */
+export const subtitleTiming = { tail: 0.4 } as const;
 
 /** 章タイトルの出入りのタイミング (T&M「出入りのタイミング」節)。 */
 export const chapterTiming = { fade: 0.2, hold: 2 } as const; // 6f / 60f / 6f at 30fps

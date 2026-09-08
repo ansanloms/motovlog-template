@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import { isFrame } from "./frame.ts";
-import type { CutItem, Placement } from "./types.ts";
+import type { CutItem, PendingCutItem, Placement } from "./types.ts";
 
 /** cut() に渡すオプション。 */
 type CutOptions = Placement & {
@@ -13,14 +13,22 @@ type CutOptions = Placement & {
  * すると同じ layer の直前の item の終端に連結する。`at` と `after` の
  * 同時指定は型エラーになる (実行時の検査は timeline() の resolveLayer で
  * 行う)。frame() (FrameMarker) は型で弾かれるが、`@ts-expect-error` で
- * 呼ばれた場合に備えて実行時にも throw する。
+ * 呼ばれた場合に備えて実行時にも throw する。duration を省くと
+ * PendingCutItem になり、narration() だけが duration (発話の実尺) を
+ * 埋めて layer に置ける (普通の layer に直接置くと型エラーになる)。
  */
-export const cut = (node: ReactNode, options: CutOptions): CutItem => {
-  const { at, after, duration } = options;
+export function cut(node: ReactNode, options: CutOptions): CutItem;
+export function cut(node: ReactNode, options: Placement): PendingCutItem;
+export function cut(
+  node: ReactNode,
+  options: CutOptions | Placement,
+): CutItem | PendingCutItem {
+  const { at, after } = options;
+  const duration = "duration" in options ? options.duration : undefined;
 
   if (isFrame(node)) {
     throw new Error("cut: frame() は渡せません");
   }
 
-  return { kind: "cut", node, at, after, duration } as CutItem;
-};
+  return { kind: "cut", node, at, after, duration } as CutItem | PendingCutItem;
+}

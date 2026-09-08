@@ -35,9 +35,10 @@ type TimelineOptions = {
  * layer 内の item と item の間に置かれた Transition (crossfade) は、直後
  * の item の開始を「直前の item の終端 − 遷移の尺」に固定する (layer 内
  * 非重複の唯一の例外)。resolved は layer を跨いで参照同一性で解決済み
- * item を引くための表で、Anchor (start/end) の解決に使う。
+ * item を引くための表で、Anchor (start/end) の解決に使う。narration() が
+ * 発話の実尺で duration を埋めた仮 layer の解決にも使うため export する。
  */
-const resolveLayer = (
+export const resolveLayer = (
   layer: Layer,
   layerIndex: number,
   resolved: Map<Item, ResolvedItem>,

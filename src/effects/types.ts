@@ -73,6 +73,15 @@ export type CutItem = Placement & {
   readonly duration: number;
 };
 
+/**
+ * cut() が duration を省いて組み立てるアイテム。narration() が発話の実尺で
+ * duration を埋めてから layer に置くための中間形で、Item には含めない
+ * (Layer に直接置くと型エラーになる)。
+ */
+export type PendingCutItem = Omit<CutItem, "duration"> & {
+  readonly duration?: undefined;
+};
+
 /** timeline() に渡す入力アイテムの列 (位置は at / after / 省略のいずれか)。 */
 export type Item = FadeItem | CutItem;
 
