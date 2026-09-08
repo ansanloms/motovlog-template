@@ -1,8 +1,8 @@
 import { staticFile } from "remotion";
 import {
+  annotation,
   chapterTitle,
-  openingFrame,
-  verticalNote,
+  thumbnail,
   video,
 } from "../../src/components/index.tsx";
 import { cut, fade, timeline } from "../../src/effects/index.ts";
@@ -25,7 +25,7 @@ export default timeline({ fps }, [
   [
     // layer 1: OP と章タイトル
     fade(
-      openingFrame({
+      thumbnail({
         photo: asset("photos/photo-03.jpg"),
         badge: "#0 福島 / 磐梯吾妻スカイライン",
         title: "浄土平まで\n走ってきた",
@@ -41,9 +41,9 @@ export default timeline({ fps }, [
     }),
   ],
   [
-    // layer 2: 縦書きメモ
+    // layer 2: 注釈
     cut(
-      verticalNote({
+      annotation({
         text: "磐梯吾妻スカイラインは11月中旬から冬季閉鎖\n（概要欄にリンク）",
       }),
       { at: 14, duration: 5 },
