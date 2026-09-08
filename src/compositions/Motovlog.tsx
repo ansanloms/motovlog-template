@@ -3,7 +3,6 @@ import type { CalculateMetadataFunction } from "remotion";
 import { Bgm } from "../components/Bgm.tsx";
 import { CharacterLayer } from "../components/CharacterLayer.tsx";
 import { DashcamTrack } from "../components/DashcamTrack.tsx";
-import { Ending } from "../components/Ending.tsx";
 import { Overlays } from "../components/Overlays.tsx";
 import { SubtitleBand } from "../components/SubtitleBand.tsx";
 import { Subtitles } from "../components/Subtitles.tsx";
@@ -98,7 +97,6 @@ export const Motovlog: React.FC<MotovlogProps> = ({ timeline }) => {
       <Subtitles lines={timeline.lines} />
       <Bgm bgm={timeline.bgm} />
       <VoiceLines lines={timeline.lines} />
-      <Ending ending={timeline.ending} />
     </ThemeRoot>
   );
 };

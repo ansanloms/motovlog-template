@@ -1,10 +1,27 @@
 export {
+  chapterLayout,
+  endingLayout,
+  figureLayout,
   fontWeight,
+  noteLayout,
   palette,
+  paletteRgb,
+  photoLayout,
   scrim,
+  shadow,
   subtitleLayout,
-  videoType,
+  thumbLayout,
+  thumbScrim,
+  typeScale,
 } from "./tokens.ts";
-export { bandTiming } from "./timing.ts";
+export {
+  bandTiming,
+  chapterTiming,
+  chapterTitleDurationSec,
+  characterTiming,
+  endingTiming,
+  openingTiming,
+  thumbnailFrameTiming,
+} from "./timing.ts";
 export { themeCssVars } from "./cssVars.ts";
 export { ThemeRoot } from "./ThemeRoot.tsx";
