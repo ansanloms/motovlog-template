@@ -1,10 +1,11 @@
 ---
 status: accepted
-date: 2026-09-08T03:09:26Z
+date: 2026-09-08T12:13:14Z
+refs: [6]
 tags: [remotion, temporal, timeline]
 ---
 
-# ADR-0009: 日付と時間は Temporal で表し Date を使わない
+# ADR-0007: 日付と時間は Temporal で表し Date を使わない
 
 ## Context
 
@@ -30,7 +31,7 @@ timeline に走行日・走行時間を書く必要が出た (ED の走行デー
 - 日付・日時・経過時間は Temporal で表す (`ZonedDateTime`・`Duration` 等)。
 - `Date` は使わず、ESLint の `no-restricted-globals` で止める。
 - ポリフィルは `temporal-polyfill` をバンドルの入口・vitest の setup・`scripts/convert-movie.ts` でグローバルに入れる。
-- Remotion の props の境界では、読み込み時に ISO 文字列へ変換する関数を置き、props 用の schema が文字列を検証する。
+- Composition の props は slug のみで Temporal の値を含まない ([ADR-0006](./0006-write-timeline-as-effects-dsl.md))。timeline.ts からコンポーネントへは Temporal のインスタンスをそのまま渡す。Temporal の値を Composition の props に載せる必要が生じたときは、読み込み時に ISO 文字列へ変換する関数を別途置く。
 - 表示のタイムゾーンは値自身のゾーンとする。
 
 ## Consequences
@@ -44,7 +45,6 @@ timeline に走行日・走行時間を書く必要が出た (ED の走行デー
 ### 代償
 
 - `temporal-polyfill` への依存が増える。
-- Remotion の props の境界で Temporal のインスタンスと文字列を往復させる必要があり、Temporal を含む track (`ending` 等) は作者向け・props 向けの schema を 2 つ持つ。
 - `projects/<slug>/timeline.ts` に `Temporal.*.from()` を書く手間が増える。
 
 ### 禁止事項
@@ -62,7 +62,6 @@ timeline に走行日・走行時間を書く必要が出た (ED の走行デー
 
 ## References
 
-- ユーザとの検討 (2026-09-08): ED の走行データを Temporal で受ける判断、`Date` を静的解析で止める指示。
-- ユーザとの検討 (2026-09-08、書き換え): zod の `.transform()` で ISO 文字列に変換する当初案は、Remotion の `<Composition>` の型付け (schema の transform 前の型を使う) と両立しなかった。`timeline.ts` の読み込み時の 2 回パース (`timelineSchema.parse` の後に `voicedTimelineSchema.parse` が同じ値を再検証する) とも両立しなかった。そこで作者向けと props 向けの 2 つの schema に分け、変換を独立した関数に置く方針とした。ADR-0000 の例外条項で本文を書き換えた。
 - https://www.remotion.dev/docs/calculate-metadata : `calculateMetadata` の props が JSON 化できる値に限られ、`Date`・`Map`・`Set`・`staticFile()` が例外であること。
 - https://github.com/fullcalendar/temporal-polyfill/blob/main/README.md : `temporal-polyfill/global` でのグローバル導入と、TypeScript 6.0 未満向けの `temporal-polyfill/types/global` の型参照。
+- 設計整理 (2026-09-08): 現在の設計を 1 から記述し直した

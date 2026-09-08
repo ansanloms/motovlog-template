@@ -1,7 +1,7 @@
 ---
 status: accepted
-date: 2026-09-07T02:26:35Z
-refs: [1]
+date: 2026-09-08T12:13:14Z
+refs: [1, 6]
 tags: [layout, remotion]
 ---
 
@@ -19,8 +19,6 @@ Remotion には次の制約がある。
 
 素材は由来とライセンスが混在する。ドラレコ映像とセリフ音声は動画ごとに固有で自作。立ち絵は VOICEVOX のキャラクター (青山龍星) の第三者制作の素材で、リポジトリで再配布する前提にない。BGM や効果音は第三者の素材を使うことがあり、再配布の可否は素材ごとに異なる。自作の素材 (効果音・図版等) も今後増える見込みで、これは版管理したい。
 
-既存のテンプレート実装 (未マージのブランチ) は、素材を `public/sample/`、変換済み素材を `public/proxies/`、timeline を `src/data/sample.ts` にハードコードしている。
-
 ## Decision Drivers
 
 1. エンジン (コンポーネント・schema) の変更がすべての動画に伝播すること
@@ -32,7 +30,7 @@ Remotion には次の制約がある。
 
 ## Considered Options
 
-1. 単一リポジトリで、timeline を `projects/<slug>/timeline.ts` (音声生成の結果は `voice.json`)、動画固有の素材を `public/projects/<slug>/`、共通素材を `public/assets/<種別>/` に置き、共通素材のコミット可否はライセンスで決める — 採用。素材はすべて public 配下にあり Remotion が配信できる。timeline は環境変数で選んだ project を動的 import で読む。`public/assets/` は既定でコミットせず、再配布できる自作素材だけを `.gitignore` の否定パターンで明示するため、判断を忘れた素材が混入しない。
+1. 単一リポジトリで、timeline を `projects/<slug>/timeline.ts`、動画固有の素材を `public/projects/<slug>/`、共通素材を `public/assets/<種別>/` に置き、共通素材のコミット可否はライセンスで決める — 採用。素材はすべて public 配下にあり Remotion が配信できる。timeline は環境変数で選んだ project を動的 import で読む。`public/assets/` は既定でコミットせず、再配布できる自作素材だけを `.gitignore` の否定パターンで明示するため、判断を忘れた素材が混入しない。
 2. 単一リポジトリで、timeline を `src/data/<slug>.ts`、素材を `public/videos/<slug>/` に置く (issue での先行提案) — 却下。project の定義がエンジンのソースの中に混ざり、動画を増やすたびに Composition の登録かエントリの切り替えをコードに書くことになる。
 3. 単一リポジトリで、timeline と素材を `projects/<slug>/` にまとめて置く — 却下。素材が public の外になり Remotion が配信できない。`--public-dir` を project ごとに切り替えると共通素材が届かなくなる。
 4. 動画ごとに別リポジトリを作る — 却下。エンジンの更新が各動画に伝播せず、数 KB の timeline のためにリポジトリと依存の複製を抱える。
@@ -43,9 +41,9 @@ Remotion には次の制約がある。
 
 - エンジン (Composition・コンポーネント・schema) と動画 project を 1 つのリポジトリで管理する。動画ごとにリポジトリを作らない。
 - 動画 1 本を 1 つの project とし、`<slug>` で識別する。`<slug>` は `YYYYMMDD-<name>` の形とし、日付 8 桁・ハイフン・ASCII 小文字の kebab-case で書く (例: `20260817-jododaira`)。
-- timeline 定義は `projects/<slug>/timeline.ts` に置き、音声生成の結果は `projects/<slug>/voice.json` に置く。どちらもコミットする。エンジンは環境変数 `REMOTION_PROJECT` で選んだ project をこの 2 ファイルから読み、`calculateMetadata` で schema の検証と尺の算出をする ([ADR-0004](./0004-timeline-schema-design.md))。
+- timeline 定義は `projects/<slug>/timeline.ts` に置く。`timeline()` の戻り値を default export し、コミットする。エンジンは環境変数 `REMOTION_PROJECT` で選んだ project のこのファイルを動的 import で読む ([ADR-0006](./0006-write-timeline-as-effects-dsl.md))。
 - 動画固有の素材 (変換済み素材・セリフ音声・口パクのタイミング等) は `public/projects/<slug>/` に置く。`public/projects/` はコミットしない。
-- 動画をまたいで使う共通素材は `public/assets/<種別>/` に置く。種別は `bgm`・`se`・`characters/<name>`・`fonts` とする。
+- 動画をまたいで使う共通素材は `public/assets/<種別>/` に置く。種別は `bgm`・`se`・`characters/<name>`・`fonts` とする。`bgm` は T&M が全編走行音だけで通すと決めているため、当面は空のまま置く。
 - `public/assets/` 配下は既定でコミットしない。`.gitignore` で `public/assets/` 配下を除外し、`.gitkeep` と、再配布できる自作素材のディレクトリまたはファイルだけを否定パターンで明示してコミットする (書式は `.gitignore` の注記に従う)。
 - 第三者の素材は、種別を問わずコミットしない。コミットしない素材とドラレコの原本はリポジトリの外 (外部ストレージ) に保管する。`public/projects/<slug>/` に置くのは変換済み素材と生成物だけにする。
 - timeline から素材を参照するパスは public ディレクトリ相対とする (`assets/bgm/<file>`、`projects/<slug>/<file>`)。
@@ -58,7 +56,6 @@ Remotion には次の制約がある。
 - エンジンの修正が 1 か所で済み、すべての動画に効く。
 - timeline がテキストで diff でき、公開時点をタグで固定できる。
 - 素材のパスを見れば共通素材か動画固有かが分かる。何を版管理しているかは `.gitignore` の否定パターンに現れ、判断の記録になる。
-- timeline と音声生成の結果が同じディレクトリにあり、生成スクリプトは `voice.json` だけを書く。
 
 ### 代償
 
@@ -78,24 +75,17 @@ Remotion には次の制約がある。
 
 ## Assumptions
 
-| 前提                                                                                      | 状態   | 確認方法 / 結果                                                            |
-| ----------------------------------------------------------------------------------------- | ------ | -------------------------------------------------------------------------- |
-| `REMOTION_PROJECT` で選んだ project を Studio と render の両方で読める                    | 検証済 | `npx remotion compositions` で確認 (2026-09-07)。Studio は実装時に確認する |
-| `public/projects/` に GB 単位の変換済み素材を置いても render の準備時間が実用範囲に収まる | 未検証 | 実際の動画 1 本分の変換済み素材を置いて render の開始までの時間を計測する  |
-| コミットしない素材の原本が外部ストレージに保管され続ける                                  | 未検証 | 公開した動画をタグから再現する際に、素材の復元手順が通るかを確認する       |
+| 前提                                                                                      | 状態   | 確認方法 / 結果                                                           |
+| ----------------------------------------------------------------------------------------- | ------ | ------------------------------------------------------------------------- |
+| `REMOTION_PROJECT` で選んだ project を Studio と render の両方で読める                    | 検証済 | `npx remotion compositions` で確認 (2026-09-07)                           |
+| `public/projects/` に GB 単位の変換済み素材を置いても render の準備時間が実用範囲に収まる | 未検証 | 実際の動画 1 本分の変換済み素材を置いて render の開始までの時間を計測する |
+| コミットしない素材の原本が外部ストレージに保管され続ける                                  | 未検証 | 公開した動画をタグから再現する際に、素材の復元手順が通るかを確認する      |
 
 ## References
 
-- [ADR-0001](./0001-use-remotion-for-video-production.md): Remotion 採用と、動画の内容をテキストデータとして版管理する決定。
-- issue での先行提案 (2026-09-06): timeline をこのリポジトリに集約し、素材はリポジトリ外で管理して `public/videos/<slug>/` を作業場にする案と、Remotion 公式のデータ駆動パターンを根拠とする整理。
-- 長尺・大容量ドラレコ動画の取り込み検証 (2026-09-01〜02): シンボリックリンクが配信されないこと、変換済み素材を public 配下の実体として置くこと、`--public-dir` の挙動の確認。
-- ユーザとの検討 (2026-09-06): 単一リポジトリでの管理、公開時のタグ、slug の形式、共通素材の種別と BGM をコミットしない判断。
-- ユーザとの検討 (2026-09-07、書き換え): timeline を TypeScript にし、音声生成の結果を `voice.json` に分け、`--props` をやめて環境変数で project を選ぶ判断 ([ADR-0004](./0004-timeline-schema-design.md))。ADR-0000 の例外条項で本文を書き換えた。
-- ユーザとの検討 (2026-09-06、書き換え): 立ち絵が第三者素材だと分かり、共通素材のコミット可否を種別からライセンスに変えた。動画を 1 本も作っていない段階のため、ADR-0000 の例外条項に基づき supersede でなく本文の書き換えで対応した。
 - https://www.remotion.dev/docs/miscellaneous/absolute-paths : 絶対パスが使えない理由と public ディレクトリの位置づけ。
 - https://www.remotion.dev/docs/terminology/public-dir : public ディレクトリの定義。
 - https://www.remotion.dev/docs/env-variables : `.env` の自動読み込みと `REMOTION_` 接頭辞。
 - https://www.remotion.dev/docs/calculate-metadata : props から尺や解像度を算出する仕組み。
 - https://www.remotion.dev/docs/dataset-render : 1 つのコードベースから複数の動画を作るパターン。
-- ユーザとの検討 (2026-09-07、書き換え): 否定パターンをディレクトリ単位に限らずファイル単位も認める。成果物が無いため ADR-0000 の例外条項で本文を書き換えた。
-- 2026-09-07: 「プロキシ」を「変換済み素材」に改めた ([ADR-0003](./0003-convert-dashcam-footage-to-h264-proxy.md))。用語の差し替えのみで、決定の内容は変えていない。ADR-0000 の例外条項に基づき accepted のまま本文を直した (運用開始前のため)。
+- 設計整理 (2026-09-08): 現在の設計を 1 から記述し直した

@@ -1,6 +1,6 @@
 ---
 status: accepted
-date: 2026-09-06T12:36:04Z
+date: 2026-09-08T12:13:14Z
 refs: [1, 2]
 tags: [remotion, ffmpeg, convert]
 ---
@@ -50,6 +50,7 @@ Remotion の映像コンポーネントには次の事実がある。
 - 使う区間は timeline で指定し、Remotion の `trimBefore`・`trimAfter` で切る。区間や台本の変更で再変換しない。
 - 映像の描画には `@remotion/media` の `<Video>` を使う。
 - 変換済み素材のファイル名は原本のファイル名の拡張子を `.mp4` に変えたものとし、既に存在する変換済み素材は再変換しない。
+- fps は `src/theme/timing.ts` の `fps` 1 つを正本とし、convert (`npm run convert`、fps の指定を持たない) と composition (`timeline()` が theme から読む) が同じ値を使う。
 
 ## Consequences
 
@@ -66,6 +67,7 @@ Remotion の映像コンポーネントには次の事実がある。
 - composition の fps が原本 (24fps) と異なる場合、再標本化により原本と変換済み素材でフレームの対応が 1 対 1 にならない。
 - 原本と変換済み素材の二重管理になり、変換済み素材は git 管理外なので復元には再変換が要る。
 - 変換は非可逆の再エンコードで、変換済み素材の画質が完成動画の画質の上限になる。`remotion render` は Chrome が描いたフレームをさらに再エンコードする (H.264 の既定 CRF は 18、`--crf` で変更可) ため、完成動画は 2 回の非可逆エンコードを経る。変換のエンコード設定は NVENC の `-cq 23` と libx264 の `-crf 22` のどちらか一方が使われる。画質を上げるには変換の設定を変えて再変換した上で、render 側の設定も見る。
+- fps の正本は theme の定数 1 つなので、その値を変えると変換済み素材は全部作り直しになる。convert は出力が既にあるファイルをスキップするため、作り直すには `public/projects/<slug>/` の変換済み mp4 を消してから再実行する。変換済み素材の fps を読んで composition と突き合わせる検査は持たない。
 
 ### 禁止事項
 
@@ -84,12 +86,8 @@ Remotion の映像コンポーネントには次の事実がある。
 
 ## References
 
-- [ADR-0001](./0001-use-remotion-for-video-production.md): Remotion 採用の決定。
-- [ADR-0002](./0002-project-directory-layout.md): 変換済み素材の置き場 `public/projects/<slug>/` と原本の保管場所の決定。
-- 長尺・大容量ドラレコ動画の取り込み検証 (2026-09-01〜02): 原本 1 本 (HEVC・8.06GB・2564 秒) を使った静止画・レンダリング・変換速度の実測と、9P 参照案の撤回。
-- ユーザとの検討 (2026-09-06): 変換済み素材の fps を composition に合わせる判断。
-- 2026-09-07: 「プロキシ」という呼び名が実態 (Studio と render の両方で唯一の入力になり、原本に差し戻さない) と合わないとの指摘を受け、呼び名を「変換済み素材」に改めた。用語の差し替えと Consequences への画質の項の追加のみで、決定の内容は変えていない。ADR-0000 の例外条項に基づき accepted のまま本文を直した (この決定に基づく動画をまだ 1 本も作っておらず、運用開始前のため)。ファイル名は ADR のルール (ファイル名を変えない限り相対リンクが辿れる) に従い据え置いた。改名するなら、このファイルを参照する 4 箇所 (README・howto・ADR-0001・ADR-0002) を同じコミットで直す。
 - https://www.remotion.dev/docs/video-tags : `<Video>` (`@remotion/media`) の推奨と対応コーデック、`<OffthreadVideo>` との速度差。
 - https://www.remotion.dev/docs/media/fallback : `<Video>` が `<OffthreadVideo>` にフォールバックする条件 (H.265 を含む)。
 - https://www.remotion.dev/docs/media/video : `<Video>` の `trimBefore`・`trimAfter` の仕様。
 - https://www.remotion.dev/docs/offthreadvideo : `<OffthreadVideo>` の位置づけ。
+- 設計整理 (2026-09-08): 現在の設計を 1 から記述し直した

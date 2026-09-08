@@ -6,7 +6,7 @@ import type { Timeline } from "../effects/index.ts";
 import { loadTimeline } from "../project/load.ts";
 
 /** Motovlog composition の props。動画の中身 (Timeline) は React 要素を含み
- * JSON 直列化できないため props には載せず、slug だけを持つ (ADR-0010)。 */
+ * JSON 直列化できないため props には載せず、slug だけを持つ (ADR-0006)。 */
 export type MotovlogProps = { slug: string };
 
 /**

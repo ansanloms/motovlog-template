@@ -6,7 +6,7 @@ export default [
     rules: {
       "no-restricted-globals": [
         "error",
-        { name: "Date", message: "日付と時間は Temporal を使う (ADR-0009)。" },
+        { name: "Date", message: "日付と時間は Temporal を使う (ADR-0007)。" },
       ],
       "no-restricted-syntax": [
         "error",
