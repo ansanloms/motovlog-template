@@ -5,6 +5,7 @@ import {
   loadTimeline,
   resolveProjectSlug,
 } from "./load.ts";
+import { fps } from "../theme/timing.ts";
 
 describe("resolveProjectSlug", () => {
   it("未設定なら DEFAULT_PROJECT を返す", () => {
@@ -131,13 +132,13 @@ describe("loadTimeline", () => {
     await expect(loadTimeline("20990101-missing")).rejects.toThrow();
   });
 
-  it("00000000-sample は resolve して fps === 30 になる", async () => {
+  it("00000000-sample は resolve して fps が theme の fps になる", async () => {
     const timeline = await loadTimeline("00000000-sample");
-    expect(timeline.fps).toBe(30);
+    expect(timeline.fps).toBe(fps);
   });
 
-  it("空文字は DEFAULT_PROJECT に resolve して fps === 30 になる", async () => {
+  it("空文字は DEFAULT_PROJECT に resolve して fps が theme の fps になる", async () => {
     const timeline = await loadTimeline("");
-    expect(timeline.fps).toBe(30);
+    expect(timeline.fps).toBe(fps);
   });
 });

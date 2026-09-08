@@ -1,7 +1,6 @@
-// 使い方: npm run convert -- [--fps=<n>] <slug> <入力ファイル>...
+// 使い方: npm run convert -- <slug> <入力ファイル>...
 // 各入力を public/projects/<slug>/<basename>.mp4 へ変換する (ADR-0003)。
-// fps は --fps=<n> で指定し、既定は 30 (T&M の値)。composition の fps と
-// 一致させること (ADR-0003)。
+// fps は theme の定数 1 つで、composition と一致させる (ADR-0003)。
 // 起動時に nvenc が使えるかを確認し、使えなければ libx264 を使う。nvenc が使える場合でも、
 // あるファイルの変換に失敗したときはそのファイルだけ libx264 で再試行する。
 
@@ -10,6 +9,7 @@ import { spawn, spawnSync } from "node:child_process";
 import fs, { constants as fsConstants } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { fps } from "../src/theme/timing.ts";
 import {
   ConvertAbortedError,
   gopFromFps,
@@ -23,7 +23,6 @@ import type { ConvertDeps } from "./convert/plan.ts";
 const main = async (): Promise<void> => {
   let slug: string;
   let inputs: string[];
-  let fps: number;
 
   try {
     const parsed = parseConvertArgs(process.argv.slice(2));
@@ -34,7 +33,7 @@ const main = async (): Promise<void> => {
       return;
     }
 
-    ({ slug, inputs, fps } = parsed);
+    ({ slug, inputs } = parsed);
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     process.stderr.write(`error: ${message}\n`);

@@ -41,3 +41,11 @@ describe("timing の秒数は fps でフレーム割りできる", () => {
     expect(checkedCount).toBeGreaterThanOrEqual(1);
   });
 });
+
+describe("fps", () => {
+  it("正の整数である", () => {
+    // ADR-0003: GOP 長 = fps (1 秒ごとにキーフレーム) を整数で保つため
+    expect(Number.isInteger(timing.fps)).toBe(true);
+    expect(timing.fps).toBeGreaterThan(0);
+  });
+});
