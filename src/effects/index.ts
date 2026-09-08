@@ -1,14 +1,16 @@
-export { clip } from "./clip.ts";
 export { cut } from "./cut.ts";
 export { fade } from "./fade.ts";
 export { fadeOpacity, toFrameSpan } from "./frames.ts";
 export { Stage } from "./Stage.tsx";
+export { DEFAULT_HEIGHT, DEFAULT_WIDTH, timeline } from "./timeline.ts";
 export type {
-  ClipItem,
   CutItem,
   FadeItem,
   Item,
+  Layer,
+  ResolvedCutItem,
+  ResolvedFadeItem,
   ResolvedItem,
-  Video,
+  ResolvedLayer,
+  Timeline,
 } from "./types.ts";
-export { DEFAULT_HEIGHT, DEFAULT_WIDTH, video } from "./video.ts";

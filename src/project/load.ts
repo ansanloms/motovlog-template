@@ -1,4 +1,4 @@
-import type { Video } from "../effects/index.ts";
+import type { Timeline } from "../effects/index.ts";
 
 /** 環境変数未設定・空のときに読む project (ADR-0004)。 */
 export const DEFAULT_PROJECT = "00000000-sample";
@@ -21,37 +21,72 @@ export const resolveProjectSlug = (env: string | undefined): string => {
   return env;
 };
 
-// default export が Video の形 (fps・width・height・durationSec が number、
-// items が配列) かどうかだけを検査する (ADR-0010: zod schema は持たない)。
-export const isVideo = (value: unknown): value is Video => {
+// default export が Timeline の形 (fps・width・height・durationSec が
+// number、layers が配列の配列、各 item は kind が fade/cut で at・duration
+// (fade は in・out も) が有限の number) かどうかだけを検査する
+// (ADR-0010: zod schema は持たない)。
+export const isTimeline = (value: unknown): value is Timeline => {
   if (typeof value !== "object" || value === null) {
     return false;
   }
 
-  const candidate = value as Partial<Video>;
+  const candidate = value as Partial<Timeline>;
 
   return (
     typeof candidate.fps === "number" &&
     typeof candidate.width === "number" &&
     typeof candidate.height === "number" &&
     typeof candidate.durationSec === "number" &&
-    Array.isArray(candidate.items)
+    Array.isArray(candidate.layers) &&
+    candidate.layers.every(
+      (layer) =>
+        Array.isArray(layer) &&
+        layer.every((item) => {
+          if (typeof item !== "object" || item === null) {
+            return false;
+          }
+
+          const {
+            kind,
+            at,
+            duration,
+            in: fadeIn,
+            out,
+          } = item as {
+            kind?: unknown;
+            at?: unknown;
+            duration?: unknown;
+            in?: unknown;
+            out?: unknown;
+          };
+
+          if (!Number.isFinite(at) || !Number.isFinite(duration)) {
+            return false;
+          }
+
+          if (kind === "fade") {
+            return Number.isFinite(fadeIn) && Number.isFinite(out);
+          }
+
+          return kind === "cut";
+        }),
+    )
   );
 };
 
-// projects/<slug>/timeline.ts を動的 import で読み、video() の戻り値
-// (Video) を返す。ディレクトリ部分をリテラルで書いた import() でないと
+// projects/<slug>/timeline.ts を動的 import で読み、timeline() の戻り値
+// (Timeline) を返す。ディレクトリ部分をリテラルで書いた import() でないと
 // Rspack が解決できないため、テンプレートリテラルの形は変えないこと。
-export const loadVideo = async (slug: string): Promise<Video> => {
+export const loadTimeline = async (slug: string): Promise<Timeline> => {
   const resolved = resolveProjectSlug(slug);
 
   const timelineModule: { default: unknown } = await import(
     `../../projects/${resolved}/timeline.ts`
   );
 
-  if (!isVideo(timelineModule.default)) {
+  if (!isTimeline(timelineModule.default)) {
     throw new Error(
-      `project \`${resolved}\` の timeline.ts の default export が Video の形ではありません: projects/${resolved}/timeline.ts`,
+      `project \`${resolved}\` の timeline.ts の default export が Timeline の形ではありません: projects/${resolved}/timeline.ts`,
     );
   }
 

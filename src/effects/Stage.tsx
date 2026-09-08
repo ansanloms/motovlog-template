@@ -1,80 +1,57 @@
-import { Video as MediaVideo } from "@remotion/media";
 import React from "react";
 import { AbsoluteFill, Sequence, useCurrentFrame } from "remotion";
 import { ThemeRoot } from "../theme/index.ts";
 import { fadeOpacity, toFrameSpan } from "./frames.ts";
-import type { Video as VideoData } from "./types.ts";
+import type { Timeline } from "./types.ts";
 
 /** Stage が受け取るもの。 */
 type Props = {
-  /** video() が組み立てた演出アイテムの列。 */
-  video: VideoData;
+  /** timeline() が組み立てた演出アイテムの列。 */
+  timeline: Timeline;
 };
 
 /**
- * Video の items を配列順 (後ろが上) に `<Sequence>` として並べる描画部品。
- * clip は `<Video>` (@remotion/media、ADR-0003)、fade はフェード付きの
- * `<AbsoluteFill>`、cut はフェード無しの `<AbsoluteFill>` に変換する。
- * 動画のドメイン (章・写真・ED 等) は知らず、ReactNode と秒だけを扱う。
+ * Timeline の layers を z 順 (配列の後ろが上) に `<AbsoluteFill>` で包み、
+ * layer 内の item を `<Sequence>` として並べる描画部品。fade はフェード
+ * 付きの `<AbsoluteFill>`、cut はフェード無しの `<AbsoluteFill>` に変換
+ * する。動画のドメイン (章・写真・ED 等) は知らず、ReactNode と秒だけを
+ * 扱う。
  */
-export const Stage: React.FC<Props> = ({ video }) => {
+export const Stage: React.FC<Props> = ({ timeline }) => {
   return (
     <ThemeRoot>
-      {video.items.map((item, index) => {
-        const { from, durationInFrames } = toFrameSpan(
-          item.at,
-          item.duration,
-          video.fps,
-        );
+      {timeline.layers.map((layer, layerIndex) => (
+        <AbsoluteFill key={layerIndex}>
+          {layer.map((item, itemIndex) => {
+            const { from, durationInFrames } = toFrameSpan(
+              item.at,
+              item.duration,
+              timeline.fps,
+            );
 
-        if (item.kind === "clip") {
-          return (
-            <Sequence
-              key={index}
-              from={from}
-              durationInFrames={durationInFrames}
-              name={`clip: ${item.src.split("/").pop()}`}
-            >
-              <MediaVideo
-                src={item.src}
-                trimBefore={Math.round(item.trimBefore * video.fps)}
-                objectFit="cover"
-                style={{ width: "100%", height: "100%" }}
-              />
-            </Sequence>
-          );
-        }
-
-        if (item.kind === "fade") {
-          return (
-            <Sequence
-              key={index}
-              from={from}
-              durationInFrames={durationInFrames}
-              name="fade"
-            >
-              <FadeLayer
+            return (
+              <Sequence
+                key={itemIndex}
+                from={from}
                 durationInFrames={durationInFrames}
-                inFrames={Math.round(item.in * video.fps)}
-                outFrames={Math.round(item.out * video.fps)}
+                name={`layer ${layerIndex}: ${item.kind}`}
               >
-                {item.node}
-              </FadeLayer>
-            </Sequence>
-          );
-        }
-
-        return (
-          <Sequence
-            key={index}
-            from={from}
-            durationInFrames={durationInFrames}
-            name="cut"
-          >
-            <AbsoluteFill>{item.node}</AbsoluteFill>
-          </Sequence>
-        );
-      })}
+                {item.kind === "fade" ? (
+                  <FadeLayer
+                    durationInFrames={durationInFrames}
+                    inFrames={Math.round(item.in * timeline.fps)}
+                    outFrames={Math.round(item.out * timeline.fps)}
+                  >
+                    {item.node}
+                  </FadeLayer>
+                ) : (
+                  <AbsoluteFill>{item.node}</AbsoluteFill>
+                )}
+              </Sequence>
+            );
+          })}
+        </AbsoluteFill>
+      ))}
     </ThemeRoot>
   );
 };

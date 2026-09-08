@@ -63,8 +63,9 @@ export default [
               message: "components は timeline を import しない。",
             },
             {
-              group: ["@remotion/*"],
-              message: "components は @remotion のパッケージを import しない。",
+              group: ["@remotion/*", "!@remotion/media"],
+              message:
+                "components は @remotion/media 以外の @remotion のパッケージを import しない。",
             },
             {
               group: ["**/effects/**"],
@@ -74,9 +75,9 @@ export default [
           paths: [
             {
               name: "remotion",
-              allowImportNames: ["AbsoluteFill", "Img"],
+              allowImportNames: ["AbsoluteFill", "Img", "useVideoConfig"],
               message:
-                "components は remotion の AbsoluteFill・Img 以外を import しない (フレーム API・媒体要素・レンダリング制御を持たない)。",
+                "components は remotion の AbsoluteFill・Img・useVideoConfig と @remotion/media 以外を import しない (useCurrentFrame 等のフレーム API・レンダリング制御を持たない)。",
             },
           ],
         },

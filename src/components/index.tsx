@@ -6,6 +6,7 @@ import { PhotoShowcase } from "./PhotoShowcase.tsx";
 import { Subtitle } from "./Subtitle.tsx";
 import { SubtitleBand } from "./SubtitleBand.tsx";
 import { VerticalNote } from "./VerticalNote.tsx";
+import { Video } from "./Video.tsx";
 
 /**
  * timeline.ts から各コンポーネントを関数呼び出しで並べられるようにする要素
@@ -45,3 +46,8 @@ export const subtitle = (props: React.ComponentProps<typeof Subtitle>) => (
 export const subtitleBand = (
   props: React.ComponentProps<typeof SubtitleBand>,
 ) => <SubtitleBand {...props} />;
+
+/** Video の要素ファクトリ。 */
+export const video = (props: React.ComponentProps<typeof Video>) => (
+  <Video {...props} />
+);
