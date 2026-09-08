@@ -6,10 +6,98 @@ import {
   gopFromFps,
   nvencEnv,
   outputName,
+  parseConvertArgs,
   probeArgs,
+  PROJECT_SLUG_PATTERN,
   runConvert,
 } from "./plan.ts";
 import type { ConvertDeps } from "./plan.ts";
+
+describe("PROJECT_SLUG_PATTERN", () => {
+  it("正しい形式 (YYYYMMDD-<name>) の slug にマッチする", () => {
+    expect(PROJECT_SLUG_PATTERN.test("20260817-jododaira")).toBe(true);
+  });
+
+  it("ハイフン区切りの複数語の name にもマッチする", () => {
+    expect(PROJECT_SLUG_PATTERN.test("20260817-foo-bar")).toBe(true);
+  });
+
+  it("書式に合わない slug にはマッチしない", () => {
+    expect(PROJECT_SLUG_PATTERN.test("bad slug")).toBe(false);
+  });
+
+  it("日付部分が 8 桁でない slug にはマッチしない", () => {
+    expect(PROJECT_SLUG_PATTERN.test("2026081-jododaira")).toBe(false);
+  });
+});
+
+describe("parseConvertArgs", () => {
+  it("(1) --fps 省略時は既定の 30fps になる", () => {
+    expect(parseConvertArgs(["20260817-jododaira", "a.mp4"])).toEqual({
+      slug: "20260817-jododaira",
+      inputs: ["a.mp4"],
+      fps: 30,
+    });
+  });
+
+  it("(2) --fps=<n> を指定すればその値になり、inputs は複数取れる", () => {
+    expect(
+      parseConvertArgs(["--fps=60", "20260817-jododaira", "a.mp4", "b.mp4"]),
+    ).toEqual({
+      slug: "20260817-jododaira",
+      inputs: ["a.mp4", "b.mp4"],
+      fps: 60,
+    });
+  });
+
+  it("(3) --fps が数値でなければ throw する", () => {
+    expect(() =>
+      parseConvertArgs(["--fps=abc", "20260817-jododaira", "a.mp4"]),
+    ).toThrow("--fps は正の数にしてください: abc");
+  });
+
+  it("(4) slug が書式に合わなければ throw する", () => {
+    expect(() => parseConvertArgs(["bad slug", "a.mp4"])).toThrow(
+      "slug は YYYYMMDD-<name> (ASCII 小文字の kebab-case) の形にしてください: bad slug",
+    );
+  });
+
+  it("(5) inputs が空なら throw する", () => {
+    expect(() => parseConvertArgs(["20260817-jododaira"])).toThrow(
+      "usage: npm run convert -- [--fps=<n>] <slug> <入力ファイル>...",
+    );
+  });
+
+  it("(6) --fps を空白区切りで渡すと不明なオプションとして throw する", () => {
+    expect(() =>
+      parseConvertArgs(["--fps", "60", "20260817-jododaira", "a.mp4"]),
+    ).toThrow("不明なオプションです: --fps");
+  });
+
+  it("(7) 未知の -- オプションは throw する", () => {
+    expect(() =>
+      parseConvertArgs(["--xyz", "20260817-jododaira", "a.mp4"]),
+    ).toThrow("不明なオプションです: --xyz");
+  });
+
+  it("(8) --help は null を返す", () => {
+    expect(parseConvertArgs(["--help"])).toBeNull();
+  });
+
+  it("(8b) -h も null を返す", () => {
+    expect(parseConvertArgs(["-h", "x"])).toBeNull();
+  });
+
+  it("(8c) --help は他の引数の検証より先に効く", () => {
+    expect(parseConvertArgs(["--fps=abc", "--help"])).toBeNull();
+  });
+
+  it("(9) --fps= (値なし) は throw する", () => {
+    expect(() =>
+      parseConvertArgs(["--fps=", "20260817-jododaira", "a.mp4"]),
+    ).toThrow("--fps の値が空です: --fps=");
+  });
+});
 
 describe("gopFromFps", () => {
   it("四捨五入した値を返す", () => {
@@ -18,7 +106,7 @@ describe("gopFromFps", () => {
 
   it("丸めた値が 1 未満なら拒否する", () => {
     expect(() => gopFromFps(0.4)).toThrow(
-      "meta.fps が不正です (正の数で、丸めた値が 1 以上): 0.4",
+      "--fps が不正です (正の数で、丸めた値が 1 以上): 0.4",
     );
   });
 });

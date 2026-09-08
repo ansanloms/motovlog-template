@@ -3,6 +3,72 @@
 // テストしやすくするための分離。
 
 import path from "node:path";
+import { fps as themeFps } from "../../src/theme/timing.ts";
+
+// slug は ADR-0002 の形式 (YYYYMMDD-<name>、ASCII 小文字の kebab-case)。
+export const PROJECT_SLUG_PATTERN = /^[0-9]{8}-[a-z0-9]+(-[a-z0-9]+)*$/;
+
+// convert の fps 指定省略時の既定値。T&M の fps (theme) に合わせる。
+export const DEFAULT_FPS = themeFps;
+
+export const USAGE =
+  "usage: npm run convert -- [--fps=<n>] <slug> <入力ファイル>...";
+
+/**
+ * convert-movie.ts の CLI 引数を解釈する。`--fps=<n>` は先頭以外にあっても
+ * 取り除き、残りの先頭を slug、以降を inputs とする。`--help`・`-h` があれば
+ * null を返す (呼び出し側が usage を出す)。それ以外の `--` で始まる引数は
+ * 不明なオプションとして拒否する。
+ */
+export const parseConvertArgs = (
+  args: readonly string[],
+): { slug: string; inputs: string[]; fps: number } | null => {
+  if (args.some((arg) => arg === "--help" || arg === "-h")) {
+    return null;
+  }
+
+  let fps = DEFAULT_FPS;
+  const rest: string[] = [];
+
+  for (const arg of args) {
+    const match = /^--fps=(.*)$/.exec(arg);
+
+    if (!match) {
+      if (arg.startsWith("--")) {
+        throw new Error(`不明なオプションです: ${arg}`);
+      }
+
+      rest.push(arg);
+      continue;
+    }
+
+    if (match[1] === "") {
+      throw new Error(`--fps の値が空です: ${arg}`);
+    }
+
+    const value = Number(match[1]);
+
+    if (!Number.isFinite(value) || value <= 0) {
+      throw new Error(`--fps は正の数にしてください: ${match[1]}`);
+    }
+
+    fps = value;
+  }
+
+  const [slug, ...inputs] = rest;
+
+  if (!slug || inputs.length === 0) {
+    throw new Error(USAGE);
+  }
+
+  if (!PROJECT_SLUG_PATTERN.test(slug)) {
+    throw new Error(
+      `slug は YYYYMMDD-<name> (ASCII 小文字の kebab-case) の形にしてください: ${slug}`,
+    );
+  }
+
+  return { slug, inputs, fps };
+};
 
 // ffmpeg の -g は整数しか受けないため、fps を四捨五入した値を GOP 長
 // (1 秒ごとのキーフレーム) にする。fps が 0 または 0.x だと gop が 0 になり
@@ -11,9 +77,7 @@ export const gopFromFps = (fps: number): number => {
   const gop = Math.round(fps);
 
   if (gop < 1) {
-    throw new Error(
-      `meta.fps が不正です (正の数で、丸めた値が 1 以上): ${fps}`,
-    );
+    throw new Error(`--fps が不正です (正の数で、丸めた値が 1 以上): ${fps}`);
   }
 
   return gop;

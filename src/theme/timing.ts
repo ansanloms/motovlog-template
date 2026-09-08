@@ -1,6 +1,10 @@
 // CSS に置けない値 (フレーム計算に使う秒数) はここに集める。
 // T&M「出入りのタイミング」節。
-// 30fps でフレーム割りできる値 (6f / 150f / 12f)。
+// 秒数は `fps` でフレーム割りできる値に揃える (timing.test.ts が検査する)。
+
+/** T&M の fps。尺の秒数はこの値でフレーム割りできる値に揃える。 */
+export const fps = 30;
+
 export const bandTiming = {
   leadIn: 0.2, // 語り出しの何秒前から出すか (= フェードイン秒)
   silenceGap: 5, // 無音が何秒続いたら消すか
@@ -18,10 +22,6 @@ export const endingTiming = { duration: 12 } as const; // カットイン、フ�
 /** サムネ用フレームの尺と、ED からのクロスフェード秒。 */
 export const thumbnailFrameTiming = { duration: 4.8, crossfade: 4.8 } as const; // ED の上にクロスフェード
 
-/**
- * 章タイトルの表示区間の長さ (秒)。fadeIn + hold + fadeOut (T&M「出入りの
- * タイミング」節)。schema.ts の間隔検証と ChapterTitle.tsx の Sequence の
- * durationInFrames 計算の両方がここを参照する。
- */
+/** 章タイトルの表示尺 (フェードイン + 保持 + フェードアウト)。 */
 export const chapterTitleDurationSec =
   chapterTiming.fade * 2 + chapterTiming.hold;

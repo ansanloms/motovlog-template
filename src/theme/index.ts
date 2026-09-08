@@ -20,6 +20,7 @@ export {
   chapterTitleDurationSec,
   characterTiming,
   endingTiming,
+  fps,
   openingTiming,
   thumbnailFrameTiming,
 } from "./timing.ts";

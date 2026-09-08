@@ -49,4 +49,34 @@ export default [
       ],
     },
   },
+  {
+    // components は見た目だけを描く。timeline の配線と remotion のフレーム
+    // API・媒体要素は持たない。
+    files: ["src/components/**"],
+    rules: {
+      "no-restricted-imports": [
+        "error",
+        {
+          patterns: [
+            {
+              group: ["**/timeline/**"],
+              message: "components は timeline を import しない。",
+            },
+            {
+              group: ["@remotion/*"],
+              message: "components は @remotion のパッケージを import しない。",
+            },
+          ],
+          paths: [
+            {
+              name: "remotion",
+              allowImportNames: ["AbsoluteFill", "Img"],
+              message:
+                "components は remotion の AbsoluteFill・Img 以外を import しない (フレーム API・媒体要素・レンダリング制御を持たない)。",
+            },
+          ],
+        },
+      ],
+    },
+  },
 ];
