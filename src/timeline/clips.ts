@@ -1,4 +1,4 @@
-import type { Timeline } from "./schema";
+import type { Timeline } from "./schema.ts";
 
 // clips の順序リストからタイムライン上の絶対区間 (秒) を導出する。
 // start_0 = gapBefore_0

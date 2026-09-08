@@ -1,18 +1,18 @@
 import React from "react";
 import type { CalculateMetadataFunction } from "remotion";
-import { Bgm } from "../components/Bgm";
-import { CharacterLayer } from "../components/CharacterLayer";
-import { DashcamTrack } from "../components/DashcamTrack";
-import { Ending } from "../components/Ending";
-import { Overlays } from "../components/Overlays";
-import { SubtitleBand } from "../components/SubtitleBand";
-import { Subtitles } from "../components/Subtitles";
-import { VoiceLines } from "../components/VoiceLines";
-import { ThemeRoot } from "../theme";
-import { resolveClipSpans } from "../timeline/clips";
-import { toFrameSpan } from "../timeline/frames";
-import { loadProject, resolveProjectSlug } from "../timeline/load";
-import type { VoicedTimeline } from "../timeline/schema";
+import { Bgm } from "../components/Bgm.tsx";
+import { CharacterLayer } from "../components/CharacterLayer.tsx";
+import { DashcamTrack } from "../components/DashcamTrack.tsx";
+import { Ending } from "../components/Ending.tsx";
+import { Overlays } from "../components/Overlays.tsx";
+import { SubtitleBand } from "../components/SubtitleBand.tsx";
+import { Subtitles } from "../components/Subtitles.tsx";
+import { VoiceLines } from "../components/VoiceLines.tsx";
+import { ThemeRoot } from "../theme/index.ts";
+import { resolveClipSpans } from "../timeline/clips.ts";
+import { toFrameSpan } from "../timeline/frames.ts";
+import { loadProject, resolveProjectSlug } from "../timeline/load.ts";
+import type { VoicedTimeline } from "../timeline/schema.ts";
 
 export type MotovlogProps = { timeline: VoicedTimeline | null };
 

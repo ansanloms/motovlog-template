@@ -120,6 +120,11 @@ project の選択は環境変数 `REMOTION_PROJECT` (slug) で行う。`.env` �
 - 起動時に NVENC が使えるかを確認し、使えなければ libx264 を使う。NVENC が使える場合でも、あるファイルの変換に失敗したときはそのファイルだけ libx264 で再試行する。一度 libx264 に落ちたら以降のファイルも libx264 で変換する。WSL で NVENC を使うために `LD_LIBRARY_PATH=/usr/lib/wsl/lib` をスクリプト内で設定している。
 - 拡張子違いで同じ basename になる入力 (例: `clip.mov` と `clip.mp4`) を同時に渡すとエラーになる。
 
+## コーディング規約
+
+- 相対 import・export・import() には実体のファイルの拡張子 (`.ts` / `.tsx` / `.module.css` / `.json`) を付ける。`../theme` のようなディレクトリ指定は `index.ts` まで書く。
+- 日付と時間は Temporal で表し、`Date` は使わない ([ADR-0009](docs/adr/0009-use-temporal-for-dates-and-times.md))。
+
 ## License
 
 Remotion は個人利用は無料だが、組織によっては company license が必要になる。[Read the terms here](https://github.com/remotion-dev/remotion/blob/main/LICENSE.md)。

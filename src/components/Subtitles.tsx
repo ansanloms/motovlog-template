@@ -1,7 +1,7 @@
 import React, { useMemo } from "react";
 import { AbsoluteFill, Sequence, useVideoConfig } from "remotion";
-import { toFrameSpan } from "../timeline/frames";
-import type { VoicedTimeline } from "../timeline/schema";
+import { toFrameSpan } from "../timeline/frames.ts";
+import type { VoicedTimeline } from "../timeline/schema.ts";
 import styles from "./Subtitles.module.css";
 
 type Props = {

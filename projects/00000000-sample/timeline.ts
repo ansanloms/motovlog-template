@@ -1,4 +1,4 @@
-import { defineTimeline } from "../../src/timeline/schema";
+import { defineTimeline } from "../../src/timeline/schema.ts";
 
 export default defineTimeline({
   meta: {

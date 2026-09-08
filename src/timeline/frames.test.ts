@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { fadeEnvelope, secondsToFrames, toFrameSpan } from "./frames";
+import { fadeEnvelope, secondsToFrames, toFrameSpan } from "./frames.ts";
 
 describe("secondsToFrames", () => {
   it("四捨五入でフレーム数に丸める", () => {

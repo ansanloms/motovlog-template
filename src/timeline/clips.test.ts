@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { resolveClipSpans } from "./clips";
-import type { Timeline } from "./schema";
+import { resolveClipSpans } from "./clips.ts";
+import type { Timeline } from "./schema.ts";
 
 const clip = (
   overrides: Partial<Timeline["clips"][number]>,

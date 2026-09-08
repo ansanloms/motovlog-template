@@ -5,7 +5,7 @@ import {
   timelineSchema,
   voicedTimelineSchema,
   voiceSchema,
-} from "./schema";
+} from "./schema.ts";
 
 const minimalClips = [{ src: "clip1.mp4", duration: 1 }];
 

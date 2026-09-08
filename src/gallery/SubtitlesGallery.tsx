@@ -1,9 +1,9 @@
 import React from "react";
-import { SubtitleBand } from "../components/SubtitleBand";
-import { Subtitles } from "../components/Subtitles";
-import { computeBandSpans } from "../timeline/band";
-import type { VoicedTimeline } from "../timeline/schema";
-import { bandTiming, ThemeRoot } from "../theme";
+import { SubtitleBand } from "../components/SubtitleBand.tsx";
+import { Subtitles } from "../components/Subtitles.tsx";
+import { computeBandSpans } from "../timeline/band.ts";
+import type { VoicedTimeline } from "../timeline/schema.ts";
+import { bandTiming, ThemeRoot } from "../theme/index.ts";
 
 // SubtitleBand・Subtitles 単体の確認用。timeline を使わず固定 props で描く。
 const lines: VoicedTimeline["lines"] = [

@@ -1,8 +1,12 @@
 import { Audio } from "@remotion/media";
 import React from "react";
 import { Sequence, staticFile, useVideoConfig } from "remotion";
-import { fadeEnvelope, secondsToFrames, toFrameSpan } from "../timeline/frames";
-import type { Timeline } from "../timeline/schema";
+import {
+  fadeEnvelope,
+  secondsToFrames,
+  toFrameSpan,
+} from "../timeline/frames.ts";
+import type { Timeline } from "../timeline/schema.ts";
 
 type Props = {
   bgm: Timeline["bgm"];

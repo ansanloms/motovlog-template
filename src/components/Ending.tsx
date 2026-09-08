@@ -6,10 +6,10 @@ import {
   useCurrentFrame,
   useVideoConfig,
 } from "remotion";
-import { fontFamily } from "../fonts";
-import { toFrameSpan } from "../timeline/frames";
-import type { Timeline } from "../timeline/schema";
-import { fontWeight, palette } from "../theme";
+import { fontFamily } from "../fonts.ts";
+import { toFrameSpan } from "../timeline/frames.ts";
+import type { Timeline } from "../timeline/schema.ts";
+import { fontWeight, palette } from "../theme/index.ts";
 
 type Props = {
   ending: Timeline["ending"];

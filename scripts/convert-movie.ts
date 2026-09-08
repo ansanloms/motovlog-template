@@ -4,19 +4,20 @@
 // 起動時に nvenc が使えるかを確認し、使えなければ libx264 を使う。nvenc が使える場合でも、
 // あるファイルの変換に失敗したときはそのファイルだけ libx264 で再試行する。
 
+import "temporal-polyfill/global";
 import { spawn, spawnSync } from "node:child_process";
 import fs, { constants as fsConstants } from "node:fs";
 import path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
-import { PROJECT_SLUG_PATTERN } from "../src/timeline/load";
-import { timelineSchema } from "../src/timeline/schema";
+import { PROJECT_SLUG_PATTERN } from "../src/timeline/load.ts";
+import { timelineSchema } from "../src/timeline/schema.ts";
 import {
   ConvertAbortedError,
   gopFromFps,
   outputName,
   runConvert,
-} from "./convert/plan";
-import type { ConvertDeps } from "./convert/plan";
+} from "./convert/plan.ts";
+import type { ConvertDeps } from "./convert/plan.ts";
 
 const main = async (): Promise<void> => {
   const args = process.argv.slice(2);

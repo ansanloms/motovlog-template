@@ -8,8 +8,8 @@ import {
   outputName,
   probeArgs,
   runConvert,
-} from "./plan";
-import type { ConvertDeps } from "./plan";
+} from "./plan.ts";
+import type { ConvertDeps } from "./plan.ts";
 
 describe("gopFromFps", () => {
   it("四捨五入した値を返す", () => {

@@ -1,7 +1,7 @@
 import React from "react";
 import { AbsoluteFill } from "remotion";
-import { fontFamily } from "../fonts";
-import { themeCssVars } from "./cssVars";
+import { fontFamily } from "../fonts.ts";
+import { themeCssVars } from "./cssVars.ts";
 
 type Props = {
   children: React.ReactNode;

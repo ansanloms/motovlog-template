@@ -4,7 +4,7 @@ export {
   scrim,
   subtitleLayout,
   videoType,
-} from "./tokens";
-export { bandTiming } from "./timing";
-export { themeCssVars } from "./cssVars";
-export { ThemeRoot } from "./ThemeRoot";
+} from "./tokens.ts";
+export { bandTiming } from "./timing.ts";
+export { themeCssVars } from "./cssVars.ts";
+export { ThemeRoot } from "./ThemeRoot.tsx";
