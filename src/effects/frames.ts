@@ -21,6 +21,21 @@ export const toFrameSpan = (
 };
 
 /**
+ * 遷移 (crossfade) の尺をフレーム数に変換する。`at` は直後の item の開始秒
+ * (= 直前の item の終端 − duration)、`duration` は遷移の尺 (秒)。終端基準
+ * で丸めてから開始との差分を取り、toFrameSpan と同じ丸め方にする。
+ */
+export const transitionFrames = (params: {
+  at: number;
+  duration: number;
+  fps: number;
+}): number => {
+  const { at, duration, fps } = params;
+
+  return Math.round((at + duration) * fps) - Math.round(at * fps);
+};
+
+/**
  * フェードの不透明度 (0〜1)。in 区間は最初のフレーム (frame=0) が
  * 1/inFrames、inFrames 番目のフレームで 1 になる直線、out 区間は最後の
  * フレームが 1/outFrames になる直線で、両者の min を返す (区間長 0 の
@@ -44,4 +59,47 @@ export const fadeOpacity = (params: {
   const ratio = Math.min(inRatio, outRatio);
 
   return Math.min(1, Math.max(0, ratio));
+};
+
+/**
+ * frame() の item (FrameEffects が包む対象) の列から、指定フレームでの
+ * 合成 opacity を計算する。同じ layer の frame() の item は時間が重ならな
+ * いため、区間内の item は高々 1 つで、その item の fadeOpacity を返す。
+ * 区間内に item が無ければ 1 (効果無し)。React に依存しない純粋関数。
+ */
+export const frameEffectsOpacity = (params: {
+  frame: number;
+  fps: number;
+  items: readonly {
+    at: number;
+    duration: number;
+    in: number;
+    out: number;
+  }[];
+}): number => {
+  const { frame, fps, items } = params;
+
+  const active = items.find((item) => {
+    const { from, durationInFrames } = toFrameSpan(item.at, item.duration, fps);
+    const relativeFrame = frame - from;
+
+    return relativeFrame >= 0 && relativeFrame < durationInFrames;
+  });
+
+  if (active === undefined) {
+    return 1;
+  }
+
+  const { from, durationInFrames } = toFrameSpan(
+    active.at,
+    active.duration,
+    fps,
+  );
+
+  return fadeOpacity({
+    frame: frame - from,
+    durationInFrames,
+    inFrames: Math.round(active.in * fps),
+    outFrames: Math.round(active.out * fps),
+  });
 };

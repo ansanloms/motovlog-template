@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import type { FadeItem, Placement } from "./types.ts";
+import type { FadeItem, FrameMarker, Placement } from "./types.ts";
 
 /** fade() に渡すオプション。 */
 type FadeOptions = Placement & {
@@ -16,9 +16,12 @@ type FadeOptions = Placement & {
  * `at`/`after` を省略すると同じ layer の直前の item の終端に連結する。
  * `at` と `after` の同時指定は型エラーになる (実行時の検査は
  * timeline() の resolveLayer で行う)。in + out が duration を超える指定は
- * throw する。
+ * throw する。node には frame() (FrameMarker) も渡せる (合成結果への効果)。
  */
-export const fade = (node: ReactNode, options: FadeOptions): FadeItem => {
+export const fade = (
+  node: ReactNode | FrameMarker,
+  options: FadeOptions,
+): FadeItem => {
   const { at, after, duration, in: fadeIn = 0, out: fadeOut = 0 } = options;
 
   if (!Number.isFinite(fadeIn) || fadeIn < 0) {

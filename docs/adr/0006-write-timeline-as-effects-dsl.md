@@ -1,7 +1,7 @@
 ---
 status: accepted
 date: 2026-09-08T12:13:14Z
-refs: [3, 5]
+refs: [3, 5, 9]
 tags: [remotion, timeline, effects]
 ---
 
@@ -41,11 +41,11 @@ Remotion (4.0.521) には次の事実がある。
 
 - projects/<slug>/timeline.ts は src/effects の関数の呼び出しで書き、`timeline()` の戻り値を default export する。
 - `timeline(layers, options?)` の `layers` には layer (item の配列) の配列を渡す。`options` は `width`・`height` のみを持ち、省略時は既定値 (1920×1080) を使う。fps は `timeline()` が `src/theme/timing.ts` の `fps` から読む ([ADR-0003](./0003-convert-dashcam-footage-to-h264-proxy.md))。
-- `src/effects` が公開するのは、演出関数 `timeline`・`fade`・`cut`、描画部品 `Stage`、フレーム換算の補助 `toFrameSpan`・`fadeOpacity`、既定サイズ `DEFAULT_WIDTH`・`DEFAULT_HEIGHT` と型に限る。React 要素 (ReactNode) と秒だけを受け、src/components・src/compositions・projects を import しない (ESLint の no-restricted-imports で禁止する)。
+- `src/effects` が公開するのは、演出関数 `timeline`・`fade`・`cut`・`crossfade`・`frame`・`start`・`end`、描画部品 `Stage`、フレーム換算の補助 `toFrameSpan`・`fadeOpacity`、既定サイズ `DEFAULT_WIDTH`・`DEFAULT_HEIGHT` と型に限る。React 要素 (ReactNode) と秒だけを受け、src/components・src/compositions・projects を import しない (ESLint の no-restricted-imports で禁止する)。
 - src/components は src/effects を import しない。src/components が使ってよい Remotion の API は AbsoluteFill・Img・useVideoConfig と @remotion/media の要素に限り、useCurrentFrame 等のフレーム API は使わない。
 - 走行映像は src/components の Video (@remotion/media の Video、[ADR-0003](./0003-convert-dashcam-footage-to-h264-proxy.md)) で描き、fade/cut で timeline に置く。effects は clip を持たない。
 - `timeline()` は item の配列ではなく layer (item の配列) の配列を受ける。layer は z 順を表し、配列の後ろが上に重なる。
-- layer 内の item は時間が重ならない。重なりを検出したら `timeline()` が throw する。
+- layer 内の item は時間が重ならない。重なりを検出したら `timeline()` が throw する。例外は [ADR-0009](./0009-add-transition-frame-and-anchor-to-timeline.md) の遷移 (crossfade) で、遷移の尺だけ後ろの item が前の item に重なる。
 - layer 内の item は時間順に並べる。順序が前後していれば `timeline()` が throw する。
 - 空の layer は置かない。あれば `timeline()` が throw する。
 - layer 内の item の位置は、省略 (同じ layer の直前の item の終端に連結する。最初は 0 秒)・`after: n` (直前の item の終端から n 秒後)・`at: n` (絶対秒) のいずれかで指定する。`at` と `after` を同時に指定したら throw する。layer の最初の item の `after` は 0 秒からの相対とする。

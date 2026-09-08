@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { fadeOpacity, toFrameSpan } from "./frames.ts";
+import {
+  fadeOpacity,
+  frameEffectsOpacity,
+  toFrameSpan,
+  transitionFrames,
+} from "./frames.ts";
 
 describe("toFrameSpan", () => {
   it("開始と尺を fps でフレーム化する", () => {
@@ -133,5 +138,52 @@ describe("fadeOpacity", () => {
         outFrames: 0,
       }),
     ).toBe(1);
+  });
+});
+
+describe("frameEffectsOpacity", () => {
+  it("items が空なら 1", () => {
+    expect(frameEffectsOpacity({ frame: 0, fps: 30, items: [] })).toBe(1);
+  });
+
+  it("区間外なら 1", () => {
+    expect(
+      frameEffectsOpacity({
+        frame: 0,
+        fps: 30,
+        items: [{ at: 1, duration: 1, in: 0.5, out: 0 }],
+      }),
+    ).toBe(1);
+  });
+
+  it("区間内なら fadeOpacity と同じ値", () => {
+    const opacity = frameEffectsOpacity({
+      frame: 5,
+      fps: 30,
+      items: [{ at: 0, duration: 1, in: 0.5, out: 0 }],
+    });
+
+    expect(opacity).toBe(
+      fadeOpacity({
+        frame: 5,
+        durationInFrames: 30,
+        inFrames: 15,
+        outFrames: 0,
+      }),
+    );
+  });
+});
+
+describe("transitionFrames", () => {
+  it("整数境界ではフレーム数どおりになる", () => {
+    expect(transitionFrames({ at: 1, duration: 0.5, fps: 30 })).toBe(15);
+  });
+
+  it("丸めで 0 フレームになる", () => {
+    expect(transitionFrames({ at: 0, duration: 0.4 / 30, fps: 30 })).toBe(0);
+  });
+
+  it("丸めで 1 フレームになる", () => {
+    expect(transitionFrames({ at: 0, duration: 0.5 / 30, fps: 30 })).toBe(1);
   });
 });
