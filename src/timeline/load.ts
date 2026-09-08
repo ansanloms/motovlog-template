@@ -1,5 +1,6 @@
 import { mergeVoice, timelineSchema, voiceSchema } from "./schema.ts";
 import type { VoicedTimeline } from "./schema.ts";
+import { serializeTimeline } from "./serialize.ts";
 
 // 環境変数未設定・空のときに読む project (ADR-0004)。
 export const DEFAULT_PROJECT = "00000000-sample";
@@ -58,5 +59,8 @@ export const loadProject = async (slug: string): Promise<VoicedTimeline> => {
   const timeline = timelineSchema.parse(timelineModule.default);
   const voice = voiceSchema.parse(voiceModule.default);
 
-  return mergeVoice(timeline, voice, slug);
+  // ending.date・ridingTime を Temporal のインスタンスのまま mergeVoice に
+  // 渡すと、voicedTimelineSchema の再検証 (ISO 文字列を期待する) で ZodError
+  // になる (ADR-0009)。
+  return mergeVoice(serializeTimeline(timeline), voice, slug);
 };

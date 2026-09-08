@@ -1,7 +1,7 @@
 ---
 status: accepted
-date: 2026-09-07T02:26:35Z
-refs: [2, 8]
+date: 2026-09-08T02:41:38Z
+refs: [2, 8, 9]
 tags: [remotion, timeline, schema]
 ---
 
@@ -24,6 +24,8 @@ Remotion には次の事実がある。
 
 移行対象の既存動画 (約 6 分・1920×1080・30fps) は、映像クリップ 8・BGM 2 区間・セリフ 50・字幕 52・立ち絵 28 区間・字幕帯 6・クロスフェード 5・暗転 1 の要素を持つ。
 
+T&M ([ADR-0007](./0007-define-tone-and-manner.md)) が OP・章タイトル・右端の縦書き注釈・写真紹介・ED・サムネ用フレームの見た目と尺を定め、それぞれ固定 props のコンポーネント (`OpeningFrame`・`ChapterTitle`・`VerticalNote`・`PhotoShowcase`・`Ending`) として実装されている。
+
 ## Decision Drivers
 
 1. 台本から書き起こした値を人が読み書きでき、fps を変えても値が変わらないこと
@@ -44,6 +46,7 @@ Remotion には次の事実がある。
 6. timeline を JSON で書き、`--props` でファイルを渡す (当初の採用) — 却下 (2026-09-07)。コメントが書けず、`start` を式で書けない。`--props` は JSON しか受けず、`defaultProps` と浅くマージされる。
 7. JSONC や YAML で書く — 却下。コメントは書けるが式は書けず、Remotion に渡す前の変換工程が要る。
 8. すべての project の timeline を静的に import して Composition を並べる — 却下。1 つの project の timeline が壊れると Studio ごと開けなくなる。
+9. 各要素の尺・フェード・位置を timeline に書く — 却下。見た目と出し方は T&M で固定しており ([ADR-0008](./0008-fix-look-in-theme-not-timeline.md))、timeline に書くと project ごとに見た目が割れる。
 
 ## Decision
 
@@ -53,10 +56,21 @@ Remotion には次の事実がある。
 - timeline は `version` (正の整数) を持つ。省略時は 1 とする。互換性を切る変更をするときは新しい ADR で決めて `version` を 1 つ上げ、エンジンは対応しない `version` を parse で拒否する。
 - 時間はすべて秒 (数値) で書く。フレーム換算はコンポーネント側で `meta.fps` を使って行い、区間の丸めは終端基準 (開始と終了を個別に丸めない) に統一する。
 - `meta` は `width`・`height` (偶数、既定 1920×1080) と `fps` (既定 30) を持つ。
-- トラックは `clips` (メイン映像)・`overlays` (差し込みの画像・動画)・`bgm`・`lines` (セリフ音声と字幕テキスト)・`characterSegments` (立ち絵の表示区間)・`ending` (暗転とクレジット) の 6 つとする。既定値付きの項目とコンテナは省略できる。
+- トラックは `opening` (OP とサムネ用フレームの絵)・`clips` (メイン映像)・`overlays` (差し込みの画像・動画)・`bgm`・`lines` (セリフ音声と字幕テキスト)・`characterSegments` (立ち絵の表示区間)・`chapters` (章タイトル)・`notes` (右端の縦書き注釈)・`photos` (写真紹介)・`ending` (走行データとクレジット) の 10 個とする。既定値付きの項目とコンテナは省略できる。
 - `clips` は絶対位置を持たない順序リストとし、各クリップの開始位置を `gapBefore` と `crossfadeIn` から導出する (先頭は `gapBefore`、2 つ目以降は前クリップの終端 + `gapBefore` − `crossfadeIn`)。先頭の `crossfadeIn` は 0 とし、`gapBefore` と `crossfadeIn` を同時に指定せず、`crossfadeIn` は直前クリップの露出長 (尺 − そのクリップの `crossfadeIn`) 以下とする。
 - `clips` 以外のトラックの要素は絶対時刻 (`start` と `duration`) で置く。
-- 動画の尺は全トラックの区間終端の最大値とする。
+- `opening` は `photo`・`badge` (バッジの文字列)・`title`・`character` を持ち、動画の冒頭に置く。`ending` は `start`・`title` (既定 "RIDE LOG")・`subtitle`・`date` (`from`・`to` の `Temporal.ZonedDateTime`)・`distance` (km)・`ridingTime` (`Temporal.Duration`)・`routes`・`credits` (`Record<string, string>[]`。1 要素が 1 行) を持つ。日付・時間の型は [ADR-0009](./0009-use-temporal-for-dates-and-times.md) に従う。
+- `opening` と `ending` の両方があるとき、ED の後にサムネ用フレームを `opening` と同じ絵で置く。
+- `chapters` は `start` と `title` だけを持ち、番号は `start` 順の 1 始まりとする。`notes` と `photos` は `start`・`duration` と内容 (`text`、`src` 1〜2 枚) を持つ。
+- `characterSegments` は `start`・`duration` に加えて `src` (PNG 1 枚) と `side` (`left` 既定/`right`) を持ち、フェードは theme が持つ。
+- OP・章タイトル・ED・サムネ用フレームの尺とフェード、写真・注釈の見た目は `src/theme` が持ち、timeline に書かない。
+- 表示の相互制御 (章タイトル中は字幕と立ち絵を消す、OP・ED・サムネ用フレーム中は立ち絵を消す) は timeline に書かず、track から導出する。
+- 検証規則は次の 4 つとする。
+  - `chapters` は表示区間 (2.4 秒) が重ならない。
+  - `characterSegments`・`notes`・`photos` はそれぞれ互いに重ならない。
+  - `opening` があるとき `characterSegments`・`chapters`・`notes`・`photos` は OP の後に始まる。
+  - `ending` があるとき `characterSegments`・`chapters`・`notes`・`photos` は `ending.start` までに終わる。
+- 動画の尺は全トラックの区間終端の最大値とする (サムネ用フレームの終端を含む)。
 - 素材の参照は public ディレクトリ相対のパスで書く ([ADR-0002](./0002-project-directory-layout.md))。
 - フィールドの追加は optional か既定値付きで行い、既存の timeline.ts が `version` を変えずに parse を通るようにする。
 
@@ -78,6 +92,7 @@ Remotion には次の事実がある。
 - project の切り替えが環境変数経由になり、Studio で複数の project を同時に見るには別プロセスが要る。
 - timeline.ts は TypeScript として評価されるため、式の誤りは Studio の読み込み時に分かる。
 - 動的 import は Rspack の context module になり、`projects/*/timeline.ts` と `voice.json` を全部コンパイルする。1 つの project の build 時エラー (timeline.ts の構文・import 解決、voice.json の JSON 構文) で全 project の Studio と render が止まる。実行時エラー (schema 違反・voice.json の欠落) は選んだ project に閉じる。
+- この書き換えで `ending` の形を変え (`fadeToBlackStart`・`credits.text` から走行データとクレジットへ)、`opening.badge`・`opening.character`・`ending.subtitle`・`characterSegments.src` を必須にし、`episode` を外したため、書き換え前の timeline.ts は parse を通らない (本文の書き換えは ADR-0000 の例外条項による)。旧形式で書かれた project が無いため、`version` は上げない。
 
 ### 禁止事項
 
@@ -87,6 +102,7 @@ Remotion には次の事実がある。
 - 既存の timeline.ts が parse を通らなくなるフィールド変更を、`version` を上げずに行うこと。
 - `--props` で timeline を渡すこと。
 - 音声生成の結果 (`audio`・`lipsync`・`duration`) を timeline.ts に手で書くこと。
+- 各要素の尺・フェード・位置を timeline に書くこと。
 
 ## Assumptions
 
@@ -112,3 +128,6 @@ Remotion には次の事実がある。
 - https://www.remotion.dev/docs/composition : `schema` prop と Studio の編集 UI。
 - https://www.remotion.dev/docs/sequence : `<Sequence>` がフレーム単位であること。
 - ユーザとの検討 (2026-09-07、書き換え): 見た目を timeline で持たない決定 ([ADR-0008](./0008-fix-look-in-theme-not-timeline.md)) に伴い `style`・`subtitleBands` を track から外した。ADR-0000 の例外条項で本文を書き換えた。
+- ユーザとの検討 (2026-09-08、書き換え): T&M の要素 (OP・章タイトル・注釈・写真紹介・ED・サムネ用フレーム) の track を追加し、`ending` を走行データとクレジットの形に変えた。ADR-0000 の例外条項で本文を書き換えた。
+- ユーザとの検討 (2026-09-08、書き換え): 立ち絵を PNG 1 枚の `src` と `side` で置く形にした。ADR-0000 の例外条項で本文を書き換えた。
+- ユーザとの検討 (2026-09-08、書き換え): `ending` の `date`・`ridingTime` を Temporal で表す形にし、`route` を `routes` に、`credits` を `Record<string, string>[]` に変えた ([ADR-0009](./0009-use-temporal-for-dates-and-times.md))。ADR-0000 の例外条項で本文を書き換えた。

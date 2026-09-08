@@ -22,10 +22,10 @@ Remotion でモトブログ動画を作るためのエンジン。動画 1 本 =
 
 1. slug を決めて `projects/<slug>/timeline.ts` を作る。`projects/00000000-sample/timeline.ts` をコピーして書き換えるのが早い。
 2. ドラレコ原本を変換済み素材に変換する: `npm run convert -- <slug> <原本>...`。出力は `public/projects/<slug>/<basename>.mp4`。詳細は「変換済み素材の生成」。
-3. セリフ音声 (wav) を `public/projects/<slug>/` に置く。音声生成スクリプトで `projects/<slug>/voice.json` を生成する ([ADR-0006](docs/adr/0006-generate-voice-and-lipsync-from-voicevox-api.md))。口パクデータの生成 (issue #2) と立ち絵 (issue #3) は未実装で、現状は音声と字幕だけになる。
+3. セリフ音声 (wav) を `public/projects/<slug>/` に置く。音声生成スクリプトで `projects/<slug>/voice.json` を生成する ([ADR-0006](docs/adr/0006-generate-voice-and-lipsync-from-voicevox-api.md))。口パクデータの生成 (issue #2) は未実装。立ち絵は `characterSegments` (`src`・`side`) で PNG 1 枚を出せるが、目パチ・口パクは未実装 (#39)。
 4. BGM・効果音は `public/assets/bgm/`・`public/assets/se/` に置く。`public/assets/` 配下は既定でコミットされない。自作の素材をコミットするときは `.gitignore` の末尾に否定パターンを足す (除外パターンより前に書くと効かない)。書式はファイル 1 つなら `!public/assets/se/click.wav`、ディレクトリ丸ごとなら `!public/assets/characters/aoyama/**`、種別より深い階層のファイルだけなら親ディレクトリを先に戻してから書く (`!public/assets/bgm/album` の次の行に `!public/assets/bgm/album/x.wav`)。第三者の素材はコミットしない。
 5. timeline.ts に clips・lines・bgm 等を書く (「timeline.ts の書き方」)。素材のパスは `public/` 相対 (`projects/<slug>/clip1.mp4`、`assets/bgm/xxx.wav`)。
-6. プレビュー: `.env` に `REMOTION_PROJECT=<slug>` を書くか、`REMOTION_PROJECT=<slug> npx remotion studio` で渡して起動する。`Gallery-Subtitles` はコンポーネント単体の確認用の composition で、Studio で選べる。
+6. プレビュー: `.env` に `REMOTION_PROJECT=<slug>` を書くか、`REMOTION_PROJECT=<slug> npx remotion studio` で渡して起動する。コンポーネント単体の見た目確認は `REMOTION_PROJECT=00000000-sample` の Studio、または `REMOTION_PROJECT=00000000-sample npx remotion still Motovlog out/still.png --frame=<n>` で行う。
 7. レンダリング: `REMOTION_PROJECT=<slug> npx remotion render Motovlog out/<slug>.mp4`
 8. 公開したら `git tag render/<slug>` を打つ。再現はタグを checkout して `npm ci` し、素材を復元して render する。
 
@@ -33,7 +33,7 @@ Remotion でモトブログ動画を作るためのエンジン。動画 1 本 =
 
 ### クレジット
 
-使用した素材 (音声合成のキャラクター、立ち絵の作者、BGM 等) の利用規約に従ったクレジットを `ending.credits.text` に書く。
+使用した素材 (音声合成のキャラクター、立ち絵の作者、BGM 等) の利用規約に従ったクレジットを `ending.credits` (`Record<string, string>[]`。1 要素が 1 行、URL は概要欄に書く) に書く。
 
 ## サンプル project
 
@@ -79,18 +79,22 @@ export default defineTimeline({
 | ------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `version`           | schema のバージョン。省略時 1                                                                                                                                                                                                                                                                                                                                                                                                               |
 | `meta`              | 解像度・フレームレート (`width`/`height`/`fps`)                                                                                                                                                                                                                                                                                                                                                                                             |
+| `opening`           | OP とサムネ用フレームの絵 (`photo`・`badge`・`title`・`character`)。`badge` は左下のバッジの文字列 (例 `"#12 愛媛 / 国道378号"`)。尺・フェードは `src/theme/timing.ts` (`openingTiming`) が持つ                                                                                                                                                                                                                                              |
 | `clips`             | メイン映像トラック (走行映像)。`start` を持たない順序リストで、各クリップの絶対位置は `gapBefore`/`crossfadeIn`/`duration` から導出される (`gapBefore`: 直前クリップ終端からの空白秒。先頭クリップはタイムライン先頭からの空白。`crossfadeIn`: 直前クリップとのオーバーラップ秒)。`gapBefore` と `crossfadeIn` の同時指定、先頭クリップの `crossfadeIn` 指定、直前クリップの露出長 (`duration - crossfadeIn`) を超える `crossfadeIn` は不可 |
 | `overlays`          | 写真・動画の差し込み (フェード・位置指定)。`scale` はフレームに収めた上での倍率。`volume`/`sourceFrom` は `kind: "video"` 専用で、`kind: "image"` の要素に 0 以外を指定するとスキーマ検証エラーになる (`volume` の既定は無音、`sourceFrom` は元動画内の開始秒)。video overlay の `fadeIn`/`fadeOut` は映像の不透明度と音量の両方のフェードに使われる                                                                                        |
 | `bgm`               | BGM トラック (フェードイン/アウト)                                                                                                                                                                                                                                                                                                                                                                                                          |
 | `lines`             | セリフ (字幕表示文と表示開始秒)。`audio`・`duration` は timeline.ts には書かず、`voice.json` に持つ (「音声生成の結果」)。音声区間 `[start, start + duration)` は互いに重ならないこと (`voice.json` と合成した後に検証、重なると検証エラー)。字幕は次のセリフの開始で切れる                                                                                                                                                                 |
-| `characterSegments` | 立ち絵の表示区間 (現状は枠のみ。中身は issue #3)                                                                                                                                                                                                                                                                                                                                                                                            |
-| `ending`            | エンディング (黒フェード + クレジット文言)。フェード長は `fadeDuration` (既定 1.0 秒)                                                                                                                                                                                                                                                                                                                                                       |
+| `characterSegments` | 立ち絵の表示区間 (`start`・`duration`・`src`・`side`)。区間は互いに重ならない。`opening` があるとき OP の後に始まり、`ending` があるとき `ending.start` の前に終わる。フェード 0.2 秒は theme。画像は高さ 1379px に拡縮して上から 720px を出す (幅は 465px まで。配布素材の 1531px 高・462px 幅前後を想定)。目パチ・口パクは未実装 (#39)                                                                                                          |
+| `chapters`          | 章タイトル (`start`・`title`)。番号は `start` 順の 1 始まり。表示区間 (2.4 秒) は `src/theme/timing.ts` (`chapterTiming`) が持ち、互いに重ならないこと                                                                                                                                                                                                                                                                                     |
+| `notes`             | 右端の縦書き注釈 (`start`・`duration`・`text`)。互いに重ならないこと                                                                                                                                                                                                                                                                                                                                                                        |
+| `photos`            | 写真紹介 (`start`・`duration`・`src` 1〜2 枚)。互いに重ならないこと。3 枚以上は要素を続けて並べる (カットで順送り)                                                                                                                                                                                                                                                                                                                          |
+| `ending`            | ED (走行データとクレジット、カットイン、12 秒)。`start` は最後のクリップからカットインする秒。`title` は上段左の文字列 (既定 `"RIDE LOG"`)、`subtitle` は上段右の文字列 (例 `"EP.12 / 愛媛"`)。`date` は `from`・`to` の `Temporal.ZonedDateTime` (例 `Temporal.ZonedDateTime.from("2026-08-15T00:00[Asia/Tokyo]")`)、`distance` は km の数値、`ridingTime` は `Temporal.Duration` ([ADR-0009](docs/adr/0009-use-temporal-for-dates-and-times.md))。`routes` は経由地の文字列配列。`credits` は `Record<string, string>[]` (1 要素が 1 行、URL は出さず概要欄に書く)。`opening` があれば後にサムネ用フレーム (4.8 秒) が続く                                                                                                                                    |
 
-`clips` は `gapBefore`・`crossfadeIn` から位置が決まる (絶対時刻を持たない) のに対し、`clips` 以外のトラック (`overlays`・`bgm`・`lines`・`characterSegments`・`ending`) は `start`+`duration` の絶対時刻で位置を指定する。
+`clips` は `gapBefore`・`crossfadeIn` から位置が決まる (絶対時刻を持たない) のに対し、`clips` 以外のトラック (`overlays`・`bgm`・`lines`・`characterSegments`・`chapters`・`notes`・`photos`・`ending`) は `start`+`duration` の絶対時刻で位置を指定する (`chapters` は `start` のみで、表示区間の尺は 2.4 秒固定)。
 
-`default` 付きの項目 (`fadeDuration`・`subtitleTail` 等) は省略可能で、省略した場合は `calculateMetadata` 内での parse で default 値が補完される。`meta` や `overlays`・`bgm`・`lines`・`characterSegments` はコンテナごと丸ごと省略可能 (`clips` は必須)。
+`default` 付きの項目 (`subtitleTail` 等) は省略可能で、省略した場合は `calculateMetadata` 内での parse で default 値が補完される。`meta` や `overlays`・`bgm`・`lines`・`characterSegments`・`chapters`・`notes`・`photos`・`opening`・`ending` はコンテナごと丸ごと省略可能 (`clips` は必須)。
 
-字幕・暗がり等の見た目は `docs/design/tone-and-manner.md` (ADR-0007) で固定し、`src/theme/tokens.ts` の定数から読む。timeline では変えない (ADR-0008)。下部の暗がりは `lines` から自動で出す (語り出しの 0.2 秒前にフェードイン、無音が 5 秒続くとフェードアウト)。トークン (色・書体・配置等) の正本は `src/theme/tokens.ts` に置く。静的なスタイルは各コンポーネントの `*.module.css` に書き、`var(--...)` でトークンを参照する。フレームごとに変わる値 (不透明度等) はインラインスタイルで渡す。
+字幕・暗がり等の見た目は `docs/design/tone-and-manner.md` (ADR-0007) で固定し、`src/theme/tokens.ts` の定数から読む。timeline では変えない (ADR-0008)。下部の暗がりは `lines` から自動で出す (語り出しの 0.2 秒前にフェードイン、無音が 5 秒続くとフェードアウト)。トークン (色・書体・配置等) の正本は `src/theme/tokens.ts` に置く。静的なスタイルは各コンポーネントの `*.module.css` に書き、`var(--...)` でトークンを参照する。フレームごとに変わる値 (不透明度等) はインラインスタイルで渡す。OP・章タイトル・ED・サムネ用フレームの尺とフェードも `src/theme/timing.ts` が持ち、timeline には書かない。
 
 project の選択は環境変数 `REMOTION_PROJECT` (slug) で行う。`.env` に書くか `REMOTION_PROJECT=<slug> npx remotion studio` のように渡す。未設定・空ならサンプル project (`00000000-sample`) を読む。`--props` は使わない。
 
@@ -119,11 +123,6 @@ project の選択は環境変数 `REMOTION_PROJECT` (slug) で行う。`.env` �
 - フレームレートは `projects/<slug>/timeline.ts` の `meta.fps` に合わせる (`convert-movie.ts` が読む)。GOP 長は fps と同じ (1 秒ごとにキーフレーム)。timeline.ts が無い・読めない場合はフォールバックせずエラーで止まる。
 - 起動時に NVENC が使えるかを確認し、使えなければ libx264 を使う。NVENC が使える場合でも、あるファイルの変換に失敗したときはそのファイルだけ libx264 で再試行する。一度 libx264 に落ちたら以降のファイルも libx264 で変換する。WSL で NVENC を使うために `LD_LIBRARY_PATH=/usr/lib/wsl/lib` をスクリプト内で設定している。
 - 拡張子違いで同じ basename になる入力 (例: `clip.mov` と `clip.mp4`) を同時に渡すとエラーになる。
-
-## コーディング規約
-
-- 相対 import・export・import() には実体のファイルの拡張子 (`.ts` / `.tsx` / `.module.css` / `.json`) を付ける。`../theme` のようなディレクトリ指定は `index.ts` まで書く。
-- 日付と時間は Temporal で表し、`Date` は使わない ([ADR-0009](docs/adr/0009-use-temporal-for-dates-and-times.md))。
 
 ## License
 

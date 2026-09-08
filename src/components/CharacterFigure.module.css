@@ -1,0 +1,29 @@
+.box {
+  position: absolute;
+  bottom: 0;
+  width: var(--figure-box-width);
+  height: var(--figure-box-height);
+  overflow: hidden;
+}
+
+.left {
+  left: var(--figure-inset);
+}
+
+.right {
+  right: var(--figure-inset);
+}
+
+.image {
+  position: absolute;
+  left: var(--figure-image-offset);
+  top: 0;
+  height: var(--figure-image-height);
+  width: auto;
+  filter: drop-shadow(var(--shadow-figure));
+}
+
+.right .image {
+  left: auto;
+  right: var(--figure-image-offset);
+}
