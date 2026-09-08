@@ -1,8 +1,8 @@
 import React from "react";
 import { AbsoluteFill, Img } from "remotion";
-import styles from "./OpeningFrame.module.css";
+import styles from "./Thumbnail.module.css";
 
-/** OpeningFrame が受け取るもの。 */
+/** Thumbnail が受け取るもの。 */
 type Props = {
   /** 走行写真 (staticFile() 済み)。 */
   photo: string;
@@ -15,13 +15,11 @@ type Props = {
 };
 
 /**
- * OP / サムネ用フレーム (T&M「サムネ」節)。走行写真の上に、左下に話数バッジと
- * 地名、右下に立ち絵を重ねる。走行中の立ち絵 (左・常時表示) は CharacterLayer
- * が別に持つ。黒からのフェードイン (OP) と ED からのクロスフェード
- * (サムネ用フレーム) は区切りの遷移なので組み立て側 (#47) が扱う。固定 props
- * で、フレーム依存の値は無い。
+ * サムネの絵 (T&M「サムネ」節)。OP とサムネ用フレームの両方で使う。走行写真
+ * の上に、左下に話数バッジと地名、右下に立ち絵を重ねる。固定 props で、
+ * フレーム依存の値は無い。
  */
-export const OpeningFrame: React.FC<Props> = ({
+export const Thumbnail: React.FC<Props> = ({
   photo,
   badge,
   title,

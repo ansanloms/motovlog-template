@@ -1,4 +1,4 @@
-.note {
+.annotation {
   position: absolute;
   right: var(--note-right);
   top: var(--note-top);

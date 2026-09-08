@@ -1,9 +1,9 @@
 import React from "react";
 import { AbsoluteFill } from "remotion";
-import styles from "./VerticalNote.module.css";
+import styles from "./Annotation.module.css";
 import { splitForVertical } from "./verticalText.ts";
 
-/** VerticalNote が受け取るもの。 */
+/** Annotation が受け取るもの。 */
 type Props = {
   /** 表示する文字列。`\n` で列を分ける。 */
   text: string;
@@ -16,10 +16,10 @@ type Props = {
  * まとめる。列数はコードで縛らない (最大 3 列は運用規則、T&M 参照)。固定
  * props で、フェード・フレーム依存の値は無い。
  */
-export const VerticalNote: React.FC<Props> = ({ text }) => {
+export const Annotation: React.FC<Props> = ({ text }) => {
   return (
     <AbsoluteFill>
-      <div className={styles.note}>
+      <div className={styles.annotation}>
         {splitForVertical(text).map((part, index) =>
           part.kind === "tcy" ? (
             <span key={index} className={styles.tcy}>
