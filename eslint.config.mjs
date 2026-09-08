@@ -49,4 +49,51 @@ export default [
       ],
     },
   },
+  {
+    // components は見た目だけを描く。timeline の配線と remotion のフレーム
+    // API・媒体要素は tracks 側に置く (ADR-0010)。
+    files: ["src/components/**"],
+    rules: {
+      "no-restricted-imports": [
+        "error",
+        {
+          patterns: [
+            {
+              group: ["**/timeline/**"],
+              message: "components は timeline を import しない (ADR-0010)。",
+            },
+            {
+              group: ["**/tracks/**"],
+              message: "components から tracks を import しない (ADR-0010)。",
+            },
+          ],
+          paths: [
+            {
+              name: "remotion",
+              importNames: [
+                "useCurrentFrame",
+                "useVideoConfig",
+                "Sequence",
+                "Audio",
+                "Video",
+                "OffthreadVideo",
+                "Html5Audio",
+                "Html5Video",
+                "Series",
+                "Loop",
+                "Freeze",
+                "AnimatedImage",
+              ],
+              message:
+                "components は remotion のフレーム API・媒体要素を import しない (ADR-0010)。",
+            },
+            {
+              name: "@remotion/media",
+              message: "媒体要素は tracks に置く (ADR-0010)。",
+            },
+          ],
+        },
+      ],
+    },
+  },
 ];

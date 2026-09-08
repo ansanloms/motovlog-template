@@ -18,10 +18,6 @@ export const endingTiming = { duration: 12 } as const; // カットイン、フ�
 /** サムネ用フレームの尺と、ED からのクロスフェード秒。 */
 export const thumbnailFrameTiming = { duration: 4.8, crossfade: 4.8 } as const; // ED の上にクロスフェード
 
-/**
- * 章タイトルの表示区間の長さ (秒)。fadeIn + hold + fadeOut (T&M「出入りの
- * タイミング」節)。schema.ts の間隔検証と ChapterTitle.tsx の Sequence の
- * durationInFrames 計算の両方がここを参照する。
- */
+/** 章タイトルの表示区間の長さ (秒)。フェードイン + 保持 + フェードアウト。 */
 export const chapterTitleDurationSec =
   chapterTiming.fade * 2 + chapterTiming.hold;

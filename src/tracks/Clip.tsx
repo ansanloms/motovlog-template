@@ -23,7 +23,7 @@ type Props = {
 // clips は絶対位置を持たない順序リストで、各クリップの絶対区間は
 // resolveClipSpans が導出する (gapBefore/crossfadeIn/duration の幾何的な
 // 整合は schema の superRefine が保証済みなので、ここで clamp は行わない)。
-export const DashcamTrack: React.FC<Props> = ({ clips }) => {
+export const Clip: React.FC<Props> = ({ clips }) => {
   const { fps } = useVideoConfig();
 
   // 秒区間 (resolveClipSpans) をフレーム化した配列を先に作る。フェードの

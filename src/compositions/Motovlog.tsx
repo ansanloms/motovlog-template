@@ -1,17 +1,14 @@
 import React from "react";
 import type { CalculateMetadataFunction } from "remotion";
-import { Bgm } from "../components/Bgm.tsx";
-import { CharacterLayer } from "../components/CharacterLayer.tsx";
-import { DashcamTrack } from "../components/DashcamTrack.tsx";
-import { Overlays } from "../components/Overlays.tsx";
-import { SubtitleBand } from "../components/SubtitleBand.tsx";
-import { Subtitles } from "../components/Subtitles.tsx";
-import { VoiceLines } from "../components/VoiceLines.tsx";
 import { ThemeRoot } from "../theme/index.ts";
 import { resolveClipSpans } from "../timeline/clips.ts";
 import { toFrameSpan } from "../timeline/frames.ts";
 import { loadProject, resolveProjectSlug } from "../timeline/load.ts";
 import type { VoicedTimeline } from "../timeline/schema.ts";
+import { Bgm } from "../tracks/Bgm.tsx";
+import { Clip } from "../tracks/Clip.tsx";
+import { Line } from "../tracks/Line.tsx";
+import { Overlay } from "../tracks/Overlay.tsx";
 
 export type MotovlogProps = { timeline: VoicedTimeline | null };
 
@@ -90,13 +87,10 @@ export const Motovlog: React.FC<MotovlogProps> = ({ timeline }) => {
   return (
     // 暗転の色は ED の再設計で theme に寄せる。
     <ThemeRoot style={{ backgroundColor: "#000000" }}>
-      <DashcamTrack clips={timeline.clips} />
-      <Overlays overlays={timeline.overlays} />
-      <CharacterLayer segments={timeline.characterSegments} />
-      <SubtitleBand lines={timeline.lines} />
-      <Subtitles lines={timeline.lines} />
+      <Clip clips={timeline.clips} />
+      <Overlay overlays={timeline.overlays} />
+      <Line lines={timeline.lines} />
       <Bgm bgm={timeline.bgm} />
-      <VoiceLines lines={timeline.lines} />
     </ThemeRoot>
   );
 };

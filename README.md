@@ -11,7 +11,7 @@ Remotion でモトブログ動画を作るためのエンジン。動画 1 本 =
 
 ([ADR-0002](docs/adr/0002-project-directory-layout.md) の要約)
 
-- `src/`: エンジン (Composition・コンポーネント・schema)
+- `src/`: エンジン (Composition・schema)。`src/components/` は見た目だけのコンポーネント、`src/tracks/` は timeline を読んで `<Sequence>` を組む配線 ([ADR-0010](docs/adr/0010-keep-timeline-wiring-out-of-components.md))
 - `projects/<slug>/timeline.ts`: 動画の定義。コミットする
 - `projects/<slug>/voice.json`: 音声生成の結果 (`lines[].audio`・`duration` 等)。コミットする ([ADR-0006](docs/adr/0006-generate-voice-and-lipsync-from-voicevox-api.md))
 - `public/projects/<slug>/`: 動画固有の素材 (変換済み素材・セリフ音声等)。コミットしない

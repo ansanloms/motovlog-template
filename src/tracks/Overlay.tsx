@@ -20,7 +20,7 @@ type Props = {
 };
 
 // 写真・動画の差し込み。
-export const Overlays: React.FC<Props> = ({ overlays }) => {
+export const Overlay: React.FC<Props> = ({ overlays }) => {
   const { fps } = useVideoConfig();
 
   return (

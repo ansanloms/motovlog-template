@@ -141,7 +141,7 @@ const lineSchema = z.object({
 });
 
 // start 昇順に並べ、隣接する line 同士の区間 [start, start + duration) が
-// 重ならないことを検証する (Subtitles.tsx の clamp は隣接前提の保険であって
+// 重ならないことを検証する (tracks/Line.tsx の clamp は隣接前提の保険であって
 // 重なりの許容ではない)。timeline.ts 単体では duration が定まらないため、
 // audio・duration を合成済みの voicedLinesSchema からだけ呼ぶ。
 const checkLineOverlaps = (
@@ -226,8 +226,8 @@ const voicedLinesSchema = z
 const characterSegmentSchema = z.object({
   start: z.number().nonnegative(),
   duration: z.number().positive(),
-  // issue #3 で配線するまで、fadeIn/fadeOut は描画に使われない
-  // (CharacterLayer は現状プレースホルダで、Sequence すら出さない)。
+  // 立ち絵の描画は tracks/CharacterSegment (未実装。#39) で行う。それまで
+  // fadeIn/fadeOut は描画に使われない。
   fadeIn: z.number().nonnegative().default(0.4),
   fadeOut: z.number().nonnegative().default(0),
 });
