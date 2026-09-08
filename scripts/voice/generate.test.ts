@@ -106,7 +106,7 @@ const makeDeps = (
     if (url.includes("/synthesis")) {
       // 0.1 秒 (2400 サンプル @ 24kHz) の wav。query の長さ (0.1 秒) と
       // 一致させ、警告が出ない基準ケースにする。
-      return new Response(buildWav(2400), { status: 200 });
+      return new Response(new Uint8Array(buildWav(2400)), { status: 200 });
     }
 
     return new Response("not found", { status: 404 });
@@ -246,7 +246,7 @@ describe("generateMissing", () => {
         return new Response(JSON.stringify(AUDIO_QUERY), { status: 200 });
       }
       if (url.includes("/synthesis")) {
-        return new Response(buildWav(4800), { status: 200 });
+        return new Response(new Uint8Array(buildWav(4800)), { status: 200 });
       }
       return new Response("not found", { status: 404 });
     }) as typeof fetch;
