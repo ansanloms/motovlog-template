@@ -40,6 +40,7 @@ slug の日付部分は `00000000` にしている (実際の project は `YYYYM
 | `public/projects/00000000-sample/photos/photo-03.jpg`                         | サムネに使う走行写真                                                                                                                       |
 | `public/projects/00000000-sample/photos/photo-01.jpg`・`photo-02.jpg`         | 写真紹介に使う走行写真                                                                                                                     |
 | `public/assets/characters/4.png`                                              | サムネに使う立ち絵の png                                                                                                                   |
+| `public/assets/bgm/m1.wav`                                                    | サンプルの BGM (`audio()` の例)                                                                                                             |
 
 素材が手元に無い場合、走行映像は次の ffmpeg で同名の合成素材を作れば代わりに使える。既に同名のファイルがあれば `-n` により上書きせずに終了する。
 

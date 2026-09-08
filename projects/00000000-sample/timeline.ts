@@ -1,5 +1,5 @@
 // このファイルは新しい project の出発点として「コピーして直す」ためのサンプル。
-// 走行映像 1 本・OP・章タイトル・写真紹介・ED・注釈・発話 (3 パターン) の
+// 走行映像 1 本・OP・章タイトル・写真紹介・ED・BGM・注釈・発話 (3 パターン) の
 // 一通りの要素を、実際に動く形で並べている。仕様の正本は README
 // (「timeline.ts の書き方」「発話」) と ADR で、ここのコメントは仕様の丸写し
 // ではなく「ここをこう変えるとこうなる」を書く。
@@ -26,6 +26,7 @@
 import { staticFile } from "remotion";
 import {
   annotation,
+  audio,
   chapterTitle,
   ending,
   photoShowcase,
@@ -54,12 +55,49 @@ const asset = (path: string) => staticFile(`projects/00000000-sample/${path}`);
 
 const src = asset("VID_20260802_074903_00_287_359_DASHCAM1.mp4");
 
+const clipASec = 20;
+const clipBSec = 18;
+const crossfadeSec = 0.4;
+const endingFadeSec = 2; // layer 4 の黒落ちと走行音・BGM のフェードアウトの秒数
+
 // 走行映像は同じ素材を trimBefore (元動画の頭を捨てる秒数) だけ変えて 2 本に
 // 割り、間に crossfade() を挟んでいる。cut()/fade() が返す item は変数に
 // 取っておくと、他の layer から start()/end() でその item の開始・終端を
 // 参照できる (下の写真紹介・ED・黒地で使っている)。
-const clipA = cut(video({ src, trimBefore: 0 }), { duration: 20 });
-const clipB = cut(video({ src, trimBefore: 16 }), { duration: 18 });
+//
+// volume は要素の再生開始 (trimBefore 適用後) からの秒を at に持つ折れ線。
+// fade()・crossfade()・frame() は絵 (不透明度) にだけ効いて音には効かない
+// ので、走行音のフェードはここで書く。clipA の頭は layer 4 の黒からの
+// 立ち上がり (openingTiming.fadeIn) と、clipA の末尾と clipB の頭は
+// crossfade の重なり (crossfadeSec) と、clipB の末尾は layer 4 の黒落ち
+// (endingFadeSec) と、それぞれ同じ秒数にして絵と音を揃えている。一定値
+// なら `volume: 0.5` のように数値で書く。
+const clipA = cut(
+  video({
+    src,
+    trimBefore: 0,
+    volume: [
+      { at: 0, volume: 0 },
+      { at: openingTiming.fadeIn, volume: 1 },
+      { at: clipASec - crossfadeSec, volume: 1 },
+      { at: clipASec, volume: 0 },
+    ],
+  }),
+  { duration: clipASec },
+);
+const clipB = cut(
+  video({
+    src,
+    trimBefore: 16,
+    volume: [
+      { at: 0, volume: 0 },
+      { at: crossfadeSec, volume: 1 },
+      { at: clipBSec - endingFadeSec, volume: 1 },
+      { at: clipBSec, volume: 0 },
+    ],
+  }),
+  { duration: clipBSec },
+);
 
 // 発話 2 本目の声質の差分。theme の narrator (既定話者) を丸ごと変えず、
 // 差分だけをファイル内の const として持てる (ADR-0010)。
@@ -73,7 +111,7 @@ export default timeline([
     // duration」に固定され、その区間で clipB の opacity が 0 から 1 へ
     // 上がる。
     clipA,
-    crossfade({ duration: 0.4 }),
+    crossfade({ duration: crossfadeSec }),
     clipB,
   ],
   [
@@ -82,7 +120,7 @@ export default timeline([
     //
     // OP (サムネと同じ絵)。位置を省略すると同じ layer の直前の item の
     // 終端に連結する (最初の item は 0 秒から)。黒からの立ち上がりは
-    // layer 3 の frame() が行うので、ここでは in を付けない。
+    // layer 4 の frame() が行うので、ここでは in を付けない。
     fade(
       thumbnail({
         photo: asset("photos/photo-03.jpg"),
@@ -140,7 +178,27 @@ export default timeline([
     ),
   ],
   [
-    // layer 3: 下の layer (0〜2) の合成結果を黒から立ち上げ、終端で黒へ
+    // layer 3: BGM。audio() は音だけの要素で、絵は持たない。loop で素材を
+    // 繰り返し、volume の折れ線で走行音の下に薄く (0.2) 敷いて、末尾は
+    // 走行音・黒落ちと同じ endingFadeSec 秒でフェードアウトする。loop 時も
+    // at は周回をまたいだ通算秒なので、素材の長さより長い区間でも末尾の
+    // フェードは区間の終わりに効く。区間は写真紹介と同じく start() で
+    // 走行映像に合わせている。
+    cut(
+      audio({
+        src: staticFile("assets/bgm/m1.wav"),
+        loop: true,
+        volume: [
+          { at: 0, volume: 0.2 },
+          { at: clipBSec - endingFadeSec, volume: 0.2 },
+          { at: clipBSec, volume: 0 },
+        ],
+      }),
+      { at: start(clipB), duration: clipBSec },
+    ),
+  ],
+  [
+    // layer 4: 下の layer (0〜3) の合成結果を黒から立ち上げ、終端で黒へ
     // 落とす。frame() は fade() の node にだけ渡せ (cut() や layer 0 には
     // 置けない)、それより下の layer の合成結果にフェードをかける。
     // end(clipB, -2) は「clipB の終端の 2 秒前」。
@@ -148,9 +206,13 @@ export default timeline([
       duration: openingTiming.fadeIn,
       in: openingTiming.fadeIn,
     }),
-    fade(frame(), { at: end(clipB, -2), duration: 2, out: 2 }),
+    fade(frame(), {
+      at: end(clipB, -endingFadeSec),
+      duration: endingFadeSec,
+      out: endingFadeSec,
+    }),
   ],
-  // layer 4・5: 発話。narration() が [暗がり layer, 発話 layer] の 2 layer
+  // layer 5・6: 発話。narration() が [暗がり layer, 発話 layer] の 2 layer
   // を返す。配列の最後に置くと、この 2 layer は他のどの layer よりも上に
   // 重なる (「配列の後ろが上」)。章タイトルの表示中 (〜7.4 秒) と重ならない
   // よう、最初の発話を 8 秒以降に置いている。写真紹介・ED の表示中に発話が
