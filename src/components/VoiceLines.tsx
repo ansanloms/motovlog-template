@@ -1,8 +1,8 @@
 import { Audio } from "@remotion/media";
 import React from "react";
 import { Sequence, staticFile, useVideoConfig } from "remotion";
-import { toFrameSpan } from "../timeline/frames";
-import type { VoicedTimeline } from "../timeline/schema";
+import { toFrameSpan } from "../timeline/frames.ts";
+import type { VoicedTimeline } from "../timeline/schema.ts";
 
 type Props = {
   lines: VoicedTimeline["lines"];

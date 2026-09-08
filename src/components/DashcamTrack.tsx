@@ -6,9 +6,13 @@ import {
   useCurrentFrame,
   useVideoConfig,
 } from "remotion";
-import { resolveClipSpans } from "../timeline/clips";
-import { fadeEnvelope, secondsToFrames, toFrameSpan } from "../timeline/frames";
-import type { Timeline } from "../timeline/schema";
+import { resolveClipSpans } from "../timeline/clips.ts";
+import {
+  fadeEnvelope,
+  secondsToFrames,
+  toFrameSpan,
+} from "../timeline/frames.ts";
+import type { Timeline } from "../timeline/schema.ts";
 
 type Props = {
   clips: Timeline["clips"];

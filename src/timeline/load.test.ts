@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { DEFAULT_PROJECT, resolveProjectSlug } from "./load";
+import { DEFAULT_PROJECT, resolveProjectSlug } from "./load.ts";
 
 describe("resolveProjectSlug", () => {
   it("未設定なら DEFAULT_PROJECT を返す", () => {

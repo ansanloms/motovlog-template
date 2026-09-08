@@ -1,5 +1,5 @@
 import React from "react";
-import type { Timeline } from "../timeline/schema";
+import type { Timeline } from "../timeline/schema.ts";
 
 type Props = {
   segments: Timeline["characterSegments"];

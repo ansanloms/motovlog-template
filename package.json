@@ -13,6 +13,7 @@
     "react": "19.2.3",
     "react-dom": "19.2.3",
     "remotion": "4.0.521",
+    "temporal-polyfill": "1.0.4",
     "zod": "4.5.4"
   },
   "devDependencies": {
@@ -30,7 +31,7 @@
     "dev": "remotion studio",
     "build": "remotion bundle",
     "upgrade": "remotion upgrade",
-    "lint": "eslint src scripts projects && tsc && prettier --check src scripts projects",
+    "lint": "eslint src scripts projects vitest.config.mts && tsc && prettier --check src scripts projects eslint.config.mjs vitest.config.mts remotion.config.ts",
     "test": "vitest run",
     "convert": "tsx scripts/convert-movie.ts"
   }

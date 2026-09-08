@@ -5,10 +5,14 @@ import {
   useCurrentFrame,
   useVideoConfig,
 } from "remotion";
-import { computeBandSpans } from "../timeline/band";
-import { fadeEnvelope, secondsToFrames, toFrameSpan } from "../timeline/frames";
-import type { VoicedTimeline } from "../timeline/schema";
-import { bandTiming } from "../theme";
+import { computeBandSpans } from "../timeline/band.ts";
+import {
+  fadeEnvelope,
+  secondsToFrames,
+  toFrameSpan,
+} from "../timeline/frames.ts";
+import type { VoicedTimeline } from "../timeline/schema.ts";
+import { bandTiming } from "../theme/index.ts";
 import styles from "./SubtitleBand.module.css";
 
 type Props = {

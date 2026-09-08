@@ -2,7 +2,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
-import { themeCssVars } from "./cssVars";
+import { themeCssVars } from "./cssVars.ts";
 
 const srcDir = path.join(path.dirname(fileURLToPath(import.meta.url)), "..");
 

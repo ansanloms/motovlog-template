@@ -1,13 +1,13 @@
 import React from "react";
 import { Composition } from "remotion";
 import { z } from "zod";
-import { calculateMetadata, Motovlog } from "./compositions/Motovlog";
+import { calculateMetadata, Motovlog } from "./compositions/Motovlog.tsx";
 import {
   galleryDurationInFrames,
   galleryFps,
   SubtitlesGallery,
-} from "./gallery/SubtitlesGallery";
-import { voicedTimelineSchema } from "./timeline/schema";
+} from "./gallery/SubtitlesGallery.tsx";
+import { voicedTimelineSchema } from "./timeline/schema.ts";
 
 export const RemotionRoot: React.FC = () => {
   return (

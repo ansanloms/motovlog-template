@@ -1,5 +1,5 @@
-import { mergeVoice, timelineSchema, voiceSchema } from "./schema";
-import type { VoicedTimeline } from "./schema";
+import { mergeVoice, timelineSchema, voiceSchema } from "./schema.ts";
+import type { VoicedTimeline } from "./schema.ts";
 
 // 環境変数未設定・空のときに読む project (ADR-0004)。
 export const DEFAULT_PROJECT = "00000000-sample";

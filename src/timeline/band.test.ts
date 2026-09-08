@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { bandTiming } from "../theme";
-import { computeBandSpans } from "./band";
+import { bandTiming } from "../theme/index.ts";
+import { computeBandSpans } from "./band.ts";
 
 const opts = bandTiming;
 

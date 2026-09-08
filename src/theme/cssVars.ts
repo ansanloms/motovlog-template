@@ -4,7 +4,7 @@ import {
   scrim,
   subtitleLayout,
   videoType,
-} from "./tokens";
+} from "./tokens.ts";
 
 // PascalCase/camelCase のキーを CSS 変数名の kebab-case に変える。
 const toKebabCase = (value: string): string =>
