@@ -1,3 +1,4 @@
+import { fps } from "../theme/timing.ts";
 import type { Layer, ResolvedItem, Timeline } from "./types.ts";
 
 /** timeline() の幅の既定値 (px)。 */
@@ -8,8 +9,6 @@ export const DEFAULT_HEIGHT = 1080;
 
 /** timeline() に渡すオプション。 */
 type TimelineOptions = {
-  /** composition のフレームレート。ADR-0003 の不変条件: 素材の fps と一致させる。 */
-  fps: number;
   /** 幅 (px)。既定は DEFAULT_WIDTH。 */
   width?: number;
   /** 高さ (px)。既定は DEFAULT_HEIGHT。 */
@@ -24,11 +23,7 @@ type TimelineOptions = {
  * 終端が開始より後になる長さでなければならない。重なり判定はフレーム単位
  * (round(秒 × fps)) で行い、秒の丸め誤差による誤検出を避ける。
  */
-const resolveLayer = (
-  layer: Layer,
-  layerIndex: number,
-  fps: number,
-): ResolvedItem[] => {
+const resolveLayer = (layer: Layer, layerIndex: number): ResolvedItem[] => {
   let cursor = 0;
 
   return layer.map((item, itemIndex) => {
@@ -84,17 +79,14 @@ const resolveLayer = (
  * の後ろが上)。layer 内は時間が重ならず時間順に並び、位置は `at`/`after`/
  * 省略 (直前の item の終端に連結) のいずれかで解決する。durationSec は全
  * layer 全 item の `at + duration` の最大値。layers が空、または空の
- * layer があれば throw する。
+ * layer があれば throw する。fps は theme の定数で、convert と composition
+ * が同じ値を使う (ADR-0003)。
  */
 export const timeline = (
-  options: TimelineOptions,
   layers: readonly Layer[],
+  options: TimelineOptions = {},
 ): Timeline => {
-  const { fps, width = DEFAULT_WIDTH, height = DEFAULT_HEIGHT } = options;
-
-  if (!Number.isFinite(fps) || fps <= 0) {
-    throw new Error(`timeline: fps が不正です (${fps})`);
-  }
+  const { width = DEFAULT_WIDTH, height = DEFAULT_HEIGHT } = options;
 
   if (layers.length === 0) {
     throw new Error("timeline: layers が空です");
@@ -105,7 +97,7 @@ export const timeline = (
       throw new Error(`timeline: layer ${layerIndex} が空です`);
     }
 
-    return resolveLayer(layer, layerIndex, fps);
+    return resolveLayer(layer, layerIndex);
   });
 
   const durationSec = Math.max(

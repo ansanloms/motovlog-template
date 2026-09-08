@@ -9,13 +9,12 @@ import { cut, fade, timeline } from "../../src/effects/index.ts";
 import {
   chapterTiming,
   chapterTitleDurationSec,
-  fps,
   openingTiming,
 } from "../../src/theme/timing.ts";
 
 const asset = (path: string) => staticFile(`projects/00000000-sample/${path}`);
 
-export default timeline({ fps }, [
+export default timeline([
   [
     // layer 0: 走行映像
     cut(video({ src: asset("VID_20260802_074903_00_287_359_DASHCAM1.mp4") }), {
