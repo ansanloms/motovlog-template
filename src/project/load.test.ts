@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   DEFAULT_PROJECT,
   isTimeline,
@@ -6,6 +6,44 @@ import {
   resolveProjectSlug,
 } from "./load.ts";
 import { fps } from "../theme/timing.ts";
+
+// loadTimeline("00000000-sample") は narration() を経由し、発話の音声
+// キャッシュ (<key>.json) を fetch する。ここでの目的 (default export が
+// Timeline の形であること) には実際のキャッシュファイルは要らないため、
+// .json で終わる URL には isVoiceCache を通る偽のキャッシュを返す。
+const FAKE_VOICE_CACHE = {
+  text: "dummy",
+  voice: {
+    speaker: 13,
+    speed: 1,
+    pitch: 0,
+    intonation: 1,
+    volume: 1,
+    pause: 1,
+    silenceBefore: 0.1,
+    silenceAfter: 0.1,
+  },
+  reading: "dummy",
+  duration: 1.5,
+  lipsync: [],
+  generatedAt: "2026-09-08T00:00:00Z",
+};
+
+beforeEach(() => {
+  vi.stubGlobal("fetch", (async (input: RequestInfo | URL) => {
+    const url = String(input);
+
+    if (url.endsWith(".json")) {
+      return new Response(JSON.stringify(FAKE_VOICE_CACHE), { status: 200 });
+    }
+
+    return new Response("not found", { status: 404 });
+  }) as typeof fetch);
+});
+
+afterEach(() => {
+  vi.unstubAllGlobals();
+});
 
 describe("resolveProjectSlug", () => {
   it("未設定なら DEFAULT_PROJECT を返す", () => {

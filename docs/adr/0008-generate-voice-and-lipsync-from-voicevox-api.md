@@ -1,7 +1,7 @@
 ---
 status: accepted
-date: 2026-09-08T12:13:14Z
-refs: [2]
+date: 2026-09-08T13:45:25Z
+refs: [2, 10]
 tags: [voicevox, lipsync, node]
 ---
 
@@ -44,10 +44,10 @@ mora の母音区間をそのまま口パクのタイムラインにし、母音
 
 - 読みは `{漢字|よみ}` の記法で台本に書く。読みが無い部分はそのまま読む。字幕には漢字表記を、合成には読みを使う。この展開はスクリプトが行う。繰り返し使う固有名詞は ENGINE のユーザ辞書に登録してもよい。
 - 話者は VOICEVOX のスタイル id (`speaker`) で指定する。
-- 音声と口パクデータの生成は Node.js のスクリプト (`scripts/` 配下、TypeScript) が行い、`npm run` から呼べるようにする。ENGINE の URL は環境変数 `VOICEVOX_URL` で渡す。
+- 音声と口パクデータの生成は Node.js のスクリプト (`scripts/` 配下、TypeScript) が行う。生成は `npm run dev` の watcher と `npm run render` の前段が行う ([ADR-0010](./0010-build-narration-timeline-with-hashed-voice-cache.md))。ENGINE の URL は環境変数 `VOICEVOX_URL` で渡す。
 - スクリプトはセリフごとに `/audio_query` を呼んで query を得て、`/synthesis` でその query から wav を合成する。
-- 生成物 (wav と口パク用データを含む sidecar JSON) は `public/projects/<slug>/lines/` に置く。生成物はコミットしない ([ADR-0002](./0002-project-directory-layout.md))。
-- sidecar JSON の項目と、台本・生成物を timeline.ts へ載せる方法は、この ADR では決めない。
+- 生成物 (wav と、尺・読み・口パク用データを含む JSON) は `public/projects/<slug>/lines/` に置く。生成物はコミットしない ([ADR-0002](./0002-project-directory-layout.md))。
+- JSON の項目と timeline.ts への載せ方は [ADR-0010](./0010-build-narration-timeline-with-hashed-voice-cache.md) で決める。
 
 ## Consequences
 
@@ -79,3 +79,4 @@ mora の母音区間をそのまま口パクのタイムラインにし、母音
 
 - https://github.com/VOICEVOX/voicevox_engine : VOICEVOX ENGINE。API の仕様は稼働中のエンジンの `/openapi.json` で確認した。
 - 設計整理 (2026-09-08): 現在の設計を 1 から記述し直した
+- 2026-09-08: ADR-0010 の決定に合わせて Decision の生成の呼び方と生成物の記述を書き換えた (成果物が無い間の書き換え、[ADR-0000](./0000-record-architecture-decisions.md))

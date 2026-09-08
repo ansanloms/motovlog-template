@@ -37,6 +37,7 @@ npm run convert -- 20260817-jododaira /mnt/c/path/to/DASHCAM_20260816_133345.MP4
 - layer 0 (走行映像): `cut(video({ src: ... }), { duration: ... })`。`src` は変換済み素材のパス (`staticFile("projects/20260817-jododaira/DASHCAM_20260816_133345.mp4")`)。区間を絞るなら `video()` の `trimBefore` (秒) を使う。
 - layer 1 以降 (OP・章タイトル・注釈・写真紹介等): `fade`・`cut` と要素ファクトリ (`thumbnail`・`chapterTitle`・`annotation`・`photoShowcase`) を組み合わせる。位置は省略 (直前の item の終端に連結)・`after: n` (直前の終端から n 秒後)・`at: n` (絶対秒) のいずれかで指定する。
 - 走行映像の切り替え等は `crossfade({ duration })` を item の間に置いて遷移させる。別 layer の item の開始・終端を基準にした位置指定には `at: start(item, offset?)` / `at: end(item, offset?)` を使う。
+- 発話 (セリフ): `line()`・`narration()` で書く。書き方は README の「発話」参照。
 - layer 内の item は時間が重ならないようにする。重なりや順序の乱れがあると `timeline()` が起動時に throw する。例外は `crossfade` で、遷移の尺だけ直後の item が直前の item に重なる。
 
 項目の一覧と既定値は README の「timeline.ts の書き方」にある。
@@ -44,18 +45,18 @@ npm run convert -- 20260817-jododaira /mnt/c/path/to/DASHCAM_20260816_133345.MP4
 ### 4. プレビューする
 
 ```
-REMOTION_PROJECT=20260817-jododaira npx remotion studio
+REMOTION_PROJECT=20260817-jododaira npm run dev
 ```
 
-`.env` に `REMOTION_PROJECT=20260817-jododaira` を書いておけば、毎回環境変数を渡さなくてよい。timeline.ts を編集したら Studio 上で再読み込みし、反映されているか確認する。
+`.env` に `REMOTION_PROJECT=20260817-jododaira` と `VOICEVOX_URL=<VOICEVOX ENGINE の URL>` を書いておけば、毎回環境変数を渡さなくてよい。`npm run dev` は timeline.ts を監視して発話の音声キャッシュを生成しつつ Studio を起こす。timeline.ts を編集したら Studio 上で再読み込みし、反映されているか確認する。
 
 ### 5. レンダリングする
 
 ```
-REMOTION_PROJECT=20260817-jododaira npx remotion render Motovlog out/20260817-jododaira.mp4
+REMOTION_PROJECT=20260817-jododaira npm run render -- out/20260817-jododaira.mp4
 ```
 
-`out/` はコミットされない。
+先に音声キャッシュを生成してからレンダリングする。`out/` はコミットされない。
 
 ### 6. 公開したらタグを打つ
 

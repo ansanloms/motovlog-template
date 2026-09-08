@@ -9,3 +9,6 @@ public/assets/
 
 # サンプル project の素材 (セリフ wav と変換済み mp4)
 public/projects/00000000-sample/
+
+# .env (REMOTION_PROJECT・VOICEVOX_URL)。worktree で npm run dev / render を動かすのに要る
+.env
