@@ -1,0 +1,58 @@
+.photo {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.block {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  padding: var(--thumb-padding);
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--thumb-gap);
+  background: var(--thumb-scrim);
+  font-family: var(--font);
+}
+
+.badge {
+  background: rgba(var(--surface-rgb), var(--thumb-badge-alpha));
+  border-radius: var(--thumb-badge-radius);
+  padding: var(--thumb-badge-padding-y) var(--thumb-badge-padding-x);
+  font-size: var(--badge);
+  color: var(--accent-soft);
+  letter-spacing: var(--thumb-badge-letter-spacing);
+  white-space: nowrap;
+}
+
+.title {
+  font-size: var(--title);
+  font-weight: var(--w-semibold);
+  line-height: var(--thumb-title-line-height);
+  color: var(--ink);
+  text-shadow: 0 0 var(--thumb-title-shadow-blur)
+    rgba(var(--bg-rgb), var(--thumb-title-shadow-alpha));
+  white-space: pre-line;
+}
+
+.characterBox {
+  position: absolute;
+  right: var(--thumb-character-right);
+  bottom: 0;
+  width: var(--thumb-character-box-width);
+  height: var(--thumb-character-box-height);
+  overflow: hidden;
+}
+
+.characterImg {
+  position: absolute;
+  left: var(--thumb-character-offset);
+  top: 0;
+  height: var(--thumb-character-height);
+  width: auto;
+  filter: drop-shadow(var(--shadow-figure));
+}
