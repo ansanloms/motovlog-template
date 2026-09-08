@@ -1,0 +1,85 @@
+.screen {
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font);
+  padding: var(--ending-padding-y) var(--ending-padding-x);
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: var(--ending-block-gap);
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  border-bottom: 1px solid var(--line-strong);
+  padding-bottom: var(--ending-header-padding-bottom);
+  font-size: var(--label);
+  color: var(--ink-dim);
+}
+
+.title {
+  letter-spacing: var(--ending-header-letter-spacing);
+}
+
+.prompt {
+  color: var(--accent);
+  letter-spacing: 0;
+}
+
+.rows {
+  display: flex;
+  flex-direction: column;
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: var(--ending-row-height);
+  padding: var(--ending-row-padding-y) 0;
+  box-sizing: border-box;
+  border-bottom: 1px solid
+    rgba(var(--surface-rgb), var(--ending-row-rule-alpha));
+}
+
+.label {
+  font-size: var(--label);
+  color: var(--ink-dim);
+  letter-spacing: var(--ending-label-letter-spacing);
+}
+
+.value {
+  font-size: var(--badge);
+  line-height: var(--ending-value-line-height-px);
+  white-space: nowrap;
+}
+
+.routeRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: var(--ending-route-row-height);
+}
+
+.route {
+  font-size: var(--badge);
+  line-height: var(--ending-route-line-height-px);
+  white-space: nowrap;
+}
+
+.arrow {
+  color: var(--ink-dim);
+}
+
+.footer {
+  display: flex;
+  gap: var(--ending-footer-gap);
+  border-top: 1px solid var(--line-strong);
+  padding-top: var(--ending-footer-padding-top);
+  font-size: var(--label);
+  color: var(--ink-dim);
+  line-height: var(--ending-footer-line-height);
+}

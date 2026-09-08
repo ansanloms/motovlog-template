@@ -1,0 +1,25 @@
+.frame {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: var(--photo-top);
+  bottom: var(--photo-bottom);
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: var(--photo-cell-width);
+  justify-content: center;
+  gap: var(--photo-gap);
+}
+
+/* 1 枚のときだけ列幅を singleWidth に切り替える。 */
+.frame:has(> :only-child) {
+  grid-auto-columns: var(--photo-single-width);
+}
+
+.cell {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  box-shadow: var(--shadow-photo);
+  display: block;
+}
