@@ -1,6 +1,7 @@
-// 使い方: npm run convert -- <slug> <入力ファイル>...
+// 使い方: npm run convert -- [--fps=<n>] <slug> <入力ファイル>...
 // 各入力を public/projects/<slug>/<basename>.mp4 へ変換する (ADR-0003)。
-// フレームレートは projects/<slug>/timeline.ts の meta.fps に合わせる。
+// fps は --fps=<n> で指定し、既定は 30 (T&M の値)。composition の fps と
+// 一致させること (ADR-0003)。
 // 起動時に nvenc が使えるかを確認し、使えなければ libx264 を使う。nvenc が使える場合でも、
 // あるファイルの変換に失敗したときはそのファイルだけ libx264 で再試行する。
 
@@ -8,35 +9,35 @@ import "temporal-polyfill/global";
 import { spawn, spawnSync } from "node:child_process";
 import fs, { constants as fsConstants } from "node:fs";
 import path from "node:path";
-import { fileURLToPath, pathToFileURL } from "node:url";
-import { PROJECT_SLUG_PATTERN } from "../src/timeline/load.ts";
-import { timelineSchema } from "../src/timeline/schema.ts";
+import { fileURLToPath } from "node:url";
 import {
   ConvertAbortedError,
   gopFromFps,
   outputName,
+  parseConvertArgs,
   runConvert,
+  USAGE,
 } from "./convert/plan.ts";
 import type { ConvertDeps } from "./convert/plan.ts";
 
 const main = async (): Promise<void> => {
-  const args = process.argv.slice(2);
+  let slug: string;
+  let inputs: string[];
+  let fps: number;
 
-  if (args.length < 2) {
-    process.stderr.write(
-      "usage: npm run convert -- <slug> <入力ファイル>...\n",
-    );
-    process.exit(1);
-    return;
-  }
+  try {
+    const parsed = parseConvertArgs(process.argv.slice(2));
 
-  const [slug, ...inputs] = args;
+    if (parsed === null) {
+      process.stdout.write(`${USAGE}\n`);
+      process.exit(0);
+      return;
+    }
 
-  // slug は ADR-0002 の形式 (YYYYMMDD-<name>、ASCII 小文字の kebab-case) に限る。
-  if (!PROJECT_SLUG_PATTERN.test(slug)) {
-    process.stderr.write(
-      `error: slug は YYYYMMDD-<name> (ASCII 小文字の kebab-case) の形にしてください: ${slug}\n`,
-    );
+    ({ slug, inputs, fps } = parsed);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    process.stderr.write(`error: ${message}\n`);
     process.exit(1);
     return;
   }
@@ -69,25 +70,6 @@ const main = async (): Promise<void> => {
       process.exit(1);
       return;
     }
-  }
-
-  // fps は composition (timeline の meta.fps) に合わせる。fps がずれると
-  // ADR-0003 の「composition の fps に合わせる」を破るため、timeline.ts が
-  // 無い・読めない場合はフォールバックせずエラーで止める。
-  const timelinePath = path.join(repoRoot, "projects", slug, "timeline.ts");
-  let fps: number;
-
-  try {
-    const timelineModule = await import(pathToFileURL(timelinePath).href);
-    const timeline = timelineSchema.parse(timelineModule.default);
-    fps = timeline.meta.fps;
-  } catch (cause) {
-    const message = cause instanceof Error ? cause.message : String(cause);
-    process.stderr.write(
-      `error: projects/${slug}/timeline.ts を読み込めません: ${message}\n`,
-    );
-    process.exit(1);
-    return;
   }
 
   const gop = gopFromFps(fps);

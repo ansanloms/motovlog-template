@@ -110,13 +110,13 @@ project の選択は環境変数 `REMOTION_PROJECT` (slug) で行う。`.env` �
 
 ドラレコ原本 (HEVC) は Remotion に直接読ませず、H.264 の変換済み素材に変換して使う ([ADR-0003](docs/adr/0003-convert-dashcam-footage-to-h264-proxy.md))。この変換は非可逆の再エンコードで、変換済み素材の画質が完成動画の画質の上限になる。`remotion render` は Chrome が描いたフレームをさらに再エンコードする (H.264 の既定 CRF は 18) ため、完成動画は 2 回の非可逆エンコードを経る。変換のエンコード設定は NVENC の `-cq 23` と libx264 の `-crf 22` のどちらか一方が使われる。
 
-    npm run convert -- <slug> <入力ファイル>...
+    npm run convert -- [--fps=<n>] <slug> <入力ファイル>...
 
 `npm run` はリポジトリルートを cwd にして実行するため、入力ファイルは絶対パスで渡す。
 
 - 出力先は `public/projects/<slug>/<basename>.mp4` ([ADR-0002](docs/adr/0002-project-directory-layout.md))。既に存在するファイルはスキップする。
 - `<slug>` は `YYYYMMDD-<name>` (ASCII 小文字の kebab-case)。形式が違うとエラーになる。
-- フレームレートは `projects/<slug>/timeline.ts` の `meta.fps` に合わせる (`convert-movie.ts` が読む)。GOP 長は fps と同じ (1 秒ごとにキーフレーム)。timeline.ts が無い・読めない場合はフォールバックせずエラーで止まる。
+- フレームレートは `--fps=<n>` で指定する (既定 30)。composition の fps と一致させる。GOP 長は fps と同じ (1 秒ごとにキーフレーム)。
 - 起動時に NVENC が使えるかを確認し、使えなければ libx264 を使う。NVENC が使える場合でも、あるファイルの変換に失敗したときはそのファイルだけ libx264 で再試行する。一度 libx264 に落ちたら以降のファイルも libx264 で変換する。WSL で NVENC を使うために `LD_LIBRARY_PATH=/usr/lib/wsl/lib` をスクリプト内で設定している。
 - 拡張子違いで同じ basename になる入力 (例: `clip.mov` と `clip.mp4`) を同時に渡すとエラーになる。
 
