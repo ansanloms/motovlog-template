@@ -1,6 +1,6 @@
 import type { Timeline } from "../effects/index.ts";
 
-/** 環境変数未設定・空のときに読む project (ADR-0004)。 */
+/** 環境変数未設定・空のときに読む project (ADR-0006)。 */
 export const DEFAULT_PROJECT = "00000000-sample";
 
 /** ADR-0002 の slug 形式 (YYYYMMDD-<name>、ASCII 小文字の kebab-case)。 */
@@ -24,7 +24,7 @@ export const resolveProjectSlug = (env: string | undefined): string => {
 // default export が Timeline の形 (fps・width・height・durationSec が
 // number、layers が配列の配列、各 item は kind が fade/cut で at・duration
 // (fade は in・out も) が有限の number) かどうかだけを検査する
-// (ADR-0010: zod schema は持たない)。
+// (ADR-0006: zod schema は持たない)。
 export const isTimeline = (value: unknown): value is Timeline => {
   if (typeof value !== "object" || value === null) {
     return false;

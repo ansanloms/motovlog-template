@@ -10,11 +10,11 @@ type Props = {
   title: string;
   /** 上段右の文字列 (例 "EP.12 / 愛媛")。 */
   subtitle: string;
-  /** 走行日の範囲 (ADR-0009)。単日は from と to を同じ日にする。 */
+  /** 走行日の範囲 (ADR-0007)。単日は from と to を同じ日にする。 */
   date: DateRange;
   /** 走行距離 (km)。 */
   distance: number;
-  /** 走行時間 (ADR-0009)。 */
+  /** 走行時間 (ADR-0007)。 */
   ridingTime: Temporal.Duration;
   /** 5〜7 か所 (コードでは縛らない)。 */
   routes: readonly string[];

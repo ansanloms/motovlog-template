@@ -7,7 +7,7 @@ export type DateRange = {
 const pad2 = (n: number): string => String(n).padStart(2, "0");
 
 /**
- * ED の DATE 欄の書式 (ADR-0009)。暦日は各値の `.toPlainDate()` (値自身の
+ * ED の DATE 欄の書式 (ADR-0007)。暦日は各値の `.toPlainDate()` (値自身の
  * ゾーン) で比べる。
  * - 単一日: "2026.01.01"
  * - 同一年月: "2026.01.01-3" (to の日は 0 埋めしない)
@@ -35,7 +35,7 @@ export const formatDateRange = (date: DateRange): string => {
 };
 
 /**
- * ED の RIDING TIME 欄の書式 (ADR-0009)。`H:MM` (時は 0 埋めしない、分は
+ * ED の RIDING TIME 欄の書式 (ADR-0007)。`H:MM` (時は 0 埋めしない、分は
  * 2 桁)。24 時間超は時が 24 以上になる。
  */
 export const formatRidingTime = (duration: Temporal.Duration): string => {

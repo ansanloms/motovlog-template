@@ -1,4 +1,4 @@
-// T&M (docs/design/tone-and-manner.md) の値を定数で持つ (ADR-0007, ADR-0008)。
+// T&M (docs/design/tone-and-manner.md) の値を定数で持つ (ADR-0004, ADR-0005)。
 // すべて 1920×1080 換算の px。
 
 // T&M「カラー」節。design の :root と同名。値は design と一致させる。
