@@ -1,6 +1,7 @@
 ---
-status: accepted
+status: superseded
 date: 2026-09-07T02:26:35Z
+superseded-by: [10]
 refs: [2, 8]
 tags: [remotion, timeline, schema]
 ---

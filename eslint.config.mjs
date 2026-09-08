@@ -66,6 +66,10 @@ export default [
               group: ["@remotion/*"],
               message: "components は @remotion のパッケージを import しない。",
             },
+            {
+              group: ["**/effects/**"],
+              message: "components は effects を import しない。",
+            },
           ],
           paths: [
             {
@@ -73,6 +77,28 @@ export default [
               allowImportNames: ["AbsoluteFill", "Img"],
               message:
                 "components は remotion の AbsoluteFill・Img 以外を import しない (フレーム API・媒体要素・レンダリング制御を持たない)。",
+            },
+          ],
+        },
+      ],
+    },
+  },
+  {
+    // effects は演出の術だけを持つ。動画のドメイン (章・写真・ED 等) は知らない。
+    files: ["src/effects/**"],
+    rules: {
+      "no-restricted-imports": [
+        "error",
+        {
+          patterns: [
+            {
+              group: [
+                "**/components/**",
+                "**/projects/**",
+                "**/compositions/**",
+              ],
+              message:
+                "effects は動画の型 (components・compositions・projects) を知らない。",
             },
           ],
         },

@@ -31,7 +31,7 @@
     "dev": "remotion studio",
     "build": "remotion bundle",
     "upgrade": "remotion upgrade",
-    "lint": "eslint src scripts vitest.config.mts && tsc && prettier --check src scripts projects eslint.config.mjs vitest.config.mts remotion.config.ts",
+    "lint": "eslint src scripts projects vitest.config.mts && tsc && prettier --check src scripts projects eslint.config.mjs vitest.config.mts remotion.config.ts",
     "test": "vitest run",
     "convert": "tsx scripts/convert-movie.ts"
   }
