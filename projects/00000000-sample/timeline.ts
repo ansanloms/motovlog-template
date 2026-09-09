@@ -138,7 +138,7 @@ const calm = { ...narrator, speed: 0.9 };
 // 長く出る)。時間は timeline() の他の演出と同じくすべて秒で書くため、
 // duration もフレーム数ではなく秒の数値。expression: "teach" でここから
 // 教える表情になる。発話と無関係に表情を変えたい・立ち絵を隠したいときは、
-// layer 1 (立ち絵) の item を分けて書く (expression オプションや、別の
+// layer 2 (立ち絵) の item を分けて書く (expression オプションや、別の
 // duration の cut() を並べる。ADR-0011)。
 const n = await narration([
   cut(
@@ -167,6 +167,13 @@ const n = await narration([
   ),
 ]);
 
+// 立ち絵 (layer 2) の表示区間。OP → (0.2 秒) → 章タイトルが終わるまでは
+// 消しておき (点滅を避けるため、間の 0.2 秒も出さない)、ED が始まる直前
+// (clipB の終端 − endingTiming.duration) で消す (T&M「画面配置」)。
+const figureFromSec = openingTiming.duration + 0.2 + chapterTitleDurationSec;
+const figureUntilSec =
+  clipASec + clipBSec - crossfadeSec - endingTiming.duration;
+
 export default timeline([
   [
     // layer 0: 走行映像。crossfade({ duration }) は layer 内の item と item
@@ -179,21 +186,7 @@ export default timeline([
     clipB,
   ],
   [
-    // layer 1: 立ち絵 (ADR-0011)。ryusei は characters/ryusei.ts の
-    // character()。figure() は n.speech (上で解決済みの narration() の
-    // 結果) のうち by が ryusei と同じ参照の発話だけを見て、目パチ・口パク・
-    // 表情を sample() で毎フレーム選び直す。duration は動画全体
-    // (clipASec + clipBSec − crossfadeSec の尺) に固定している。cut() の
-    // duration にはまだ start()/end() のようなアンカーを渡せない
-    // (ADR-0009 は at だけがアンカーに対応) ため秒の数値で書く。OP・
-    // 章タイトル・写真紹介・ED は 1 つ上の layer 2 で描くため、走行映像の
-    // みが見えている区間だけ立ち絵が見える。
-    cut(figure(ryusei, { speech: n.speech }), {
-      duration: clipASec + clipBSec - crossfadeSec,
-    }),
-  ],
-  [
-    // layer 2: OP → 章タイトル → 写真紹介 → ED。位置指定の 3 通り
+    // layer 1: OP → 章タイトル → 写真紹介 → ED。位置指定の 3 通り
     // (省略・after・at) がここに揃っている。
     //
     // OP (サムネと同じ絵)。位置を省略すると同じ layer の直前の item の
@@ -216,7 +209,8 @@ export default timeline([
       out: chapterTiming.fade,
     }),
     // 写真紹介 (1〜2 枚)。at に start(item, offset?) で「clipB の開始の
-    // 1 秒後」を渡している。offset は開始からの相対秒 (負も可)。
+    // 1 秒後」を渡している。offset は開始からの相対秒 (負も可)。1 つ上の
+    // layer 2 の立ち絵より後ろに描かれる (T&M「写真紹介」)。
     cut(
       photoShowcase({
         photos: [asset("photos/photo-01.jpg"), asset("photos/photo-02.jpg")],
@@ -244,6 +238,27 @@ export default timeline([
         duration: endingTiming.duration,
       },
     ),
+  ],
+  [
+    // layer 2: 立ち絵 (ADR-0011)。ryusei は characters/ryusei.ts の
+    // character()。figure() は n.speech (上で解決済みの narration() の
+    // 結果) のうち by が ryusei と同じ参照の発話だけを見て、目パチ・口パク・
+    // 表情を sample() で毎フレーム選び直す。1 つ下の layer 1 (OP・章タイトル・
+    // 写真紹介・ED) より上に置き、写真は立ち絵の後ろに出す
+    // (T&M「写真紹介」「画面配置」)。
+    // OP・章タイトル・ED の間は立ち絵を消す (T&M「画面配置」)。消すのは
+    // 上の layer で覆うのではなく item の区間を分けて空ける (ADR-0011)。
+    // ここでは章タイトルの終わり (figureFromSec) から ED の始まり
+    // (figureUntilSec) までの 1 item にしている。出入りは 0.2 秒のフェード
+    // (T&M「出入りのタイミング」)。cut()/fade() の duration にはまだ
+    // start()/end() のようなアンカーを渡せない (ADR-0009 は at だけが
+    // アンカーに対応) ため秒の数値で書く。
+    fade(figure(ryusei, { speech: n.speech }), {
+      at: figureFromSec,
+      duration: figureUntilSec - figureFromSec,
+      in: 0.2,
+      out: 0.2,
+    }),
   ],
   [
     // layer 3: 注釈。右端に縦書きで出る補足。text の \n で列を分ける (この
