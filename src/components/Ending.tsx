@@ -40,10 +40,7 @@ export const Ending: React.FC<Props> = ({
   return (
     <AbsoluteFill className={styles.screen}>
       <div className={styles.header}>
-        <div className={styles.title}>
-          <span className={styles.prompt}>&gt;&nbsp;</span>
-          {title}
-        </div>
+        <div className={styles.title}>{title}</div>
         <div>{subtitle}</div>
       </div>
       <div className={styles.rows}>

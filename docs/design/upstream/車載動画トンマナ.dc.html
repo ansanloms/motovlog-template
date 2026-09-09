@@ -1,0 +1,423 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700;900&display=swap">
+<style>
+  /* パレット切り替えはこのブロックの値だけを差し替える。
+     A 墨とオフホワイト : bg #14161A / surface #24262A / ink #F2F0EC / dim #A8A49B / faint #8B8880 / accent #D8503C
+     B 夜明けの空       : bg #131A2B / surface #1F2941 / ink #F4F1EA / dim #A9B4CB / faint #8D9AB5 / accent #F0A03C
+     C 標識と森         : bg #10150F / surface #1C241A / ink #EEF1E6 / dim #A7B09A / faint #8A9280 / accent #E8C547
+     D 晴天の青         : bg #0D1B2A / surface #16304A / ink #EEF4F8 / dim #9DB3C4 / faint #7D97AB / accent #5EB3E4
+     E 若葉の緑（採用）  : 下記のとおり */
+  :root {
+    --bg-rgb: 15, 26, 20;
+    --surface-rgb: 26, 44, 34;
+    --accent-rgb: 116, 196, 138;
+    --bg: #0f1a14;
+    --surface: #1a2c22;
+    --ink: #edf3ed;
+    --ink-dim: #9db0a3;
+    --ink-faint: #7f9686;
+    --line: #223529;
+    --line-strong: #2f4638;
+    --accent: #74c48a;
+    --accent-soft: #9ed9ac;
+    --warn: #c4705f;
+    /* 映像の上に乗る要素（パレットに依存しない） */
+    --ink-video: #f2f4ef;
+
+    /* タイポグラフィ */
+    --font: 'Noto Sans JP', sans-serif;
+    --w-regular: 400;
+    --w-medium: 500;
+    --w-semibold: 600;
+    --w-bold: 700;
+    /* 映像上の文字サイズ（1920×1080 換算） */
+    --title: 96px;
+    --chapter: 56px;
+    --subtitle: 44px;
+    --badge: 32px;
+    --label: 26px;
+    --note: 24px;
+    --shadow-figure: 0 0 24px rgba(0,0,0,0.5);   /* 立ち絵。黒固定 */
+    --shadow-photo: 0 8px 20px rgba(0,0,0,0.55); /* 重ねる写真。黒固定 */
+    --scrim-bottom: linear-gradient(to top, rgba(0,0,0,0.82), rgba(0,0,0,0.45) 45%, rgba(0,0,0,0));
+  }
+  html, body { margin: 0; background: var(--bg); font-family: var(--font); }
+  a { color: var(--accent); text-decoration: none; }
+  a:hover { color: var(--accent-soft); text-decoration: underline; }
+</style>
+</helmet>
+
+<x-import component-from-global-scope="deck-stage" from="./deck-stage.js" width="1920" height="1080" hint-size="100%,100%">
+
+  <section data-label="表紙" data-screen-label="01" data-speaker-notes="このシリーズの見た目と語り口の基準。迷ったらここに戻る、という位置づけの文書。" style="color-scheme: dark; background: var(--bg); color: var(--ink); font-family: var(--font); display: flex; flex-direction: column; justify-content: space-between; padding: 110px 120px;">
+    <div style="display: flex; align-items: center; gap: 24px; color: var(--ink-faint); font-size: 24px; letter-spacing: 0.18em; font-family: var(--font);">
+      <span>TONE &amp; MANNER</span>
+      <span style="flex: 1; height: 1px; background: var(--line);"></span>
+      <span>v0.1 draft</span>
+    </div>
+    <div style="display: flex; flex-direction: column; gap: 40px;">
+      <h1 style="margin: 0; font-size: 108px; line-height: 1.2; font-weight: var(--w-semibold); letter-spacing: 0.01em;">バイク車載動画の<br>トンマナ</h1>
+      <p style="margin: 0; max-width: 1080px; font-size: 32px; line-height: 1.7; color: var(--ink-dim); text-wrap: pretty;">ゆるいトーク・長距離ツーリング・合成音声の解説が同居するシリーズを、1本ずつ作り直さずに積み上げていくための基準。色・文字・配置・画面の型を一枚ずつ決めていく。</p>
+    </div>
+    <div style="display: flex; gap: 16px; font-size: 24px; color: var(--ink-dim);">
+      <span style="border: 1px solid var(--line-strong); border-radius: 999px; padding: 10px 24px; white-space: nowrap; flex: none;">全編ナレーション字幕</span>
+      <span style="border: 1px solid var(--line-strong); border-radius: 999px; padding: 10px 24px; white-space: nowrap; flex: none;">長距離ツーリング</span>
+      <span style="border: 1px solid var(--line-strong); border-radius: 999px; padding: 10px 24px; white-space: nowrap; flex: none;">VOICEVOX 青山龍星</span>
+    </div>
+  </section>
+
+  <section data-label="前提" data-screen-label="02" data-speaker-notes="3つの成分の配合を先に決める。走行が土台、雑談が地の音、解説が要所。この順序が崩れると別ジャンルの動画になる。" style="color-scheme: dark; background: var(--bg); color: var(--ink); font-family: var(--font); display: flex; flex-direction: column; gap: 56px; padding: 96px 120px;">
+    <div style="display: flex; align-items: baseline; gap: 24px;">
+      <span style="color: var(--accent); font-size: 26px; font-family: var(--font);">02</span>
+      <h2 style="margin: 0; font-size: 56px; font-weight: var(--w-semibold);">この動画は何でできているか</h2>
+    </div>
+    <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 32px; flex: 1;">
+      <div style="background: var(--surface); border: 1px solid var(--line); border-top: 3px solid var(--ink); border-radius: 12px; padding: 48px; display: flex; flex-direction: column; gap: 24px;">
+        <div style="font-size: 26px; color: var(--ink-faint); font-family: var(--font);">土台 / 70%</div>
+        <div style="font-size: 40px; font-weight: var(--w-semibold);">走行の記録</div>
+        <p style="margin: 0; font-size: 26px; line-height: 1.8; color: var(--ink-dim);">前方の風景と走行音。切らずに流す。ここが主役なので、他の要素はこの上に「乗る」だけ。</p>
+      </div>
+      <div style="background: var(--surface); border: 1px solid var(--line); border-top: 3px solid var(--accent); border-radius: 12px; padding: 48px; display: flex; flex-direction: column; gap: 24px;">
+        <div style="font-size: 26px; color: var(--ink-faint); font-family: var(--font);">地の音 / 25%</div>
+        <div style="font-size: 40px; font-weight: var(--w-semibold);">青山龍星のナレーション</div>
+        <p style="margin: 0; font-size: 26px; line-height: 1.8; color: var(--ink-dim);">画面上の声はこれだけ。結論を急がない語り口で、その文字起こしが画面の主役になる。</p>
+      </div>
+      <div style="background: var(--surface); border: 1px solid var(--line); border-top: 3px solid var(--ink); border-radius: 12px; padding: 48px; display: flex; flex-direction: column; gap: 24px;">
+        <div style="font-size: 26px; color: var(--ink-faint); font-family: var(--font);">要所 / 5%</div>
+        <div style="font-size: 40px; font-weight: var(--w-semibold);">章タイトル・注釈・写真</div>
+        <p style="margin: 0; font-size: 26px; line-height: 1.8; color: var(--ink-dim);">語らない区間は、章タイトルか注釈だけ。写真は画面中央に重ねるだけで、背景の映像はそのまま流す。速度・地名・時刻の常時表示はしない。</p>
+      </div>
+    </div>
+    <p style="margin: 0; font-size: 28px; color: var(--ink-dim); border-left: 2px solid var(--accent); padding-left: 24px;">配合を守ることがトンマナの半分。残り半分がこれ以降の見た目の話。</p>
+  </section>
+
+  <section data-label="コンセプト" data-screen-label="03" data-speaker-notes="一行のコンセプトと、判断に使える3原則。編集で迷ったらこの3つに照らす。" style="color-scheme: dark; background: var(--surface); color: var(--ink); font-family: var(--font); display: flex; flex-direction: column; gap: 64px; padding: 96px 120px;">
+    <div style="display: flex; align-items: baseline; gap: 24px;">
+      <span style="color: var(--accent); font-size: 26px; font-family: var(--font);">03</span>
+      <h2 style="margin: 0; font-size: 56px; font-weight: var(--w-semibold);">コンセプトと3原則</h2>
+    </div>
+    <p style="margin: 0; font-size: 60px; line-height: 1.5; font-weight: var(--w-medium); border-left: 3px solid var(--accent); padding-left: 40px; text-wrap: pretty;">走っている風景が主役。編集は、風景の邪魔をしない範囲で情報を静かに添える。</p>
+    <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 40px;">
+      <div style="display: flex; flex-direction: column; gap: 16px;">
+        <div style="font-size: 30px; font-weight: var(--w-semibold); color: var(--accent);">静かに足す</div>
+        <p style="margin: 0; font-size: 26px; line-height: 1.8; color: var(--ink-dim);">効果音・ズーム・派手なトランジションは使わない。カットは切り替えのみ。</p>
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 16px;">
+        <div style="font-size: 30px; font-weight: var(--w-semibold); color: var(--accent);">同じ場所に置く</div>
+        <p style="margin: 0; font-size: 26px; line-height: 1.8; color: var(--ink-dim);">字幕は画面下中央、立ち絵は左。毎回同じ位置に置き、視聴者が探さなくていい状態を保つ。</p>
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 16px;">
+        <div style="font-size: 30px; font-weight: var(--w-semibold); color: var(--accent);">説明しすぎない
+
+        <p style="margin: 0; font-size: 26px; line-height: 1.8; color: var(--ink-dim);">ナレーションは全文を字幕にする。そのうえで、語る量そのものを増やさない。</p>
+      </div>
+    </div>
+  </section>
+
+  <section data-label="カラー" data-screen-label="04" data-speaker-notes="夜と昼どちらの映像にも乗るよう、暗い面と1色の青を基本にする。緑・橙・赤は意味を固定して使う。" style="color-scheme: dark; background: var(--bg); color: var(--ink); font-family: var(--font); display: flex; flex-direction: column; gap: 48px; padding: 96px 120px;">
+    <div style="display: flex; align-items: baseline; gap: 24px;">
+      <span style="color: var(--accent); font-size: 26px; font-family: var(--font);">04</span>
+      <h2 style="margin: 0; font-size: 56px; font-weight: var(--w-semibold);">カラー</h2>
+    </div>
+    <p style="margin: 0; font-size: 28px; color: var(--ink-dim); max-width: 1000px;">深緑の地に、葉の色から取った若草を1色だけ。すべてCSS変数で持っているので、この5つを差し替えれば別パレットに切り替わる。映像の上に乗る要素はパレットに依存させない。</p>
+    <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 24px;">
+      <div style="display: flex; flex-direction: column; gap: 12px;">
+        <div style="height: 130px; border-radius: 10px; background: var(--bg); border: 1px solid var(--line-strong);"></div>
+        <div style="font-size: 26px; font-weight: var(--w-semibold);">--bg</div>
+        <div style="font-size: 24px; color: var(--ink-faint);">深緑 #0F1A14</div>
+        <div style="font-size: 24px; color: var(--ink-dim);">タイトルカード・ED の下地</div>
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 12px;">
+        <div style="height: 130px; border-radius: 10px; background: var(--surface); border: 1px solid var(--line-strong);"></div>
+        <div style="font-size: 26px; font-weight: var(--w-semibold);">--surface</div>
+        <div style="font-size: 24px; color: var(--ink-faint);">面 #1A2C22</div>
+        <div style="font-size: 24px; color: var(--ink-dim);">情報パネル。不透明度85%まで</div>
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 12px;">
+        <div style="height: 130px; border-radius: 10px; background: var(--ink);"></div>
+        <div style="font-size: 26px; font-weight: var(--w-semibold);">--ink</div>
+        <div style="font-size: 24px; color: var(--ink-faint);">白 #EDF3ED</div>
+        <div style="font-size: 24px; color: var(--ink-dim);">下地の上の見出し・本文</div>
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 12px;">
+        <div style="height: 130px; border-radius: 10px; background: var(--accent);"></div>
+        <div style="font-size: 26px; font-weight: var(--w-semibold);">--accent</div>
+        <div style="font-size: 24px; color: var(--ink-faint);">若草 #74C48A</div>
+        <div style="font-size: 24px; color: var(--ink-dim);">シリーズ名・章番号・話数・下線</div>
+      </div>
+    </div>
+    <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; border-top: 1px solid var(--line); padding-top: 40px;">
+      <div style="display: flex; align-items: center; gap: 20px;">
+        <div style="width: 56px; height: 56px; border-radius: 8px; background: var(--ink-video); flex: none;"></div>
+        <div><div style="font-size: 26px; font-weight: var(--w-semibold);">--ink-video</div><div style="font-size: 24px; color: var(--ink-dim);">字幕・章タイトル・注釈 / #F2F4EF</div></div>
+      </div>
+      <div style="display: flex; align-items: center; gap: 20px;">
+        <div style="width: 56px; height: 56px; border-radius: 8px; background: var(--ink-faint); flex: none;"></div>
+        <div><div style="font-size: 26px; font-weight: var(--w-semibold);">--ink-faint</div><div style="font-size: 24px; color: var(--ink-dim);">ラベル・補助文字 / #7F9686</div></div>
+      </div>
+      <div style="display: flex; align-items: center; gap: 20px;">
+        <div style="width: 56px; height: 56px; border-radius: 8px; background: rgba(0,0,0,0.5); border: 1px solid var(--line-strong); flex: none;"></div>
+        <div><div style="font-size: 26px; font-weight: var(--w-semibold);">--scrim-bottom</div><div style="font-size: 24px; color: var(--ink-dim);">黒82%→透明 / 高さ348px固定<br>影（--shadow-*）も黒固定</div></div>
+      </div>
+    </div>
+  </section>
+
+  <section data-label="タイポ" data-screen-label="05" data-speaker-notes="1書体で通す。太さと大きさだけで階層をつける。映像の上に置く文字は必ず縁または帯を敷く。" style="color-scheme: dark; background: var(--bg); color: var(--ink); font-family: var(--font); display: flex; flex-direction: column; gap: 48px; padding: 96px 120px;">
+    <div style="display: flex; align-items: baseline; gap: 24px;">
+      <span style="color: var(--accent); font-size: 26px; font-family: var(--font);">05</span>
+      <h2 style="margin: 0; font-size: 56px; font-weight: var(--w-semibold);">タイポグラフィ</h2>
+    </div>
+    <div style="display: grid; grid-template-columns: 1.4fr 1fr; gap: 56px; flex: 1;">
+      <div style="display: flex; flex-direction: column; gap: 30px;">
+        <div style="display: flex; align-items: baseline; gap: 28px; border-bottom: 1px solid var(--line); padding-bottom: 22px;">
+          <span style="font-size: 24px; color: var(--ink-faint); width: 230px; flex: none; white-space: nowrap;">--title 96px</span>
+          <span style="font-size: 24px; color: var(--ink-faint); width: 190px; flex: none; white-space: nowrap;">--w-semibold 600</span>
+          <span style="font-size: 40px; font-weight: var(--w-semibold);">サムネのタイトル</span>
+        </div>
+        <div style="display: flex; align-items: baseline; gap: 28px; border-bottom: 1px solid var(--line); padding-bottom: 22px;">
+          <span style="font-size: 24px; color: var(--ink-faint); width: 230px; flex: none; white-space: nowrap;">--chapter 56px</span>
+          <span style="font-size: 24px; color: var(--ink-faint); width: 190px; flex: none; white-space: nowrap;">--w-medium 500</span>
+          <span style="font-size: 38px; font-weight: var(--w-medium);">章タイトル</span>
+        </div>
+        <div style="display: flex; align-items: baseline; gap: 28px; border-bottom: 1px solid var(--line); padding-bottom: 22px;">
+          <span style="font-size: 24px; color: var(--ink-faint); width: 230px; flex: none; white-space: nowrap;">--subtitle 44px</span>
+          <span style="font-size: 24px; color: var(--ink-faint); width: 190px; flex: none; white-space: nowrap;">--w-bold 700</span>
+          <span style="font-size: 34px; font-weight: var(--w-bold);">ナレーション字幕</span>
+        </div>
+        <div style="display: flex; align-items: baseline; gap: 28px; border-bottom: 1px solid var(--line); padding-bottom: 22px;">
+          <span style="font-size: 24px; color: var(--ink-faint); width: 230px; flex: none; white-space: nowrap;">--badge 32px</span>
+          <span style="font-size: 24px; color: var(--ink-faint); width: 190px; flex: none; white-space: nowrap;">--w-regular 400</span>
+          <span style="font-size: 28px; color: var(--accent-soft);">サムネの話数・ED の値</span>
+        </div>
+        <div style="display: flex; align-items: baseline; gap: 28px; border-bottom: 1px solid var(--line); padding-bottom: 22px;">
+          <span style="font-size: 24px; color: var(--ink-faint); width: 230px; flex: none; white-space: nowrap;">--label 26px</span>
+          <span style="font-size: 24px; color: var(--ink-faint); width: 190px; flex: none; white-space: nowrap;">--w-regular 400</span>
+          <span style="font-size: 26px; letter-spacing: 0.12em;">CHAPTER 3 / DISTANCE</span>
+        </div>
+        <div style="display: flex; align-items: baseline; gap: 28px;">
+          <span style="font-size: 24px; color: var(--ink-faint); width: 230px; flex: none; white-space: nowrap;">--note 24px</span>
+          <span style="font-size: 24px; color: var(--ink-faint); width: 190px; flex: none; white-space: nowrap;">--w-regular 400</span>
+          <span style="font-size: 24px; letter-spacing: 0.04em;">縦書きの注釈</span>
+        </div>
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 28px;">
+        <div style="background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 36px; display: flex; flex-direction: column; gap: 16px;">
+          <div style="font-size: 28px; font-weight: var(--w-semibold);">書体</div>
+          <p style="margin: 0; font-size: 26px; line-height: 1.8; color: var(--ink-dim);">源ノ角ゴシック（Noto Sans JP）を全面で使用。ED も含めて例外なし。書体・ウェイト・映像上のサイズは CSS 変数（--font / --w-* / --title など6段）で持つ。ウェイトは左の表で段ごとに固定する。使うのは Regular / Medium / SemiBold の3つだけで、Bold 以上は使わない。左の6段以外のサイズは映像に出さない。装飾書体・毛筆・ポップ体は使わない。</p>
+        </div>
+        <div style="background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 36px; display: flex; flex-direction: column; gap: 16px;">
+          <div style="font-size: 28px; font-weight: var(--w-semibold);">映像の上での可読性</div>
+          <p style="margin: 0; font-size: 26px; line-height: 1.8; color: var(--ink-dim);">字幕は44px・白・太字。縁取りは使わず、画面下から348px（2行分・固定）の幅いっぱいの暗がりを敷いて読ませる。折り返しは暗がりの左右余白115pxいっぱい（幅1690px）。改行位置は台本側で指定する。行間1.45。</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section data-label="画面配置" data-screen-label="06" data-speaker-notes="コメントは画面全体を右から左へ流れ、上に溜まる。だから常設情報は下1/4に置く。上部1/3には何も置かない。" style="color-scheme: dark; background: var(--surface); color: var(--ink); font-family: var(--font); display: flex; flex-direction: column; gap: 32px; padding: 72px 120px;">
+    <div style="display: flex; align-items: baseline; gap: 24px;">
+      <span style="color: var(--accent); font-size: 26px; font-family: var(--font);">06</span>
+      <h2 style="margin: 0; font-size: 56px; font-weight: var(--w-semibold);">画面配置とコメント弾幕</h2>
+    </div>
+    <div style="display: grid; grid-template-columns: 1.3fr 1fr; gap: 48px; flex: 1; align-items: start;">
+      <div style="position: relative; aspect-ratio: 16 / 9; background: var(--bg); border: 1px solid var(--line-strong); border-radius: 8px; overflow: hidden;">
+        <div style="position: absolute; left: 0; right: 0; top: 0; height: 33%; background: rgba(255,93,110,0.07); border-bottom: 1px dashed var(--warn); display: flex; align-items: center; justify-content: center; color: var(--warn); font-size: 24px; letter-spacing: 0.08em;">弾幕が最も溜まる帯 — 何も置かない</div>
+        <div style="position: absolute; left: 4%; right: 4%; top: 5%; bottom: 5%; border: 1px dashed var(--line-strong); border-radius: 4px;"></div>
+        <div style="position: absolute; left: 5%; bottom: 0; width: 30%; height: 55%; border: 1px dashed var(--accent); border-bottom: none; border-radius: 6px 6px 0 0; background: rgba(var(--accent-rgb),0.08); display: flex; align-items: flex-start; justify-content: center; padding-top: 16px; color: var(--accent-soft); font-size: 24px;">立ち絵（既定：左）</div>
+        <div style="position: absolute; left: 0; right: 0; bottom: 0; height: 26%; background: var(--scrim-bottom);"></div>
+        <div style="position: absolute; left: 50%; transform: translateX(-50%); bottom: 8%; color: var(--ink-video); font-size: 28px; white-space: nowrap;">字幕はこの高さに固定</div>
+        <div style="position: absolute; right: 3.5%; top: 7.1%; writing-mode: vertical-rl; color: var(--ink-video); font-size: 24px; line-height: 1.6; -webkit-text-stroke: 3px #000; paint-order: stroke fill;">注釈（縦書き・右）</div>
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 28px;">
+        <div style="display: flex; flex-direction: column; gap: 10px;">
+          <div style="font-size: 30px; font-weight: var(--w-semibold);">上部1/3は空ける</div>
+          <p style="margin: 0; font-size: 26px; line-height: 1.8; color: var(--ink-dim);">通常コメントは上から詰まる。ここに情報を置くと必ず隠れる。例外は写真紹介と右端の縦書き注釈だけ。</p>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 10px;">
+          <div style="font-size: 30px; font-weight: var(--w-semibold);">常設情報は置かない</div>
+          <p style="margin: 0; font-size: 26px; line-height: 1.8; color: var(--ink-dim);">速度・地名・時刻の常時表示はしない。出すのは字幕、章タイトル、注釈だけ。</p>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 10px;">
+          <div style="font-size: 30px; font-weight: var(--w-semibold);">字幕は下から8%</div>
+          <p style="margin: 0; font-size: 26px; line-height: 1.8; color: var(--ink-dim);">下1/4に幅いっぱいのごく薄い暗がりを敷き、その濃い側に置く。縁取りは使わない。</p>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 10px;">
+          <div style="font-size: 30px; font-weight: var(--w-semibold);">立ち絵は左・上半身・常時表示</div>
+          <p style="margin: 0; font-size: 26px; line-height: 1.8; color: var(--ink-dim);">画像の上から約52%（足の付け根）で切り、その線が画面下端に来る大きさ。左端から3%。走行中は出したままにし、章タイトル・OP/ED・サムネ用フレームの間だけ消す。右へ移すのは章の区切りでのみ、1本2回まで。</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section data-label="字幕" data-screen-label="07" data-speaker-notes="ナレーションは VOICEVOX 青山龍星。低い落ち着いた声なので、字幕も細く静かに。ヘルメット内マイクの地声は聞き取りにくい所だけ補う。" style="color-scheme: dark; background: var(--bg); color: var(--ink); font-family: var(--font); display: flex; flex-direction: column; gap: 32px; padding: 64px 120px;">
+    <div style="display: flex; align-items: baseline; gap: 24px;">
+      <span style="color: var(--accent); font-size: 26px; font-family: var(--font);">07</span>
+      <h2 style="margin: 0; font-size: 56px; font-weight: var(--w-semibold);">字幕・立ち絵・注釈</h2>
+    </div>
+    <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 32px;">
+      <div style="background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 40px; display: flex; flex-direction: column; gap: 24px;">
+        <div style="font-size: 24px; color: var(--ink-faint); font-family: var(--font);">NARRATION</div>
+        <div style="font-size: 34px; font-weight: var(--w-semibold);">ナレーション字幕</div>
+        <div style="background: var(--bg); border-radius: 8px; padding: 24px; font-size: 30px; font-weight: var(--w-bold); color: var(--ink);">ここから先は有料道路だ</div>
+        <p style="margin: 0; font-size: 24px; line-height: 1.7; color: var(--ink-dim);">既定で全文に字幕を入れる。画面下中央、白のみ。記号や色分けで飾らない。</p>
+      </div>
+      <div style="background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 40px; display: flex; flex-direction: column; gap: 24px;">
+        <div style="font-size: 24px; color: var(--ink-faint); font-family: var(--font);">STANDING</div>
+        <div style="font-size: 34px; font-weight: var(--w-semibold);">立ち絵</div>
+        <div style="background: var(--bg); border-radius: 8px; padding: 20px 24px; font-size: 24px; line-height: 1.8; color: var(--ink-dim);">左端・上半身・常時表示<br>足の付け根が画面下端<br>影 = 黒50%・ぼかし24px（全方向）</div>
+        <p style="margin: 0; font-size: 24px; line-height: 1.7; color: var(--ink-dim);">明るい路面や空に輪郭が溶けないよう影を付ける。重ねる写真も同じ扱いで、黒55%・ぼかし20px・下方向8px。表情は自由。章タイトル・OP/ED・サムネ用フレームの間だけ消す。</p>
+      </div>
+      <div style="background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 40px; display: flex; flex-direction: column; gap: 24px;">
+        <div style="font-size: 24px; color: var(--ink-faint); font-family: var(--font);">NOTE</div>
+        <div style="font-size: 34px; font-weight: var(--w-semibold);">注記テロップ</div>
+        <div style="background: var(--bg); border-radius: 8px; padding: 20px 24px; display: flex; justify-content: flex-end;"><span style="writing-mode: vertical-rl; font-size: 24px; line-height: 1.6; color: var(--ink); height: 160px;">2024年に閉鎖</span></div>
+        <p style="margin: 0; font-size: 24px; line-height: 1.7; color: var(--ink-dim);">右端（右から67px・上から77px）に縦書きで上寄せ。1列の高さは768px、あふれたら左へ列を足す（列数の上限は設けない。運用では3列以内）。縁取り4pxだけで読ませる。</p>
+      </div>
+    </div>
+    <div style="display: flex; gap: 48px; border-top: 1px solid var(--line); padding-top: 36px; font-size: 26px; color: var(--ink-dim);">
+      <div style="flex: 1;"><span style="color: var(--ink); font-weight: var(--w-semibold);">出し方</span> — 暗がりは語り出しの0.2秒前にフェードイン。字幕はフェードせず発話と同時に切り替え、無音が5秒続いたら暗がりだけ消す。</div>
+      <div style="flex: 1;"><span style="color: var(--ink); font-weight: var(--w-semibold);">クレジット</span> — 概要欄と ED に「VOICEVOX:青山龍星」を毎回記載。</div>
+      <div style="flex: 1;"><span style="color: var(--ink); font-weight: var(--w-semibold);">禁止</span> — 速度・地名の常時表示、感情記号（汗・怒マーク）、笑い声SE。</div>
+    </div>
+  </section>
+
+  <section data-label="サムネ" data-screen-label="08" data-speaker-notes="サムネは3型で回す。走行写真は自分で撮ったものを使う。文字は左下または左上に固め、右側は空けてニコニコ側のバッジと重ならないようにする。" style="color-scheme: dark; background: var(--surface); color: var(--ink); font-family: var(--font); display: flex; flex-direction: column; gap: 40px; padding: 96px 120px;">
+    <div style="display: flex; align-items: baseline; gap: 24px;">
+      <span style="color: var(--accent); font-size: 26px; font-family: var(--font);">08</span>
+      <h2 style="margin: 0; font-size: 56px; font-weight: var(--w-semibold);">サムネイルは1型だけ</h2>
+    </div>
+    <div style="display: grid; grid-template-columns: 1.25fr 1fr; gap: 56px; align-items: start;">
+      <div style="display: flex; flex-direction: column; gap: 20px;">
+        <div style="position: relative; aspect-ratio: 16 / 9; background: var(--bg); border: 1px solid var(--line-strong); border-radius: 8px; overflow: hidden; display: flex; align-items: flex-end;">
+          <div style="position: absolute; inset: 0; display: flex; align-items: flex-start; justify-content: center; padding-top: 24px; color: var(--line-strong); font-size: 24px;">走行写真（16:9）</div>
+          <div style="position: absolute; right: 2%; bottom: 0; width: 30%; height: 62%; border: 1px dashed var(--accent); border-bottom: none; border-radius: 8px 8px 0 0; background: rgba(var(--accent-rgb),0.08); display: flex; align-items: flex-start; justify-content: center; padding-top: 16px; color: var(--accent-soft); font-size: 24px;">立ち絵（右下）</div>
+          <div style="position: relative; width: 62%; padding: 28px; display: flex; flex-direction: column; gap: 10px; background: linear-gradient(to top, rgba(var(--bg-rgb),0.92), transparent);">
+            <div style="align-self: flex-start; background: rgba(var(--surface-rgb),0.85); border-radius: 4px; padding: 6px 14px; font-size: 24px; color: var(--accent-soft); font-family: var(--font);">#04 志賀草津</div>
+            <div style="font-size: 38px; font-weight: var(--w-semibold); line-height: 1.25;">志賀草津道路に<br>行った</div>
+          </div>
+        </div>
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 28px;">
+        <div style="display: flex; flex-direction: column; gap: 10px;">
+          <div style="font-size: 30px; font-weight: var(--w-semibold);">写真＋話数＋地名＋立ち絵</div>
+          <p style="margin: 0; font-size: 26px; line-height: 1.8; color: var(--ink-dim);">型は増やさない。毎回同じ骨格で、写真と地名だけが変わる。この絵はED後に4.8秒間本編へ焼き込み、投稿時にそのフレームを選ぶ。</p>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 10px;">
+          <div style="font-size: 30px; font-weight: var(--w-semibold);">文字は左下、立ち絵は右下</div>
+          <p style="margin: 0; font-size: 26px; line-height: 1.8; color: var(--ink-dim);">立ち絵は上半身のみ、文字に被らせない。表情は回の内容で選ぶ。</p>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 10px;">
+          <div style="font-size: 30px; font-weight: var(--w-semibold);">文字数と装飾</div>
+          <p style="margin: 0; font-size: 26px; line-height: 1.8; color: var(--ink-dim);">最大12文字＋話数。矢印・爆発・赤い囲みは使わない。彩度も上げない。</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section data-label="OP/ED" data-screen-label="09" data-speaker-notes="OPは4.8秒。黒地にシリーズ名と話数だけ。EDは静止画に走行データとクレジット。毎回同じ型で作る。" style="color-scheme: dark; background: var(--bg); color: var(--ink); font-family: var(--font); display: flex; flex-direction: column; gap: 40px; padding: 96px 120px;">
+    <div style="display: flex; align-items: baseline; gap: 24px;">
+      <span style="color: var(--accent); font-size: 26px; font-family: var(--font);">09</span>
+      <h2 style="margin: 0; font-size: 56px; font-weight: var(--w-semibold);">OP・タイトルカード・ED</h2>
+    </div>
+    <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 28px; flex: 1;">
+      <div style="display: flex; flex-direction: column; gap: 20px;">
+        <div style="position: relative; aspect-ratio: 16 / 9; background: var(--surface); border: 1px solid var(--line); border-radius: 8px; overflow: hidden; display: flex; align-items: flex-end;">
+          <div style="position: absolute; inset: 0; display: flex; align-items: flex-start; justify-content: center; padding-top: 20px; color: var(--line-strong); font-size: 24px;">走行写真</div>
+          <div style="position: absolute; right: 2%; bottom: 0; width: 26%; height: 60%; border: 1px dashed var(--accent); border-bottom: none; border-radius: 6px 6px 0 0; background: rgba(var(--accent-rgb),0.08);"></div>
+          <div style="position: relative; width: 100%; padding: 24px; display: flex; flex-direction: column; gap: 8px; background: linear-gradient(to top, rgba(var(--bg-rgb),0.92), transparent);">
+            <div style="align-self: flex-start; font-size: 24px; color: var(--accent-soft);">#04 志賀草津</div>
+            <div style="font-size: 30px; font-weight: var(--w-semibold); line-height: 1.25;">志賀草津道路に行った</div>
+          </div>
+        </div>
+        <div style="font-size: 28px; font-weight: var(--w-semibold);">OP / 4.8秒</div>
+        <p style="margin: 0; font-size: 24px; line-height: 1.7; color: var(--ink-dim);">サムネと同じ絵を冒頭に4.8秒。走行音でフェードイン、BGMなし。冒頭の引きとサムネ候補を兼ねる。</p>
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 20px;">
+        <div style="position: relative; aspect-ratio: 16 / 9; background: var(--surface); border: 1px solid var(--line); border-radius: 8px; overflow: hidden; display: flex; align-items: flex-end;">
+          <div style="position: absolute; inset: 0; display: flex; align-items: flex-start; justify-content: center; padding-top: 20px; color: var(--line-strong); font-size: 24px;">走行映像</div>
+          <div style="position: relative; width: 100%; padding: 28px 32px 24px; display: flex; flex-direction: column; gap: 4px; background: var(--scrim-bottom);">
+            <div style="font-size: 24px; color: var(--accent-soft);">CHAPTER 2</div>
+            <div style="font-size: 30px; font-weight: var(--w-medium); color: var(--ink-video);">峠に入る</div>
+          </div>
+        </div>
+        <div style="font-size: 28px; font-weight: var(--w-semibold);">章タイトル</div>
+        <p style="margin: 0; font-size: 24px; line-height: 1.7; color: var(--ink-dim);">帯や囲みは使わず、字幕と同じ下部の暗がりに左下へ2秒。章番号だけアクセント色、タイトルは白。その間は字幕と立ち絵を消す。章は1本3〜5個まで。</p>
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 20px;">
+        <div style="aspect-ratio: 16 / 9; background: var(--bg); border: 1px solid var(--line); border-radius: 8px; padding: 16px 20px; box-sizing: border-box; min-height: 0; overflow: hidden; display: flex; flex-direction: column; justify-content: space-between;">
+          <div style="display: flex; flex-direction: column; gap: 2px; font-size: 24px; line-height: 1.25;">
+            <div><span style="color: var(--ink-dim); letter-spacing: 0.08em;">DATE </span>2026.08.15-17</div>
+            <div><span style="color: var(--ink-dim); letter-spacing: 0.08em;">DISTANCE </span>318 km</div>
+            <div><span style="color: var(--ink-dim); letter-spacing: 0.08em;">RIDING TIME </span>8:12</div>
+          </div>
+          <div style="display: flex; flex-direction: column; gap: 2px; font-size: 24px; color: var(--ink-dim); line-height: 1.25;">
+            <div>ROUTE 松山 → 佐田岬</div>
+            <div>VOICEVOX / 立ち絵クレジット</div>
+          </div>
+        </div>
+        <div style="font-size: 28px; font-weight: var(--w-semibold);">ED / 12秒</div>
+        <p style="margin: 0; font-size: 24px; line-height: 1.7; color: var(--ink-dim);">下地は --bg。罫線だけの計器表示。DATE・DISTANCE・RIDING TIME、立ち寄った場所を矢印つなぎで1行、クレジット。URLは概要欄に置く。</p>
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 20px;">
+        <div style="position: relative; aspect-ratio: 16 / 9; background: var(--bg); border: 1px solid var(--line); border-radius: 8px; overflow: hidden; display: flex; align-items: center; justify-content: center;">
+          <div style="position: absolute; inset: 0; background: linear-gradient(to right, var(--bg) 8%, rgba(var(--bg-rgb),0.35) 60%, rgba(var(--bg-rgb),0.1));"></div>
+          <div style="position: absolute; inset: 0; display: flex; align-items: flex-start; justify-content: flex-end; padding: 20px; color: var(--line-strong); font-size: 24px;">走行写真</div>
+          <div style="position: relative; color: var(--ink-dim); font-size: 24px; letter-spacing: 0.08em;">サムネの絵をそのまま4.8秒</div>
+        </div>
+        <div style="font-size: 28px; font-weight: var(--w-semibold);">サムネ用フレーム / 4.8秒</div>
+        <p style="margin: 0; font-size: 24px; line-height: 1.7; color: var(--ink-dim);">ニコニコはサムネを本編のフレームから選ぶ。EDの後にサムネのデザインを4.8秒フェードインで置き、投稿時にそこを指定する。写真を重ねるときは立ち絵と同じ影を付ける。</p>
+      </div>
+    </div>
+  </section>
+
+  <section data-label="タイミング" data-screen-label="10" data-speaker-notes="フェードは0.2秒基準、区切りだけ0.4秒。写真と注釈はカット。30fpsでフレーム割りできる値に揃える。" style="color-scheme: dark; background: var(--surface); color: var(--ink); font-family: var(--font); display: flex; flex-direction: column; gap: 32px; padding: 72px 120px;">
+    <div style="display: flex; align-items: baseline; gap: 24px;">
+      <span style="color: var(--accent); font-size: 26px;">10</span>
+      <h2 style="margin: 0; font-size: 56px; font-weight: var(--w-semibold);">出入りのタイミング</h2>
+    </div>
+    <p style="margin: 0; font-size: 28px; color: var(--ink-dim); max-width: 1100px;">フェードは0.2秒を基準にし、OP・ED・サムネ用フレームの区切りだけ0.4秒。写真と注釈はフェードを使わずカットで出し入れする。尺は30fpsでフレーム割りできる値に揃える。</p>
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 28px 64px; flex: 1; align-content: start;">
+      <div style="display: flex; gap: 24px; border-bottom: 1px solid var(--line); padding-bottom: 22px;"><span style="color: var(--accent-soft); font-size: 26px; width: 210px; flex: none;">字幕</span><span style="font-size: 26px; line-height: 1.6;">フェードなしで発話と同時に切り替え。消えるのは音声終了＋0.4秒か次の発話開始の早い方</span></div>
+      <div style="display: flex; gap: 24px; border-bottom: 1px solid var(--line); padding-bottom: 22px;"><span style="color: var(--accent-soft); font-size: 26px; width: 210px; flex: none;">暗がり</span><span style="font-size: 26px; line-height: 1.6;">語り出しの0.2秒前にフェードイン。無音5秒で0.4秒かけて消す</span></div>
+      <div style="display: flex; gap: 24px; border-bottom: 1px solid var(--line); padding-bottom: 22px;"><span style="color: var(--accent-soft); font-size: 26px; width: 210px; flex: none;">章タイトル</span><span style="font-size: 26px; line-height: 1.6;">0.2秒フェードイン→2秒→0.2秒フェードアウト。章番号と題名の間隔は8px</span></div>
+      <div style="display: flex; gap: 24px; border-bottom: 1px solid var(--line); padding-bottom: 22px;"><span style="color: var(--accent-soft); font-size: 26px; width: 210px; flex: none;">立ち絵</span><span style="font-size: 26px; line-height: 1.6;">0.2秒フェードで出入り。左右を移すときはフェードアウト→フェードインで、横移動はしない</span></div>
+      <div style="display: flex; gap: 24px; border-bottom: 1px solid var(--line); padding-bottom: 22px;"><span style="color: var(--accent-soft); font-size: 26px; width: 210px; flex: none;">写真</span><span style="font-size: 26px; line-height: 1.6;">フェードなしで切り替える。背景の映像は暗くしない。表示時間と順送りの間隔は語りに合わせて任意</span></div>
+      <div style="display: flex; gap: 24px; border-bottom: 1px solid var(--line); padding-bottom: 22px;"><span style="color: var(--accent-soft); font-size: 26px; width: 210px; flex: none;">注釈</span><span style="font-size: 26px; line-height: 1.6;">フェードなしで出し入れする。3列に収まらない長さは出さず、概要欄に回す。列の間隔は16px</span></div>
+      <div style="display: flex; gap: 24px; border-bottom: 1px solid var(--line); padding-bottom: 22px;"><span style="color: var(--accent-soft); font-size: 26px; width: 210px; flex: none;">OP / ED</span><span style="font-size: 26px; line-height: 1.6;">OPは黒から0.4秒フェードイン。EDは最後のクリップからフェードなしでカットイン</span></div>
+      <div style="display: flex; gap: 24px; border-bottom: 1px solid var(--line); padding-bottom: 22px;"><span style="color: var(--accent-soft); font-size: 26px; width: 210px; flex: none;">サムネ用フレーム</span><span style="font-size: 26px; line-height: 1.6;">EDから4.8秒かけてクロスフェードし、静止のまま終了。黒には落とさない</span></div>
+    </div>
+    <p style="margin: 0; font-size: 26px; color: var(--ink-dim); border-left: 2px solid var(--accent); padding-left: 24px;">対象は1920×1080のみ。パレットはシリーズで固定し、1本ごとには変えない。</p>
+  </section>
+
+  <section data-label="やらないこと" data-screen-label="11" data-speaker-notes="トンマナは足すものより外すもので決まる。この一覧に触れたら、理由を書いて例外として残す。" style="color-scheme: dark; background: var(--bg); color: var(--ink); font-family: var(--font); display: flex; flex-direction: column; gap: 48px; padding: 96px 120px;">
+    <div style="display: flex; align-items: baseline; gap: 24px;">
+      <span style="color: var(--accent); font-size: 26px; font-family: var(--font);">11</span>
+      <h2 style="margin: 0; font-size: 56px; font-weight: var(--w-semibold);">やらないこと</h2>
+    </div>
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px 64px; flex: 1; align-content: start;">
+      <div style="display: flex; gap: 20px; border-bottom: 1px solid var(--line); padding-bottom: 20px;"><span style="color: var(--warn); font-size: 28px;">×</span><span style="font-size: 28px;">効果音での間の埋め合わせ、笑い声SE</span></div>
+      <div style="display: flex; gap: 20px; border-bottom: 1px solid var(--line); padding-bottom: 20px;"><span style="color: var(--warn); font-size: 28px;">×</span><span style="font-size: 28px;">BGM。全編を通して走行音だけで通す</span></div>
+      <div style="display: flex; gap: 20px; border-bottom: 1px solid var(--line); padding-bottom: 20px;"><span style="color: var(--warn); font-size: 28px;">×</span><span style="font-size: 28px;">危険運転の見せ場化、速度の誇示</span></div>
+      <div style="display: flex; gap: 20px; border-bottom: 1px solid var(--line); padding-bottom: 20px;"><span style="color: var(--warn); font-size: 28px;">×</span><span style="font-size: 28px;">他車のナンバー・顔をそのまま出す</span></div>
+      <div style="display: flex; gap: 20px; border-bottom: 1px solid var(--line); padding-bottom: 20px;"><span style="color: var(--warn); font-size: 28px;">×</span><span style="font-size: 28px;">速度・地名・時刻の常時表示、画面を覆うワイプ</span></div>
+      <div style="display: flex; gap: 20px; border-bottom: 1px solid var(--line); padding-bottom: 20px;"><span style="color: var(--warn); font-size: 28px;">×</span><span style="font-size: 28px;">サムネの過度な彩度・赤い矢印</span></div>
+      <div style="display: flex; gap: 20px; border-bottom: 1px solid var(--line); padding-bottom: 20px;"><span style="color: var(--warn); font-size: 28px;">×</span><span style="font-size: 28px;">冒頭のチャンネル登録・高評価の依頼</span></div>
+      <div style="display: flex; gap: 20px; border-bottom: 1px solid var(--line); padding-bottom: 20px;"><span style="color: var(--warn); font-size: 28px;">×</span><span style="font-size: 28px;">1本ごとに書体・色・配置を変えること</span></div>
+    </div>
+    <p style="margin: 0; font-size: 30px; color: var(--ink-dim); border-left: 2px solid var(--accent); padding-left: 28px;">同じ型で出し続けることが、このシリーズの見た目そのものになる。</p>
+  </section>
+
+</x-import>
+</x-dc>
+</body>
+</html>

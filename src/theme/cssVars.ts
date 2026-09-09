@@ -62,6 +62,7 @@ export const themeCssVars = (fontFamily: string): Record<string, string> => {
     "--subtitle-max-width": `${subtitleLayout.maxWidth}px`,
     "--thumb-scrim": thumbScrim,
     "--shadow-figure": shadow.figure,
+    "--shadow-figure-edge": shadow.figureEdge,
     "--shadow-photo": shadow.photo,
   };
 

@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700;900&display=swap">
+<style>
+  /* パレット切り替えはこのブロックの値だけを差し替える。
+     A 墨とオフホワイト : bg #14161A / surface #24262A / ink #F2F0EC / dim #A8A49B / faint #8B8880 / accent #D8503C
+     B 夜明けの空       : bg #131A2B / surface #1F2941 / ink #F4F1EA / dim #A9B4CB / faint #8D9AB5 / accent #F0A03C
+     C 標識と森         : bg #10150F / surface #1C241A / ink #EEF1E6 / dim #A7B09A / faint #8A9280 / accent #E8C547
+     D 晴天の青         : bg #0D1B2A / surface #16304A / ink #EEF4F8 / dim #9DB3C4 / faint #7D97AB / accent #5EB3E4
+     E 若葉の緑（採用）  : 下記のとおり */
+  :root {
+    --bg-rgb: 15, 26, 20;
+    --surface-rgb: 26, 44, 34;
+    --accent-rgb: 116, 196, 138;
+    --bg: #0f1a14;
+    --surface: #1a2c22;
+    --ink: #edf3ed;
+    --ink-dim: #9db0a3;
+    --ink-faint: #7f9686;
+    --line: #223529;
+    --line-strong: #2f4638;
+    --accent: #74c48a;
+    --accent-soft: #9ed9ac;
+    --warn: #c4705f;
+    /* 映像の上に乗る要素（パレットに依存しない） */
+    --ink-video: #f2f4ef;
+
+    /* タイポグラフィ */
+    --font: 'Noto Sans JP', sans-serif;
+    --w-regular: 400;
+    --w-medium: 500;
+    --w-semibold: 600;
+    --w-bold: 700;
+    /* 映像上の文字サイズ（1920×1080 換算） */
+    --title: 96px;
+    --chapter: 56px;
+    --subtitle: 44px;
+    --badge: 32px;
+    --label: 26px;
+    --note: 24px;
+    --shadow-figure: 0 0 28px rgba(0,0,0,0.7);   /* 立ち絵。黒固定 */
+    --shadow-figure-edge: 0 0 2px rgba(0,0,0,0.9); /* 輪郭用の締め */
+    --shadow-photo: 0 8px 20px rgba(0,0,0,0.55); /* 重ねる写真。黒固定 */
+    --scrim-bottom: linear-gradient(to top, rgba(0,0,0,0.82), rgba(0,0,0,0.45) 45%, rgba(0,0,0,0));
+  }
+  html { font-size: 62.5%; }
+  html, body { margin: 0; background: var(--bg); font-family: var(--font); }
+
+  [data-palette="a"] {
+    --bg-rgb: 20, 22, 26; --surface-rgb: 36, 38, 42; --accent-rgb: 216, 80, 60;
+    --bg: #14161a; --surface: #24262a; --ink: #f2f0ec; --ink-dim: #a8a49b; --ink-faint: #8b8880;
+    --line: #2b2d31; --line-strong: #3a3833; --accent: #d8503c; --accent-soft: #e8735f;
+  }
+  [data-palette="b"] {
+    --bg-rgb: 19, 26, 43; --surface-rgb: 31, 41, 65; --accent-rgb: 240, 160, 60;
+    --bg: #131a2b; --surface: #1f2941; --ink: #f4f1ea; --ink-dim: #a9b4cb; --ink-faint: #8d9ab5;
+    --line: #263149; --line-strong: #34405c; --accent: #f0a03c; --accent-soft: #f7bd72;
+  }
+  [data-palette="c"] {
+    --bg-rgb: 16, 21, 15; --surface-rgb: 28, 36, 26; --accent-rgb: 232, 197, 71;
+    --bg: #10150f; --surface: #1c241a; --ink: #eef1e6; --ink-dim: #a7b09a; --ink-faint: #8a9280;
+    --line: #253022; --line-strong: #333c2e; --accent: #e8c547; --accent-soft: #f2d97a;
+  }
+  [data-palette="d"] {
+    --bg-rgb: 13, 27, 42; --surface-rgb: 22, 48, 74; --accent-rgb: 94, 179, 228;
+    --bg: #0d1b2a; --surface: #16304a; --ink: #eef4f8; --ink-dim: #9db3c4; --ink-faint: #7d97ab;
+    --line: #1c3550; --line-strong: #2c4761; --accent: #5eb3e4; --accent-soft: #8fcdf0;
+  }
+  [data-palette="e"] {
+    --bg-rgb: 15, 26, 20; --surface-rgb: 26, 44, 34; --accent-rgb: 116, 196, 138;
+    --bg: #0f1a14; --surface: #1a2c22; --ink: #edf3ed; --ink-dim: #9db0a3; --ink-faint: #7f9686;
+    --line: #223529; --line-strong: #2f4638; --accent: #74c48a; --accent-soft: #9ed9ac;
+  }
+  a { color: var(--accent-soft); text-decoration: none; }
+  a:hover { color: var(--accent-soft); text-decoration: underline; }
+</style>
+</helmet>
+
+<div data-palette="{{ palette }}" style="color-scheme: dark; background: var(--bg); color: var(--ink); font-family: var(--font); padding: 4.8rem 3.2rem 8rem; display: flex; flex-direction: column; align-items: center; gap: 5.6rem;">
+
+  <header style="width: 100%; max-width: 108rem; display: flex; flex-direction: column; gap: 1.6rem;">
+    <div style="display: flex; align-items: center; gap: 1.2rem; color: var(--ink-faint); font-size: 1.2rem; font-family: var(--font); letter-spacing: 0.16em;">
+      <span>SCREEN SAMPLES</span>
+      <span style="flex: 1; height: 1px; background: var(--line);"></span>
+      <span>1920 × 1080</span>
+    </div>
+    <h1 style="margin: 0; font-size: 3.2rem; font-weight: var(--w-semibold);">画面デザインのサンプル</h1>
+    <p style="margin: 0; font-size: 1.5rem; line-height: 1.8; color: var(--ink-dim); max-width: 68rem; text-wrap: pretty;">トンマナ定義書の配置ルールを、実際の走行キャプチャに当てて確認するためのモック。各フレームの中身は 1920×1080 の実寸 px で組んであり、表示は縮小しているだけなので、記載の数値をそのまま実装値として使える。立ち絵は Jacca さまの配布素材なので、ED と概要欄にクレジットを入れる前提で置いている。</p>
+  </header>
+
+  <section style="width: 100%; max-width: 108rem; display: flex; flex-direction: column; gap: 1.6rem;">
+    <div style="display: flex; align-items: baseline; gap: 1.2rem;">
+      <span style="color: var(--accent); font-size: 1.3rem; font-family: var(--font);">A</span>
+      <h2 style="margin: 0; font-size: 2rem; font-weight: var(--w-semibold);">通常パート — 立ち絵（左・上半身）＋ナレーション字幕</h2>
+    </div>
+    <div style="display: grid; grid-template-columns: 1fr; gap: 3.2rem;">
+    <div style="display: flex; flex-direction: column; gap: 1rem;">
+    <div style="font-size: 1.3rem; color: var(--ink-faint); letter-spacing: 0.08em;">立ち絵は左（既定）・字幕2行の例</div>
+    <div style="position: relative; aspect-ratio: 16 / 9; border: 1px solid var(--line-strong); border-radius: 0.8rem; overflow: hidden; background: var(--bg);">
+      <div data-stage style="position: absolute; left: 0; top: 0; width: 1920px; height: 1080px; transform-origin: 0 0; transform: scale(var(--s, 0.5)); background: var(--bg);">
+      <img src="uploads/VID_20260802_074903_00_287_359_DASHCAM1.mp4_snapshot_00.00.00_[2026-09-07_18.56.05].jpg" alt="森のワインディングを走行中のキャプチャ" style="position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover;">
+      <div style="position: absolute; left: 10px; bottom: 0; width: 513px; height: 720px; overflow: hidden;">
+        <img src="uploads/2-a937a53b.png" alt="指差しポーズの立ち絵（上半身のみ表示）" style="position: absolute; left: 48px; top: 0; width: 417px; height: 1379px; filter: drop-shadow(var(--shadow-figure-edge)) drop-shadow(var(--shadow-figure));">
+      </div>
+      <div style="position: absolute; left: 0; right: 0; bottom: 0; padding: 134px 440px 86px; display: flex; justify-content: center; text-align: center; background: var(--scrim-bottom);">
+        <div style="font-size: var(--subtitle); font-weight: var(--w-bold); line-height: 1.45; color: var(--ink-video);">この道は例年10月末で冬季閉鎖になるので<br>来るなら今月が最後のチャンスだと思う</div>
+      </div>
+    </div></div>
+    </div>
+    <div style="display: flex; flex-direction: column; gap: 1rem;">
+    <div style="font-size: 1.3rem; color: var(--ink-faint); letter-spacing: 0.08em;">立ち絵は右（例外）</div>
+    <div style="position: relative; aspect-ratio: 16 / 9; border: 1px solid var(--line-strong); border-radius: 0.8rem; overflow: hidden; background: var(--bg);">
+      <div data-stage style="position: absolute; left: 0; top: 0; width: 1920px; height: 1080px; transform-origin: 0 0; transform: scale(var(--s, 0.5)); background: var(--bg);">
+      <img src="uploads/DASHCAM_20260905_175905_272_302.mp4_snapshot_09.17_[2026-09-07_18.56.40].jpg" alt="夕焼けの住宅街を走行中のキャプチャ" style="position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover;">
+      <div style="position: absolute; right: 10px; bottom: 0; width: 513px; height: 720px; overflow: hidden;">
+        <img src="uploads/1-73f80c17.png" alt="無表情の立ち絵（上半身のみ表示）" style="position: absolute; left: 48px; top: 0; width: 417px; height: 1379px; filter: drop-shadow(var(--shadow-figure-edge)) drop-shadow(var(--shadow-figure));">
+      </div>
+      <div style="position: absolute; left: 0; right: 0; bottom: 0; padding: 134px 440px 86px; display: flex; justify-content: center; text-align: center; background: var(--scrim-bottom);">
+        <div style="font-size: var(--subtitle); font-weight: var(--w-bold); line-height: 1.45; color: var(--ink-video);">左手に見えているのが今日の目的地の港だ</div>
+      </div>
+    </div></div>
+    </div>
+    </div>
+    <div style="display: flex; flex-direction: column; gap: 1rem;">
+    <div style="font-size: 1.3rem; color: var(--ink-faint); letter-spacing: 0.08em;">注釈が付く場合（立ち絵の位置に関係なく右上。黒62%の板に横書き28px、最大2行。URL は書かず「（概要欄）」だけ）</div>
+    <div style="position: relative; aspect-ratio: 16 / 9; border: 1px solid var(--line-strong); border-radius: 0.8rem; overflow: hidden; background: var(--bg);">
+      <div data-stage style="position: absolute; left: 0; top: 0; width: 1920px; height: 1080px; transform-origin: 0 0; transform: scale(var(--s, 0.5)); background: var(--bg);">
+      <img src="uploads/VID_20260802_074903_00_287_359_DASHCAM1.mp4_snapshot_00.34.17_[2026-09-07_18.56.13].jpg" alt="高架下の直線道路を走行中のキャプチャ" style="position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover;">
+      <div style="position: absolute; left: 10px; bottom: 0; width: 513px; height: 720px; overflow: hidden;">
+        <img src="uploads/3-809ebe7d.png" alt="照れた表情の立ち絵（上半身のみ表示）" style="position: absolute; left: 48px; top: 0; width: 417px; height: 1379px; filter: drop-shadow(var(--shadow-figure-edge)) drop-shadow(var(--shadow-figure));">
+      </div>
+      <div style="position: absolute; right: 67px; top: 67px; max-width: 760px; padding: 18px 28px; background: rgba(0,0,0,0.62); color: var(--ink-video); font-size: 28px; line-height: 1.6; text-wrap: pretty;">2024年に舗装され直した。当時の様子は前回の動画で（概要欄）</div>
+      <div style="position: absolute; left: 0; right: 0; bottom: 0; padding: 134px 440px 86px; display: flex; justify-content: center; text-align: center; background: var(--scrim-bottom);">
+        <div style="font-size: var(--subtitle); font-weight: var(--w-bold); line-height: 1.45; color: var(--ink-video);">前に来たときはずっと砂利だった気がする</div>
+      </div>
+    </div></div>
+    </div>
+    <p style="margin: 0; font-size: 1.4rem; line-height: 1.8; color: var(--ink-dim);">立ち絵は既定で左、足の付け根で画面下端に切れる大きさ。背景に溶けないよう全方向に影（黒70%・ぼかし28px相当）と輪郭を締める2pxの影を重ねる。走行中は常時表示し、章タイトル・OP/ED・サムネ用フレームの間だけ消す。右へ移すのは章の区切りでのみ、1本2回まで。上部1/3には入れない。ナレーションは既定で全文に字幕を入れる。縁取りはやめて、画面下に幅いっぱいの薄い暗がりを敷き、その上に白文字を置く。文字サイズは1920換算で44px、画面中央に中央揃え、左右440pxを空けて最大2行。立ち絵の肩口に少しかかるのは許容する。暗がりは語り出しの0.2秒前に出し、字幕はフェードせず発話と同時に切り替える。無音が5秒続いたら暗がりだけ消す。速度・地名・時刻は表示しない。</p>
+  </section>
+
+  <section style="width: 100%; max-width: 108rem; display: flex; flex-direction: column; gap: 1.6rem;">
+    <div style="display: flex; align-items: baseline; gap: 1.2rem;">
+      <span style="color: var(--accent); font-size: 1.3rem; font-family: var(--font);">B</span>
+      <h2 style="margin: 0; font-size: 2rem; font-weight: var(--w-semibold);">章タイトル — 映像を止めずに2秒</h2>
+    </div>
+    <div style="position: relative; aspect-ratio: 16 / 9; border: 1px solid var(--line-strong); border-radius: 0.8rem; overflow: hidden; background: var(--bg);">
+      <div data-stage style="position: absolute; left: 0; top: 0; width: 1920px; height: 1080px; transform-origin: 0 0; transform: scale(var(--s, 0.5)); background: var(--bg);">
+      <img src="uploads/DASHCAM_20260905_175905_272_302.mp4_snapshot_09.17_[2026-09-07_18.56.40].jpg" alt="夕焼けの住宅街を走行中のキャプチャ" style="position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover;">
+      <div style="position: absolute; left: 0; right: 0; bottom: 0; padding: 134px 115px 126px; display: flex; flex-direction: column; gap: 14px; background: var(--scrim-bottom);">
+        <div style="display: flex; align-items: center; gap: 16px; font-size: var(--label); color: var(--accent-soft); letter-spacing: 0.12em;"><span style="width: 40px; height: 2px; background: var(--accent);"></span>CHAPTER 3</div>
+        <div style="margin-left: 56px; font-size: var(--chapter); font-weight: var(--w-bold); color: var(--ink-video); letter-spacing: 0.02em;">日が落ちる前に海沿いへ</div>
+      </div>
+    </div></div>
+    <p style="margin: 0; font-size: 1.4rem; line-height: 1.8; color: var(--ink-dim);">帯や囲みは使わず、字幕と同じ下部の暗がりに白文字を左寄せで置く。字幕（Bold・中央）と見分けるため、章タイトルは Bold・左寄せで、字幕より40px上に置く。章番号のラインぶん（56px）字下げして揃える。章番号と短いラインだけアクセント色。表示中は立ち絵も字幕も消し、2秒で消える。写真の彩度は上げない。</p>
+  </section>
+
+  <section style="width: 100%; max-width: 108rem; display: flex; flex-direction: column; gap: 1.6rem;">
+    <div style="display: flex; align-items: baseline; gap: 1.2rem;">
+      <span style="color: var(--accent); font-size: 1.3rem; font-family: var(--font);">C</span>
+      <h2 style="margin: 0; font-size: 2rem; font-weight: var(--w-semibold);">サムネイル — A型（地名）＋立ち絵</h2>
+    </div>
+    <div style="display: grid; grid-template-columns: 1fr; gap: 3.2rem;">
+      <div style="display: flex; flex-direction: column; gap: 1.2rem;">
+        <div style="position: relative; aspect-ratio: 16 / 9; border: 1px solid var(--line-strong); border-radius: 0.8rem; overflow: hidden; background: var(--bg);">
+      <div data-stage style="position: absolute; left: 0; top: 0; width: 1920px; height: 1080px; transform-origin: 0 0; transform: scale(var(--s, 0.5)); background: var(--bg); display: flex; align-items: flex-end;">
+          <img src="uploads/DASHCAM_20260905_175905_272_302.mp4_snapshot_09.17_[2026-09-07_18.56.40].jpg" alt="夕焼けのサムネイル案" style="position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover;">
+          <div style="position: absolute; right: 10px; bottom: 0; width: 562px; height: 933px; overflow: hidden;">
+            <img src="uploads/4-891203c5.png" alt="腕組みポーズの立ち絵（上半身のみ表示）" style="position: absolute; left: 43px; top: 0; width: 475px; height: 1743px; filter: drop-shadow(var(--shadow-figure-edge)) drop-shadow(var(--shadow-figure));">
+          </div>
+          <div style="position: relative; width: 100%; max-width: 100%; padding: 58px; display: flex; flex-direction: column; align-items: flex-start; gap: 15px; background: linear-gradient(to top, rgba(var(--bg-rgb),0.92), rgba(var(--bg-rgb),0));">
+            <div style="align-self: flex-start; background: rgba(var(--surface-rgb),0.85); border-radius: 6px; padding: 8px 17px; font-size: var(--badge); color: var(--accent-soft); font-family: var(--font); letter-spacing: 0.08em; white-space: nowrap;">#12 愛媛 / 国道378号</div>
+            <div style="font-size: var(--title); font-weight: var(--w-semibold); line-height: 1.2; text-shadow: 0 0 12px rgba(var(--bg-rgb),0.9);">国道378号を<br>西へ走った</div>
+          </div>
+        </div></div>
+        <div style="font-size: 1.4rem; color: var(--ink-dim);">文字は左下、立ち絵は右下（本編の0.9倍の大きさ）。立ち絵が文字に被らない幅で組む。12文字＋話数。</div>
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 1.2rem;">
+        <div style="position: relative; aspect-ratio: 16 / 9; border: 1px solid var(--line-strong); border-radius: 0.8rem; overflow: hidden; background: var(--bg);">
+      <div data-stage style="position: absolute; left: 0; top: 0; width: 1920px; height: 1080px; transform-origin: 0 0; transform: scale(var(--s, 0.5)); background: var(--bg); display: flex; align-items: flex-end;">
+          <img src="uploads/VID_20260802_074903_00_287_359_DASHCAM1.mp4_snapshot_00.00.00_[2026-09-07_18.56.05].jpg" alt="ワインディングのサムネイル案" style="position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover;">
+          <div style="position: absolute; right: 10px; bottom: 0; width: 614px; height: 933px; overflow: hidden;">
+            <img src="uploads/2-a937a53b.png" alt="指差しポーズの立ち絵（上半身のみ表示）" style="position: absolute; left: 43px; top: 0; width: 527px; height: 1743px; filter: drop-shadow(var(--shadow-figure-edge)) drop-shadow(var(--shadow-figure));">
+          </div>
+          <div style="position: relative; width: 100%; max-width: 100%; padding: 58px; display: flex; flex-direction: column; align-items: flex-start; gap: 15px; background: linear-gradient(to top, rgba(var(--bg-rgb),0.92), rgba(var(--bg-rgb),0));">
+            <div style="align-self: flex-start; background: rgba(var(--surface-rgb),0.85); border-radius: 6px; padding: 8px 17px; font-size: var(--badge); color: var(--accent-soft); font-family: var(--font); letter-spacing: 0.08em; white-space: nowrap;">#08 秋田 / 県道291号</div>
+            <div style="font-size: var(--title); font-weight: var(--w-semibold); line-height: 1.2; text-shadow: 0 0 12px rgba(var(--bg-rgb),0.9);">閉鎖3日前の<br>峠に行った</div>
+          </div>
+        </div></div>
+        <div style="font-size: 1.4rem; color: var(--ink-dim);">表情は回の内容に合わせて自由に選ぶ。</div>
+      </div>
+    </div>
+  </section>
+
+  <section style="width: 100%; max-width: 108rem; display: flex; flex-direction: column; gap: 1.6rem;">
+    <div style="display: flex; align-items: baseline; gap: 1.2rem;">
+      <span style="color: var(--accent); font-size: 1.3rem;">D</span>
+      <h2 style="margin: 0; font-size: 2rem; font-weight: var(--w-semibold);">写真紹介 — 走行映像の上に重ねる</h2>
+    </div>
+    <div style="display: grid; grid-template-columns: 1fr; gap: 3.2rem;">
+      <div style="display: flex; flex-direction: column; gap: 1rem;">
+        <div style="font-size: 1.3rem; color: var(--ink-faint); letter-spacing: 0.08em;">1枚のとき</div>
+        <div style="position: relative; aspect-ratio: 16 / 9; border: 1px solid var(--line-strong); border-radius: 0.8rem; overflow: hidden; background: var(--bg);">
+      <div data-stage style="position: absolute; left: 0; top: 0; width: 1920px; height: 1080px; transform-origin: 0 0; transform: scale(var(--s, 0.5)); background: var(--bg);">
+          <img src="uploads/VID_20260802_074903_00_287_359_DASHCAM1.mp4_snapshot_00.00.00_[2026-09-07_18.56.05].jpg" alt="背景で流れている走行映像" style="position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover;">
+          <div style="position: absolute; left: 480px; right: 480px; top: 96px; bottom: 288px; overflow: hidden; box-shadow: var(--shadow-photo);">
+            <img src="uploads/PXL_20260815_045406555.RAW-01.jpg" alt="待避所に停めたバイクの写真" style="width: 100%; height: 100%; object-fit: cover;">
+          </div>
+          <div style="position: absolute; left: 10px; bottom: 0; width: 513px; height: 720px; overflow: hidden;">
+            <img src="uploads/2-a937a53b.png" alt="指差しポーズの立ち絵（上半身のみ表示）" style="position: absolute; left: 48px; top: 0; width: 417px; height: 1379px; filter: drop-shadow(var(--shadow-figure-edge)) drop-shadow(var(--shadow-figure));">
+          </div>
+          <div style="position: absolute; left: 0; right: 0; bottom: 0; padding: 134px 440px 86px; display: flex; justify-content: center; text-align: center; background: var(--scrim-bottom);">
+            <div style="font-size: var(--subtitle); font-weight: var(--w-bold); line-height: 1.45; color: var(--ink-video);">この一枚を撮るために30分早く出た</div>
+          </div>
+        </div></div>
+        <p style="margin: 0; font-size: 1.4rem; line-height: 1.8; color: var(--ink-dim);">走行映像は止めずに背後で流したまま、写真を中央に重ねる（1枚のときは左右25%を空けた幅）。全画面にはせず、背景の映像もそのまま流す。写真は中央基準のトリミング（縦写真は正方形に切る）。立ち絵は左のまま、字幕も同じ位置。撮影日や場所は写真に添えず、必要なときだけ右上の注釈で出す。写真にも同じ影（黒55%・ぼかし21px相当、下方向に8px）を付けて映像から浮かせる。写真はフェードなしで出し、表示時間は語りに合わせて任意。ズームもパンもしない。写真は例外として上部1/3にかかる。弾幕と重なるが、数秒で消えるので許容する。</p>
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 1rem;">
+        <div style="font-size: 1.3rem; color: var(--ink-faint); letter-spacing: 0.08em;">2枚のとき</div>
+        <div style="position: relative; aspect-ratio: 16 / 9; border: 1px solid var(--line-strong); border-radius: 0.8rem; overflow: hidden; background: var(--bg);">
+      <div data-stage style="position: absolute; left: 0; top: 0; width: 1920px; height: 1080px; transform-origin: 0 0; transform: scale(var(--s, 0.5)); background: var(--bg);">
+          <img src="uploads/DASHCAM_20260905_175905_272_302.mp4_snapshot_09.17_[2026-09-07_18.56.40].jpg" alt="背景で流れている走行映像" style="position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover;">
+          <div style="position: absolute; left: 254px; right: 254px; top: 96px; bottom: 288px; display: grid; grid-template-columns: 1fr 1fr; gap: 19px; filter: drop-shadow(var(--shadow-photo));">
+            <div style="overflow: hidden;"><img src="uploads/PXL_20260816_092038409.RAW-01.MP.jpg" alt="キャンプ場に張ったテントの写真" style="width: 100%; height: 100%; object-fit: cover;"></div>
+            <div style="overflow: hidden;"><img src="uploads/PXL_20260815_045406555.RAW-01.jpg" alt="待避所に停めたバイクの写真" style="width: 100%; height: 100%; object-fit: cover;"></div>
+          </div>
+          <div style="position: absolute; left: 10px; bottom: 0; width: 513px; height: 720px; overflow: hidden;">
+            <img src="uploads/4-891203c5.png" alt="腕組みポーズの立ち絵（上半身のみ表示）" style="position: absolute; left: 48px; top: 0; width: 417px; height: 1526px; filter: drop-shadow(var(--shadow-figure-edge)) drop-shadow(var(--shadow-figure));">
+          </div>
+          <div style="position: absolute; left: 0; right: 0; bottom: 0; padding: 134px 440px 86px; display: flex; justify-content: center; text-align: center; background: var(--scrim-bottom);">
+            <div style="font-size: var(--subtitle); font-weight: var(--w-bold); line-height: 1.45; color: var(--ink-video);">結局この日はここで寝ることにした</div>
+          </div>
+        </div></div>
+        <p style="margin: 0; font-size: 1.4rem; line-height: 1.8; color: var(--ink-dim);">2枚以上のときは正方形に切って横に並べる。立ち絵より後ろに置き、重なる分は立ち絵が前になる。間は隙間だけで、枠線・傾きは付けない。3枚以上あるときは並べずにカットで順送りし、1回に見せるのは6枚まで。切り替えの間隔も任意。</p>
+      </div>
+    </div>
+  </section>
+
+  <section style="width: 100%; max-width: 108rem; display: flex; flex-direction: column; gap: 1.6rem;">
+    <div style="display: flex; align-items: baseline; gap: 1.2rem;">
+      <span style="color: var(--accent); font-size: 1.3rem;">E</span>
+      <h2 style="margin: 0; font-size: 2rem; font-weight: var(--w-semibold);">ED — 走行データとクレジット（12秒）</h2>
+    </div>
+    <div style="position: relative; aspect-ratio: 16 / 9; border: 1px solid var(--line-strong); border-radius: 0.8rem; overflow: hidden; background: var(--bg);">
+      <div data-stage style="position: absolute; left: 0; top: 0; width: 1920px; height: 1080px; transform-origin: 0 0; transform: scale(var(--s, 0.5)); background: var(--bg); box-sizing: border-box; padding: 115px 134px; display: flex; flex-direction: column; justify-content: center; gap: 48px; font-family: var(--font);">
+      <div style="display: flex; justify-content: space-between; align-items: baseline; border-bottom: 1px solid var(--line-strong); padding-bottom: 27px;">
+        <span style="font-size: var(--label); color: var(--ink-dim); letter-spacing: 0.24em;"><span style="color: var(--accent); margin-right: 20px; letter-spacing: 0;">&gt;</span>RIDE LOG</span>
+        <span style="font-size: var(--label); color: var(--ink-dim);">EP.12 / 愛媛</span>
+      </div>
+      <div style="display: flex; flex-direction: column;">
+      <div style="display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid rgba(var(--surface-rgb),0.9); padding: 21px 0; height: 92px; box-sizing: border-box;">
+        <span style="font-size: var(--label); color: var(--ink-dim); letter-spacing: 0.12em;"><span style="color: var(--accent); margin-right: 20px; letter-spacing: 0;">$</span>DATE</span>
+        <span style="font-size: var(--badge); line-height: 48px; white-space: nowrap;">2026.08.15-17</span>
+      </div>
+      <div style="display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid rgba(var(--surface-rgb),0.9); padding: 21px 0; height: 92px; box-sizing: border-box;">
+        <span style="font-size: var(--label); color: var(--ink-dim); letter-spacing: 0.12em;"><span style="color: var(--accent); margin-right: 20px; letter-spacing: 0;">$</span>DISTANCE</span>
+        <span style="font-size: var(--badge); line-height: 48px; white-space: nowrap;">318 km</span>
+      </div>
+      <div style="display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid rgba(var(--surface-rgb),0.9); padding: 21px 0; height: 92px; box-sizing: border-box;">
+        <span style="font-size: var(--label); color: var(--ink-dim); letter-spacing: 0.12em;"><span style="color: var(--accent); margin-right: 20px; letter-spacing: 0;">$</span>RIDING TIME</span>
+        <span style="font-size: var(--badge); line-height: 48px; white-space: nowrap;">8:12</span>
+      </div>
+        <div style="display: flex; align-items: center; justify-content: space-between; padding: 21px 0; height: 92px; box-sizing: border-box;">
+          <span style="font-size: var(--label); color: var(--ink-dim); letter-spacing: 0.12em;"><span style="color: var(--accent); margin-right: 20px; letter-spacing: 0;">$</span>ROUTE</span>
+          <span style="display: inline-block; font-size: var(--badge); line-height: 48px; white-space: nowrap;"><span>松山</span> <span style="color: var(--ink-dim);">→</span> <span>下灘駅</span> <span style="color: var(--ink-dim);">→</span> <span>道の駅ふたみ</span> <span style="color: var(--ink-dim);">→</span> <span>佐田岬</span></span>
+        </div>
+      </div>
+      <div style="display: flex; gap: 77px; border-top: 1px solid var(--line-strong); padding-top: 28px; font-size: var(--label); color: var(--ink-dim); line-height: 1.5;">
+        <span>VOICEVOX: 青山龍星</span>
+        <span>立ち絵: Jacca さま</span>
+      </div>
+    </div></div>
+    <p style="margin: 0; font-size: 1.4rem; line-height: 1.8; color: var(--ink-dim);">罫線だけの計器表示。見出しの先頭に「&gt;」、各行のラベルの先頭に「$」をアクセント色で置き、ターミナルの出力風にする。ラベルは --label、値は4行すべて --badge。書体は本文と同じ源ノ角ゴシック。立ち寄った場所は矢印つなぎで1行（5〜7か所、多い回は主要な所だけ）。BGMは付けず走行音のフェードアウトで終える。ED では URL を書かず、クレジット名だけ。リンク付きの URL は概要欄に置く。この後にサムネ用フレームを4.8秒フェードインして終了。</p>
+  </section>
+
+  <section style="width: 100%; max-width: 108rem; border-top: 1px solid var(--line); padding-top: 3.2rem; display: flex; flex-direction: column; gap: 1.2rem;">
+    <div style="font-size: 1.8rem; font-weight: var(--w-semibold);">クレジット表記</div>
+    <ul style="margin: 0; padding-left: 2.4rem; font-size: 1.4rem; line-height: 2; color: var(--ink-dim);">
+      <li>VOICEVOX: 青山龍星 — <a href="https://voicevox.hiroshiba.jp/product/aoyama_ryusei/">voicevox.hiroshiba.jp/product/aoyama_ryusei</a></li>
+      <li>立ち絵作者: Jacca さま「シンプルな制服の青山龍星立ち絵」 — <a href="https://seiga.nicovideo.jp/seiga/im11599168">seiga.nicovideo.jp/seiga/im11599168</a></li>
+      <li>ED（12秒）と概要欄の両方に毎回記載。ED では URL を省き、概要欄はリンク付き。</li>
+    </ul>
+  </section>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;palette&quot;: {&quot;editor&quot;: &quot;enum&quot;, &quot;options&quot;: [&quot;A 墨とオフホワイト&quot;, &quot;B 夜明けの空&quot;, &quot;C 標識と森&quot;, &quot;D 晴天の青&quot;, &quot;E 若葉の緑&quot;], &quot;default&quot;: &quot;E 若葉の緑&quot;, &quot;tsType&quot;: &quot;string&quot;, &quot;section&quot;: &quot;配色&quot;}}">
+class Component extends DCLogic {
+  renderVals() {
+    const map = { "A 墨とオフホワイト": "a", "B 夜明けの空": "b", "C 標識と森": "c", "D 晴天の青": "d", "E 若葉の緑": "e" };
+    return { palette: map[this.props.palette] ?? "e" };
+  }
+
+  componentDidMount() {
+    // 各フレームは 1920×1080 の実寸で組み、表示幅に合わせて縮小するだけ
+    this.ro = new ResizeObserver((entries) => {
+      for (const e of entries) {
+        const stage = e.target.querySelector("[data-stage]");
+        if (stage) stage.style.setProperty("--s", String(e.contentRect.width / 1920));
+      }
+    });
+    for (const stage of document.querySelectorAll("[data-stage]")) {
+      if (stage.parentElement) this.ro.observe(stage.parentElement);
+    }
+  }
+
+  componentWillUnmount() {
+    if (this.ro) this.ro.disconnect();
+  }
+}
+</script>
+</body>
+</html>

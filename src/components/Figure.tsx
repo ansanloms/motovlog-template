@@ -6,6 +6,8 @@ import styles from "./Figure.module.css";
 type Props = {
   /** 下から上の順に重ねる画像の列 (体・腕・目・口・眉・小物等)。 */
   layers: readonly string[];
+  /** 枠を置く側。既定は左。右は章の区切りでのみ使う (T&M「画面配置」)。 */
+  side?: "left" | "right";
 };
 
 /**
@@ -14,9 +16,13 @@ type Props = {
  * 依存の値は持たず、目パチ・口パク・表情の選択は呼び出し側
  * (src/compositions/figure.ts) が行う。
  */
-export const Figure: React.FC<Props> = ({ layers }) => {
+export const Figure: React.FC<Props> = ({ layers, side }) => {
   return (
-    <div className={styles.box}>
+    <div
+      className={
+        side === "right" ? `${styles.box} ${styles.right}` : styles.box
+      }
+    >
       <div className={styles.figure}>
         {layers.map((src, index) => (
           <Img key={index} src={src} className={styles.img} />

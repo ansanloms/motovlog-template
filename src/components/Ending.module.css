@@ -20,13 +20,23 @@
   color: var(--ink-dim);
 }
 
+.title::before,
+.label::before {
+  color: var(--accent);
+  letter-spacing: 0;
+  margin-right: var(--ending-prompt-gap);
+}
+
 .title {
   letter-spacing: var(--ending-header-letter-spacing);
 }
 
-.prompt {
-  color: var(--accent);
-  letter-spacing: 0;
+.title::before {
+  content: ">";
+}
+
+.label::before {
+  content: "$";
 }
 
 .rows {

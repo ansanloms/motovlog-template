@@ -19,14 +19,25 @@
 }
 
 .subtitle {
+  display: flex;
+  align-items: center;
+  gap: var(--chapter-rule-gap);
   font-size: var(--label);
   font-weight: var(--w-regular);
   color: var(--accent-soft);
   letter-spacing: var(--chapter-label-letter-spacing);
 }
 
+.rule {
+  width: var(--chapter-rule-width);
+  height: var(--chapter-rule-thickness);
+  background: var(--accent);
+}
+
 .title {
+  margin-left: var(--chapter-title-indent);
   font-size: var(--chapter);
-  font-weight: var(--w-medium);
+  font-weight: var(--w-bold);
   color: var(--ink-video);
+  letter-spacing: var(--chapter-title-letter-spacing);
 }
