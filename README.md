@@ -41,7 +41,7 @@ slug の日付部分は `00000000` にしている (実際の project は `YYYYM
 | `public/projects/00000000-sample/photos/photo-01.jpg`・`photo-02.jpg`         | 写真紹介に使う走行写真                                                                                                                     |
 | `public/assets/characters/4.png`                                              | サムネに使う立ち絵の png                                                                                                                   |
 | `public/assets/characters/ryusei/*.png`                                       | 立ち絵 (`figure()`) のパーツ一式。`characters/ryusei.ts` が参照する                                                                        |
-| `public/assets/bgm/m1.wav`                                                    | サンプルの BGM (`audio()` の例)                                                                                                             |
+| `public/assets/bgm/m1.wav`                                                    | サンプルの BGM (`audio()` の例)                                                                                                            |
 
 素材が手元に無い場合、走行映像は次の ffmpeg で同名の合成素材を作れば代わりに使える。既に同名のファイルがあれば `-n` により上書きせずに終了する。
 
@@ -121,7 +121,7 @@ layer 内の item と item の間には `crossfade({ duration })` を置ける�
 | `audio(props)`         | 音声。`src` (staticFile() 済み URL)・`trimBefore?` (秒)・`volume?`・`loop?`              |
 | `thumbnail(props)`     | OP・サムネ用フレームの絵。`photo`・`badge`・`title`・`character`                         |
 | `chapterTitle(props)`  | 章タイトル。`title`・`subtitle`                                                          |
-| `annotation(props)`    | 右端の縦書き注釈。`text`                                                                 |
+| `annotation(props)`    | 右上の注釈。`text`                                                                       |
 | `photoShowcase(props)` | 写真紹介 (1〜2 枚)。`photos`                                                             |
 | `ending(props)`        | ED。`title`・`subtitle`・`date`・`distance`・`ridingTime`・`routes`・`credits`           |
 | `subtitle(props)`      | セリフ字幕の文字。`text` (通常は `narration()` が組むので直接は使わない)                 |
@@ -187,7 +187,7 @@ project の選択は環境変数 `REMOTION_PROJECT` (slug) で行う。`.env` �
 
 画像はすべて同一キャンバスの PNG とし、`character()`・`figure()` は座標計算をしない。素材の切り出し (PSD からのレイヤー書き出し、例えば `psd-tools` を使う) はこのテンプレートの外で行い、`public/assets/characters/<name>/` に置く (第三者素材は既定でコミットしない、「ディレクトリ構成」)。
 
-timeline.ts では `figure(character, { expression?, speech })` を `cut()`/`fade()` の node として立ち絵 layer に置く。`character` は `characters/<name>.ts` の戻り値の参照 (`line()` の `by` に渡したのと同じもの)、`speech` は `narration()` の戻り値の `speech` をそのまま渡してよい (`figure()` が `by` が自分と同じ発話だけを使う)。`expression` は初期の表情名 (省略時は `expressions` の最初のキー)。
+timeline.ts では `figure(character, { expression?, speech, side? })` を `cut()`/`fade()` の node として立ち絵 layer に置く。`character` は `characters/<name>.ts` の戻り値の参照 (`line()` の `by` に渡したのと同じもの)、`speech` は `narration()` の戻り値の `speech` をそのまま渡してよい (`figure()` が `by` が自分と同じ発話だけを使う)。`expression` は初期の表情名 (省略時は `expressions` の最初のキー)。`side` は `"left"` (既定) か `"right"`。右へ移すのは章の区切りでのみ、1 本 2 回まで (T&M「画面配置」)。
 
 - 口の形は発話中の口パクデータから母音ごとに選び、発話の外は口を閉じる (`n`)。目パチは theme の `characterTiming` (周期と閉眼の秒数) に従い、動画先頭からの絶対秒で位相を決める (item を分割しても目パチはずれない)。
 - 表情の切り替えは 2 通りある。1 つは `line()` の `expression` (発話に伴う切り替え、上の「発話」参照)。もう 1 つは `figure()` の item を分けて `expression` オプションを変えること (発話と無関係な切り替え)。
@@ -199,7 +199,7 @@ ED・サムネ用フレームの絵は要素ファクトリで置けるが、ED 
 
 ## フォント
 
-字幕・立ち絵まわりのフォントは `@remotion/google-fonts/NotoSansJP` (`src/fonts.ts`) を使う。weight は T&M ([docs/design/tone-and-manner.md](docs/design/tone-and-manner.md)、[ADR-0004](docs/adr/0004-define-tone-and-manner.md)) が定める 400・500・600 の 3 つだけを読み込む。Noto Sans JP は unicode-range によって 100 を超えるフォントチャンクに分割されているため、`subsets: ["japanese"]` を指定していても実際には多数のチャンクを Google Fonts から取得する。レンダー時にネットワークリクエストに関する警告が多数出力されるが、これは正常な挙動でありエラーではない。
+字幕・立ち絵まわりのフォントは `@remotion/google-fonts/NotoSansJP` (`src/fonts.ts`) を使う。weight は T&M ([docs/design/tone-and-manner.md](docs/design/tone-and-manner.md)、[ADR-0004](docs/adr/0004-define-tone-and-manner.md)) が定める 400・500・600・700 の 4 つだけを読み込む。Noto Sans JP は unicode-range によって 100 を超えるフォントチャンクに分割されているため、`subsets: ["japanese"]` を指定していても実際には多数のチャンクを Google Fonts から取得する。レンダー時にネットワークリクエストに関する警告が多数出力されるが、これは正常な挙動でありエラーではない。
 
 ネットワークに依存したくない場合 (オフライン環境・CI 等) は、`@remotion/fonts` を使って `public/assets/fonts/` 配下に置いたローカルフォントファイルへ差し替えられる ([ADR-0002](docs/adr/0002-project-directory-layout.md))。
 

@@ -6,7 +6,7 @@
 
 .text {
   font-family: var(--font);
-  font-weight: var(--w-regular);
+  font-weight: var(--w-bold);
   font-size: var(--subtitle);
   line-height: var(--subtitle-line-height);
   color: var(--ink-video);

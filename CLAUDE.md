@@ -21,6 +21,26 @@ Remotion のライブラリ仕様 (API・設定・CLI) を調べるときは、�
 - `remotion-docs/SKILL.md` の `version` フィールドが、このリポジトリにインストールされている Remotion のバージョンと一致している。`apm.yml` で `remotion-dev/skills` を対応する commit に固定しているため。汎用の裏取り手段にはバージョン注記が付かないことがあり (2026-09-06 実測)、インストール済みバージョンとの対応がこちらの方が明確。
 - remotion.dev を直接ソースとするため、ミラー経由より反映の遅延が小さい可能性がある (未検証)。
 
+## Claude Design の同期
+
+見た目の上流は Claude Design プロジェクト「バイク車載動画のトンマナ設計」(projectId `0ec23fff-b17a-430e-99c3-65f241225458`) にある。`車載画面サンプル.dc.html` が値の正 (冒頭で「記載の数値をそのまま実装値として使える」と宣言している)、`車載動画トンマナ.dc.html` が原則の正。
+
+スナップショット (`docs/design/upstream/` に 2 ファイルをそのまま置く。`uploads/` の画像と `support.js`・`deck-stage.js` は置かない) の同期手順は次の通り。
+
+1. 2 ファイルを取得して `docs/design/upstream/` を上書きする。取得は Claude Code の `DesignSync` ツール (`get_file`) か、Claude Design の UI からの書き出し。
+2. `git diff docs/design/upstream/` を差分の一次資料にする。
+3. 差分を `docs/design/tone-and-manner.md` と `src/theme/`・`src/components/` に反映する。`src/theme/designSnapshot.test.ts` の `pending` を更新する (反映した変数は外す)。
+4. コミットは `docs: Claude Design YYYY-MM-DD 版を取り込む` で始め、反映は同じ PR に含めてよい。
+
+優先順位の規則は次の通り。
+
+- Claude Design のデザインは原則そのまま反映する。値は画面サンプル、原則は deck から取る。
+- 画面サンプルと deck が食い違うときは画面サンプルを取り込み、deck の古い記述を同期の報告に一覧する。Claude Design 側の修正は人が行う。`DesignSync` の書き込みは design-system project 専用で、このプロジェクトには使えない。
+- `pending` に残すのは反映できない変数だけ (サンプル内で矛盾している、リポジトリで使わない等)。理由を書く。
+- `DesignSync` は subagent に渡らない。取得はメインセッションで行う。
+
+Claude Code の `/design-sync` skill は、ローカルの React コンポーネント群を Claude Design の design-system プロジェクトへ push するもので、向きが逆 (ローカル → Claude Design) であり対象も design-system プロジェクトに限られる。このプロジェクト (通常プロジェクト、.dc.html のモック) の同期には使わない。
+
 ## シェルスクリプト
 
 `scripts/` 配下のシェルスクリプトは `shellcheck` を通し、指摘 0 件にしてからコミットする。

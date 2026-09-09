@@ -1,10 +1,11 @@
 // timeline.ts が立ち絵 (目パチ・口パク・表情) を書くための DSL (ADR-0011)。
 //
-// 書き手は figure(character, { expression?, speech }) を cut()/fade() の
-// node に渡す。character は characters/<name>.ts の character() の戻り値
+// 書き手は figure(character, { expression?, speech, side? }) を cut()/fade()
+// の node に渡す。character は characters/<name>.ts の character() の戻り値
 // (line() の by に渡したのと同じ参照)、speech は narration() の戻り値の
 // `speech` (発話ごとの絶対開始秒・実尺・口パクデータ・by・expression)。
-// figure() は speech のうち by が自分の character と同一のものだけを使う。
+// side は枠を置く側 (既定 left、right は章の区切りのみ)。figure() は speech
+// のうち by が自分の character と同一のものだけを使う。
 // figure() は sample() (src/effects) で包んだ SampleNode を返し、Stage が
 // 毎フレーム render を呼んで目・口・表情の絵を選び直す。narration.ts と
 // 同じく effects と components の両方を import できる層 (compositions) に
@@ -270,7 +271,11 @@ const resolveFigureLayer = (layer: FigureLayer): FigureLayer => {
  */
 export const figure = (
   character: Character,
-  options: { readonly expression?: string; readonly speech: readonly Speech[] },
+  options: {
+    readonly expression?: string;
+    readonly speech: readonly Speech[];
+    readonly side?: "left" | "right";
+  },
 ): SampleNode => {
   const expressionNames = Object.keys(character.expressions);
   const initial = options.expression ?? expressionNames[0];
@@ -299,6 +304,6 @@ export const figure = (
     const layers = resolvedExpressions[expression];
     const sources = layerSources(layers, { blinking, mouth });
 
-    return createElement(Figure, { layers: sources });
+    return createElement(Figure, { layers: sources, side: options.side });
   });
 };

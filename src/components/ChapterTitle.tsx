@@ -24,7 +24,10 @@ export const ChapterTitle: React.FC<Props> = ({ title, subtitle }) => {
       {/* 字幕と同じ下部の暗がり (SubtitleBand と同じ高さ・グラデーション) */}
       <div className={styles.scrim} />
       <div className={styles.block}>
-        <div className={styles.subtitle}>{subtitle}</div>
+        <div className={styles.subtitle}>
+          <span className={styles.rule} />
+          {subtitle}
+        </div>
         <div className={styles.title}>{title}</div>
       </div>
     </AbsoluteFill>
