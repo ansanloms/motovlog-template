@@ -18,6 +18,19 @@ export const resolveVoice = (voice: VoiceOptions | undefined): Voice => ({
 });
 
 /**
+ * base (line().by の voice) と voice (line() 自身の voice) を合成する唯一の
+ * 場所 (ADR-0011)。base・voice の両方が undefined なら undefined、それ以外は
+ * `{ ...base, ...voice }` (voice が base を上書きする)。静的解析側
+ * (scripts/voice/extract.ts) と実行時側 (narration.ts) の両方がこの関数で
+ * 実効の声質を求め、同じ結果になることを保証する。
+ */
+export const mergeVoice = (
+  base: VoiceOptions | undefined,
+  voice: VoiceOptions | undefined,
+): VoiceOptions | undefined =>
+  base === undefined && voice === undefined ? undefined : { ...base, ...voice };
+
+/**
  * text と voice (省略分は既定値で埋めてから) を JSON にし、SHA-256 の hex を
  * 返す。key の順序を固定するため、object は必ず text → voice の順で組む。
  */

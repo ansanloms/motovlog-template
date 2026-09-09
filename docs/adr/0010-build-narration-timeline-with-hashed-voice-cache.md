@@ -1,7 +1,7 @@
 ---
 status: accepted
 date: 2026-09-08T13:45:25Z
-refs: [2, 4, 6, 8, 9]
+refs: [2, 4, 6, 8, 9, 11]
 tags: [voicevox, narration, timeline]
 ---
 
@@ -36,7 +36,7 @@ tags: [voicevox, narration, timeline]
 
 - 字幕と音声を重ねる `Line` (字幕 + `@remotion/media` の `Audio`) は src/components に置く。
 - `line()` と `narration()` は src/compositions に置く。理由: effects と components の両方を import できる層である。
-- `narration()` は暗がり layer と発話 layer の 2 つを返す。書き手は暗がりを書かない。
+- `narration()` は暗がり layer と発話 layer の 2 つを `layers` に、発話ごとの実測値 (絶対開始秒・実尺・口パクデータ) を `speech` に入れて返す ([ADR-0011](./0011-draw-figure-from-character-presets-linked-by-speech.md))。書き手は暗がりを書かない。
 - `narration()` に渡した `line()` 以外の item (字幕だけの `cut()` 等) も暗がりの区間に数える。
 - `cut()` の `duration` を省いた item は `narration()` だけが受け取れる。
 - `after` は前の発話の音声の終わりからの間隔 (秒) を表す。

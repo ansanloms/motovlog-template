@@ -106,4 +106,40 @@ export default [
       ],
     },
   },
+  {
+    // characters/<name>.ts は Node からそのまま import できる純粋な値の
+    // モジュールに保つ (remotion・CSS・src/components を import しない。
+    // watcher (scripts/voice/extract.ts) が line().by から voice だけを
+    // 読むため、ADR-0011)。
+    files: ["characters/**"],
+    rules: {
+      "no-restricted-imports": [
+        "error",
+        {
+          patterns: [
+            {
+              group: ["remotion", "@remotion/*"],
+              message:
+                "characters/<name>.ts は remotion を import しない (ADR-0011)。",
+            },
+            {
+              group: ["**/components/**"],
+              message:
+                "characters/<name>.ts は src/components を import しない (ADR-0011)。",
+            },
+            {
+              group: ["**/effects/**"],
+              message:
+                "characters/<name>.ts は src/effects を import しない (ADR-0011)。",
+            },
+            {
+              group: ["*.css", "**/*.module.css"],
+              message:
+                "characters/<name>.ts は CSS を import しない (ADR-0011)。",
+            },
+          ],
+        },
+      ],
+    },
+  },
 ];

@@ -1,7 +1,7 @@
 ---
 status: accepted
 date: 2026-09-08T12:13:14Z
-refs: [3, 5, 9]
+refs: [3, 5, 9, 11]
 tags: [remotion, timeline, effects]
 ---
 
@@ -41,7 +41,7 @@ Remotion (4.0.521) には次の事実がある。
 
 - projects/<slug>/timeline.ts は src/effects の関数の呼び出しで書き、`timeline()` の戻り値を default export する。
 - `timeline(layers, options?)` の `layers` には layer (item の配列) の配列を渡す。`options` は `width`・`height` のみを持ち、省略時は既定値 (1920×1080) を使う。fps は `timeline()` が `src/theme/timing.ts` の `fps` から読む ([ADR-0003](./0003-convert-dashcam-footage-to-h264-proxy.md))。
-- `src/effects` が公開するのは、演出関数 `timeline`・`fade`・`cut`・`crossfade`・`frame`・`start`・`end`、描画部品 `Stage`、フレーム換算の補助 `toFrameSpan`・`fadeOpacity`、既定サイズ `DEFAULT_WIDTH`・`DEFAULT_HEIGHT` と型に限る。React 要素 (ReactNode) と秒だけを受け、src/components・src/compositions・projects を import しない (ESLint の no-restricted-imports で禁止する)。
+- `src/effects` が公開するのは、演出関数 `timeline`・`fade`・`cut`・`crossfade`・`frame`・`start`・`end`・`sample` ([ADR-0011](./0011-draw-figure-from-character-presets-linked-by-speech.md))、描画部品 `Stage`、フレーム換算の補助 `toFrameSpan`・`fadeOpacity`、既定サイズ `DEFAULT_WIDTH`・`DEFAULT_HEIGHT` と型に限る。React 要素 (ReactNode) と秒だけを受け、src/components・src/compositions・projects を import しない (ESLint の no-restricted-imports で禁止する)。
 - src/components は src/effects を import しない。src/components が使ってよい Remotion の API は AbsoluteFill・Img・useVideoConfig と @remotion/media の要素に限り、useCurrentFrame 等のフレーム API は使わない。
 - 走行映像は src/components の Video (@remotion/media の Video、[ADR-0003](./0003-convert-dashcam-footage-to-h264-proxy.md)) で描き、fade/cut で timeline に置く。effects は clip を持たない。
 - `timeline()` は item の配列ではなく layer (item の配列) の配列を受ける。layer は z 順を表し、配列の後ろが上に重なる。

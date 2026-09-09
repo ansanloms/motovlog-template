@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import type { SampleNode } from "./sample.ts";
 
 /**
  * フェード等の効果を「下の layer までの合成結果」にかける印。fade() の
@@ -54,8 +55,8 @@ export type Placement =
 /** fade() が組み立てるアイテム。node をフェードイン/アウトで重ねる。 */
 export type FadeItem = Placement & {
   readonly kind: "fade";
-  /** 表示する要素。frame() (FrameMarker) も渡せる。 */
-  readonly node: ReactNode | FrameMarker;
+  /** 表示する要素。frame() (FrameMarker) や sample() (SampleNode) も渡せる。 */
+  readonly node: ReactNode | FrameMarker | SampleNode;
   /** 表示する尺 (秒)。 */
   readonly duration: number;
   /** フェードインの尺 (秒)。0 ならフェードなし。 */
@@ -67,8 +68,8 @@ export type FadeItem = Placement & {
 /** cut() が組み立てるアイテム。node をフェード無しで重ねる。 */
 export type CutItem = Placement & {
   readonly kind: "cut";
-  /** 表示する要素。 */
-  readonly node: ReactNode;
+  /** 表示する要素。sample() (SampleNode) も渡せる。 */
+  readonly node: ReactNode | SampleNode;
   /** 表示する尺 (秒)。 */
   readonly duration: number;
 };

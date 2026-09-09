@@ -4,6 +4,7 @@ export { cut } from "./cut.ts";
 export { fade } from "./fade.ts";
 export { frame, isFrame } from "./frame.ts";
 export { fadeOpacity, toFrameSpan } from "./frames.ts";
+export { isSample, sample } from "./sample.ts";
 export { Stage } from "./Stage.tsx";
 export {
   DEFAULT_HEIGHT,
@@ -26,3 +27,4 @@ export type {
   Timeline,
   Transition,
 } from "./types.ts";
+export type { SampleNode, SampleTime } from "./sample.ts";
