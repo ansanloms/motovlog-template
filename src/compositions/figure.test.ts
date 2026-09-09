@@ -10,6 +10,7 @@ import type { LipsyncEntry } from "../voice/cache.ts";
 import {
   expressionAt,
   figure,
+  figureLayers,
   isBlinking,
   layerSources,
   mouthAt,
@@ -454,5 +455,38 @@ describe("figure", () => {
     expect(rendered.props).toEqual({
       layers: [staticFile("body.png"), staticFile("mouth-n.png")],
     });
+  });
+});
+
+describe("figureLayers", () => {
+  const eyes = {
+    eyes: { open: "eyes-open.png", closed: "eyes-closed.png" },
+  };
+
+  const mixed: Character = character({
+    expressions: {
+      normal: ["body.png", eyes, mouth],
+      sweat: ["body.png", "fx-sweat.png"],
+    },
+  });
+
+  it("静止画・目・口を混ぜた expressions で、目は open、口は n、静止画はそのまま (staticFile 済み) の順序どおりの列が返る", () => {
+    expect(figureLayers(mixed, "normal")).toEqual([
+      staticFile("body.png"),
+      staticFile("eyes-open.png"),
+      staticFile("mouth-n.png"),
+    ]);
+  });
+
+  it("expression 省略時は expressions の先頭キーが使われる", () => {
+    expect(figureLayers(mixed)).toEqual([
+      staticFile("body.png"),
+      staticFile("eyes-open.png"),
+      staticFile("mouth-n.png"),
+    ]);
+  });
+
+  it("無い表情名で throw する", () => {
+    expect(() => figureLayers(mixed, "unknown")).toThrow(/unknown/);
   });
 });

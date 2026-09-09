@@ -10,6 +10,10 @@
 // 毎フレーム render を呼んで目・口・表情の絵を選び直す。narration.ts と
 // 同じく effects と components の両方を import できる層 (compositions) に
 // 置く。
+//
+// figureLayers(character, expression?) は静止画 (サムネイル等) 用の入口。
+// 目パチ・口パクをせず、開眼・無音の口で固定したレイヤー列 (staticFile()
+// 済み URL) を返す。
 
 import { createElement } from "react";
 import { staticFile } from "remotion";
@@ -257,6 +261,45 @@ const resolveFigureLayer = (layer: FigureLayer): FigureLayer => {
 };
 
 /**
+ * expression 名を解決する。省略時は character.expressions の最初のキーを
+ * 使う。character.expressions に無ければ throw する (`Object.hasOwn()` で
+ * 検査し、"toString" 等の prototype のキーを通さない、#11)。throw
+ * メッセージの接頭辞 (呼び出し元の関数名) には caller を使う。
+ */
+const resolveExpressionName = (
+  character: Character,
+  expression: string | undefined,
+  caller: string,
+): string => {
+  const expressionNames = Object.keys(character.expressions);
+  const initial = expression ?? expressionNames[0];
+
+  if (!Object.hasOwn(character.expressions, initial)) {
+    throw new Error(
+      `${caller}(): character に無い表情 "${initial}" が指定されました`,
+    );
+  }
+
+  return initial;
+};
+
+/**
+ * 静止画 (サムネイル等) 用に、character の 1 つの表情のレイヤー列を
+ * staticFile() 済みの URL 列に解決する純粋関数。figure() と違い目パチ・
+ * 口パクをせず、開眼・無音の口 ("n") で固定する (ADR-0011)。expression は
+ * character.expressions のキー (省略時は最初のキー)、無ければ throw する。
+ */
+export const figureLayers = (
+  character: Character,
+  expression?: string,
+): readonly string[] => {
+  const name = resolveExpressionName(character, expression, "figureLayers");
+  const layers = character.expressions[name].map(resolveFigureLayer);
+
+  return layerSources(layers, { blinking: false, mouth: "n" });
+};
+
+/**
  * 立ち絵の SampleNode を組み立てる。cut()/fade() の node に渡すこと。
  * expression は初期の表情名 (省略時は expressions の最初のキー)。
  * expressions に無ければ throw する (`Object.hasOwn()` で検査し、
@@ -277,14 +320,11 @@ export const figure = (
     readonly side?: "left" | "right";
   },
 ): SampleNode => {
-  const expressionNames = Object.keys(character.expressions);
-  const initial = options.expression ?? expressionNames[0];
-
-  if (!Object.hasOwn(character.expressions, initial)) {
-    throw new Error(
-      `figure(): character に無い表情 "${initial}" が指定されました`,
-    );
-  }
+  const initial = resolveExpressionName(
+    character,
+    options.expression,
+    "figure",
+  );
 
   const ownSpeech = options.speech.filter((s) => s.by === character);
 
