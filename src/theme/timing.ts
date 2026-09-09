@@ -21,6 +21,7 @@ export const characterTiming = {
   fade: 0.2, // 6f at 30fps
   blinkInterval: 4, // 目パチの周期 (秒)。区間の頭は開眼、末尾で閉じる
   blinkClosed: 0.1, // 閉眼の尺 (秒)。blinkInterval の末尾側に置く
+  breathInterval: 4.6, // 呼吸の周期 (秒)。目パチの 4 秒と同期しないよう素数寄りの値
 } as const;
 /** OP の尺とフェードイン秒 (黒地から)。フェードアウトは無し。 */
 export const openingTiming = { duration: 4.8, fadeIn: 0.4 } as const; // 黒から 0.4 秒

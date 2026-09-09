@@ -132,7 +132,16 @@ export const figureLayout = {
   boxHeight: 720, // 画像の上から約 52% (足の付け根) で切る
   imageOffset: 48, // 枠内での画像の左オフセット
   imageHeight: 1379,
+  breathHeadroom: 12, // 呼吸で上へ動く分の余白 (px)。breathLift + boxHeight × breathScale 以上にする
 } as const;
+
+/**
+ * 立ち絵の呼吸の振幅 (T&M には無い、揺らぎの演出値)。CSS 変数には流さず
+ * (ADR-0005 の「フレームごとに変わる値はインラインスタイルで渡す」)、
+ * `figure()` がインラインの transform に直接使う。
+ * breathScale は scaleY の増分 (無次元)、breathLift は上方向の移動 (px)。
+ */
+export const figureMotion = { breathScale: 0.012, breathLift: 3 } as const;
 
 /** 立ち絵・写真の影 (T&M「画面配置」「写真紹介」節)。design の :root と同名。 */
 export const shadow = {

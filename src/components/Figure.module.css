@@ -4,10 +4,13 @@
   bottom: 0;
   width: var(--figure-box-width);
   height: var(--figure-box-height);
-  overflow: hidden;
+  clip-path: inset(calc(-1 * var(--figure-breath-headroom)) 0 0 0);
 }
 
 .figure {
+  position: absolute;
+  inset: 0;
+  transform-origin: 50% 100%; /* 箱の下端中央 (足元側を固定し、胸が上へ膨らむ方向にする) */
   filter: drop-shadow(var(--shadow-figure));
 }
 

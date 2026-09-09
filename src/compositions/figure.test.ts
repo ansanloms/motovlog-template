@@ -8,6 +8,7 @@ import { isSample } from "../effects/index.ts";
 import { fps } from "../theme/timing.ts";
 import type { LipsyncEntry } from "../voice/cache.ts";
 import {
+  breathAt,
   expressionAt,
   figure,
   isBlinking,
@@ -217,6 +218,34 @@ describe("isBlinking", () => {
   });
 });
 
+describe("breathAt", () => {
+  const cases: readonly [string, number, string][] = [
+    ["周期の頭 (0 秒) は静止", 0, "translateY(0px) scaleY(1)"],
+    ["半周期 (2.3 秒) は最大振幅", 2.3, "translateY(-3px) scaleY(1.012)"],
+    ["1 周期 (4.6 秒) は静止に戻る", 4.6, "translateY(0px) scaleY(1)"],
+    [
+      "4 分の 1 周期 (1.15 秒) は半分の振幅",
+      1.15,
+      "translateY(-1.5px) scaleY(1.006)",
+    ],
+  ];
+
+  for (const [label, absolute, expected] of cases) {
+    it(`${label} → "${expected}"`, () => {
+      expect(breathAt(absolute)).toBe(expected);
+    });
+  }
+
+  it("timing・motion を差し替えられる", () => {
+    const timing = { breathInterval: 2 } as const;
+    const motion = { breathScale: 0.1, breathLift: 10 } as const;
+
+    expect(breathAt(0, timing, motion)).toBe("translateY(0px) scaleY(1)");
+    expect(breathAt(1, timing, motion)).toBe("translateY(-10px) scaleY(1.1)");
+    expect(breathAt(2, timing, motion)).toBe("translateY(0px) scaleY(1)");
+  });
+});
+
 describe("layerSources", () => {
   it("静止画 (文字列) はそのまま", () => {
     expect(
@@ -300,6 +329,7 @@ describe("figure", () => {
     expect(rendered.type).toBe(Figure);
     expect(rendered.props).toEqual({
       layers: [staticFile("body.png"), staticFile("mouth-a.png")],
+      transform: breathAt(0.15),
     });
   });
 
@@ -318,10 +348,27 @@ describe("figure", () => {
 
     expect(before.props).toEqual({
       layers: [staticFile("body.png"), staticFile("mouth-n.png")],
+      transform: breathAt(0.5),
     });
     expect(after.props).toEqual({
       layers: [staticFile("body.png"), staticFile("fx-sweat.png")],
+      transform: breathAt(1),
     });
+  });
+
+  it("呼吸の transform は時刻によって変わる (同じ node で異なる absolute を render する)", () => {
+    const node = figure(ryusei, { speech });
+
+    const early = node.render({ frame: 0, seconds: 0, absolute: 0 });
+    const late = node.render({ frame: 0, seconds: 0, absolute: 2.3 });
+
+    if (!isValidElement(early) || !isValidElement(late)) {
+      throw new Error("unreachable");
+    }
+
+    expect(early.props).toMatchObject({ transform: breathAt(0) });
+    expect(late.props).toMatchObject({ transform: breathAt(2.3) });
+    expect(breathAt(0)).not.toBe(breathAt(2.3));
   });
 
   it("他の character 宛の発話は無視する (自分宛だけを使う)", () => {
@@ -340,6 +387,7 @@ describe("figure", () => {
     // (無音) のまま。フィルタしていなければここは mouth-a になる。
     expect(rendered.props).toEqual({
       layers: [staticFile("body.png"), staticFile("mouth-n.png")],
+      transform: breathAt(0.15),
     });
   });
 
@@ -362,9 +410,11 @@ describe("figure", () => {
 
     expect(item1.props).toEqual({
       layers: [staticFile("body.png"), staticFile("fx-sweat.png")],
+      transform: breathAt(2),
     });
     expect(item2.props).toEqual({
       layers: [staticFile("body.png"), staticFile("mouth-n.png")],
+      transform: breathAt(3),
     });
   });
 
@@ -399,6 +449,7 @@ describe("figure", () => {
 
       expect(rendered.props).toEqual({
         layers: [staticFile("body.png"), staticFile("fx-sweat.png")],
+        transform: breathAt(absolute),
       });
     }
   });
@@ -427,6 +478,7 @@ describe("figure", () => {
 
       expect(rendered.props).toEqual({
         layers: [staticFile("body.png"), staticFile("fx-sweat.png")],
+        transform: breathAt(absolute),
       });
     }
   });
@@ -453,6 +505,7 @@ describe("figure", () => {
 
     expect(rendered.props).toEqual({
       layers: [staticFile("body.png"), staticFile("mouth-n.png")],
+      transform: breathAt(from / fps),
     });
   });
 });

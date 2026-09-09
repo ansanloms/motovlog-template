@@ -2,6 +2,7 @@ export {
   chapterLayout,
   endingLayout,
   figureLayout,
+  figureMotion,
   fontWeight,
   noteLayout,
   palette,

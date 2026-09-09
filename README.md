@@ -192,6 +192,7 @@ timeline.ts では `figure(character, { expression?, speech })` を `cut()`/`fad
 - 口の形は発話中の口パクデータから母音ごとに選び、発話の外は口を閉じる (`n`)。目パチは theme の `characterTiming` (周期と閉眼の秒数) に従い、動画先頭からの絶対秒で位相を決める (item を分割しても目パチはずれない)。
 - 表情の切り替えは 2 通りある。1 つは `line()` の `expression` (発話に伴う切り替え、上の「発話」参照)。もう 1 つは `figure()` の item を分けて `expression` オプションを変えること (発話と無関係な切り替え)。
 - 立ち絵を一時的に隠す (章タイトル中等) には、`figure()` の item を分けてその区間を空ける。`narration()` と違い `figure()` の item の尺は数値で書く必要がある (アンカーは `at` にしか渡せない、[ADR-0009](docs/adr/0009-add-transition-frame-and-anchor-to-timeline.md))。
+- 立ち絵は呼吸の揺らぎ (わずかな上下と縦の拡縮) を常に持つ。周期は theme の `characterTiming.breathInterval`、振幅は `figureMotion` にある。
 
 ## 未実装
 

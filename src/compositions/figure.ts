@@ -1,4 +1,5 @@
-// timeline.ts が立ち絵 (目パチ・口パク・表情) を書くための DSL (ADR-0011)。
+// timeline.ts が立ち絵 (目パチ・口パク・表情・呼吸の揺らぎ) を書くための
+// DSL (ADR-0011)。
 //
 // 書き手は figure(character, { expression?, speech }) を cut()/fade() の
 // node に渡す。character は characters/<name>.ts の character() の戻り値
@@ -6,16 +7,16 @@
 // `speech` (発話ごとの絶対開始秒・実尺・口パクデータ・by・expression)。
 // figure() は speech のうち by が自分の character と同一のものだけを使う。
 // figure() は sample() (src/effects) で包んだ SampleNode を返し、Stage が
-// 毎フレーム render を呼んで目・口・表情の絵を選び直す。narration.ts と
-// 同じく effects と components の両方を import できる層 (compositions) に
-// 置く。
+// 毎フレーム render を呼んで目・口・表情の絵と、呼吸の揺らぎの transform を
+// 選び直す。呼吸の揺らぎもここで決める。narration.ts と同じく effects と
+// components の両方を import できる層 (compositions) に置く。
 
 import { createElement } from "react";
 import { staticFile } from "remotion";
 import { Figure } from "../components/Figure.tsx";
 import { sample } from "../effects/index.ts";
 import type { SampleNode } from "../effects/index.ts";
-import { characterTiming } from "../theme/index.ts";
+import { characterTiming, figureMotion } from "../theme/index.ts";
 import { fps } from "../theme/timing.ts";
 import type { LipsyncEntry } from "../voice/cache.ts";
 import { isEyesLayer, isMouthLayer } from "./character.ts";
@@ -205,6 +206,48 @@ export const isBlinking = (
   return phase >= timing.blinkInterval - timing.blinkClosed;
 };
 
+/** breathAt() が読む周期 (characterTiming のうち呼吸に使う分)。 */
+type BreathTiming = {
+  readonly breathInterval: number;
+};
+
+/** breathAt() が読む振幅 (figureMotion のうち呼吸に使う分)。 */
+type BreathMotion = {
+  readonly breathScale: number;
+  readonly breathLift: number;
+};
+
+// 小数を丸める。結果が -0 になっても後段はテンプレート literal に埋める
+// だけなので `${-0}` は "0" になり、見た目には影響しない。
+const roundTo = (value: number, decimals: number): number => {
+  const factor = 10 ** decimals;
+
+  return Math.round(value * factor) / factor;
+};
+
+/**
+ * 絶対秒 (動画先頭からの秒) から呼吸の揺らぎを表す CSS の transform 文字列
+ * を返す純粋関数。item を分割しても位相が変わらないよう、isBlinking() と
+ * 同じく item 内の秒ではなく絶対秒で判定する。
+ * `b = (1 − cos(2π · absolute / breathInterval)) / 2` は周期の頭 (t=0) で
+ * 0、半周期で 1 (最大)、1 周期で 0 に戻る 0〜1 の値で、これを上方向の移動
+ * (breathLift) と縦の拡縮 (breathScale) の係数にする (胸が膨らむと上へ伸び、
+ * 縮むと戻る)。値は translateY を 3 桁、scaleY を 4 桁に丸めて文字列にし、
+ * 浮動小数の桁ゆれでテストや DOM の差分が不安定にならないようにする。
+ */
+export const breathAt = (
+  absolute: number,
+  timing: BreathTiming = characterTiming,
+  motion: BreathMotion = figureMotion,
+): string => {
+  const b =
+    (1 - Math.cos((2 * Math.PI * absolute) / timing.breathInterval)) / 2;
+  const lift = roundTo(-motion.breathLift * b, 3);
+  const scale = roundTo(1 + motion.breathScale * b, 4);
+
+  return `translateY(${lift}px) scaleY(${scale})`;
+};
+
 /**
  * expressions[expression] のレイヤー列を、現在の blinking・mouth の状態で
  * 実際の画像パス (下から上の順) に写す純粋関数。静止画 (文字列) はそのまま、
@@ -265,8 +308,9 @@ const resolveFigureLayer = (layer: FigureLayer): FigureLayer => {
  * 掛けておき (resolveFigureLayer())、Stage が毎フレーム呼ぶ render は、
  * 動画先頭からの絶対秒 (absolute) と item の開始の絶対秒 (itemStart =
  * absolute - seconds) で目パチ (isBlinking())・口パク (mouthAt())・表情
- * (expressionAt()) を選び、layerSources() で選んだ URL を Figure に固定
- * props (layers) として渡すだけにする。
+ * (expressionAt())・呼吸の揺らぎ (breathAt()) を選び、layerSources() で
+ * 選んだ URL と breathAt() の transform 文字列を Figure に props (layers・
+ * transform) として渡すだけにする。
  */
 export const figure = (
   character: Character,
@@ -298,7 +342,8 @@ export const figure = (
     const expression = expressionAt(t.absolute, itemStart, initial, ownSpeech);
     const layers = resolvedExpressions[expression];
     const sources = layerSources(layers, { blinking, mouth });
+    const transform = breathAt(t.absolute);
 
-    return createElement(Figure, { layers: sources });
+    return createElement(Figure, { layers: sources, transform });
   });
 };

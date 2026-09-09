@@ -29,14 +29,14 @@ Remotion は各フレームを個別に描くため、CSS アニメーション�
 
 ## Decision Drivers
 
-1. ADR-0006 の層の規則を保つ。
+1. [ADR-0006](./0006-write-timeline-as-effects-dsl.md) の層の規則を保つ。
    - フレームを読むのは src/effects だけ。
    - src/components は固定の props で描く。
    - 動画のドメイン (母音と口の対応・表情) は src/compositions に置く。
 2. 音声・字幕・口パクの時刻の正本を 1 つにする。発話の位置 (`at`・`after`) を書き換えたら 3 つが一緒に動く。
 3. 2 体以上の立ち絵と掛け合いを、`narration()` を 1 つのまま書ける。
 4. 表情・ポーズを、発話に伴う切り替えと発話と無関係な切り替えの両方で書ける。
-5. 音声生成の watcher が timeline.ts を静的に評価する規則 (ADR-0010) を保つ。
+5. 音声生成の watcher が timeline.ts を静的に評価する規則 ([ADR-0010](./0010-build-narration-timeline-with-hashed-voice-cache.md)) を保つ。
 
 ## Considered Options
 
@@ -45,7 +45,7 @@ Remotion は各フレームを個別に描くため、CSS アニメーション�
 1. src/effects に、時刻を受けて要素を返す関数を毎フレーム呼ぶ演出関数 `sample()` を足す — 採用。fade が時刻を不透明度に写すのと同じ種類の術で、effects は時刻だけを持ち要素の中身を知らない。
 2. 口の形の区間ごとに `cut()` を並べ、既存の DSL だけで組む — 却下。mora ごとに `Sequence` が立ち、体・目・口が別 layer に分かれて、章タイトル中の非表示を layer ごとに揃えて書くことになる。
 3. src/compositions に `useCurrentFrame()` を使うコンポーネントを置く — 却下。ESLint の縛りが無い層が第 2 の effects になり、フレームを読む場所が 2 つになる。
-4. src/components のフレーム API の禁止を緩める — 却下。ADR-0006 の分担を「口パクに要る」という理由だけで覆す。
+4. src/components のフレーム API の禁止を緩める — 却下。[ADR-0006](./0006-write-timeline-as-effects-dsl.md) の分担を「口パクに要る」という理由だけで覆す。
 
 立ち絵と発話の結び付け。
 
@@ -85,8 +85,9 @@ Remotion は各フレームを個別に描くため、CSS アニメーション�
   - 発話の外は n とする。
 - 表情は次の順で決める。item の `expression` (省略時は `expressions` の最初の表情) を初期値とし、item の開始以降かつ絶対秒までに始まった自分宛の発話のうち `expression` を持つ最後のものがあればその表情にする。表情は次の指定まで維持し、item を分ければその item の初期値に戻る。
 - 目パチは theme の `characterTiming` (周期と閉眼の秒数) に従い、絶対秒で位相を決める。item を分割しても位相は変わらない。
+- 立ち絵は呼吸の揺らぎを常に持つ。`figure()` が絶対秒から位相 (raised cosine) を出し、`Figure` に上下の移動と縦の拡縮の transform を渡す。周期は theme の `characterTiming` に、振幅は theme の `figureMotion` に置く。箱は上方向にだけ振幅分の余白 (`figureLayout.breathHeadroom`) を持ち、下端と左右で切る。
 - 発話と無関係な表情の切り替え、章タイトル中の非表示、左右の移動は、書き手が立ち絵 layer の item を分けて書く。
-- 音声生成の watcher は `line()` の `by` を、同じファイルの top-level const の `character()` 呼び出し、または import の binding として解決し、その `voice` プロパティを ADR-0010 の `voice` と同じ規則で評価する。`character()` 呼び出しの引数からは `voice` だけを読み、`expressions` は評価しない。`expression` は文字列リテラルに限り、値は読み飛ばす。
+- 音声生成の watcher は `line()` の `by` を、同じファイルの top-level const の `character()` 呼び出し、または import の binding として解決し、その `voice` プロパティを [ADR-0010](./0010-build-narration-timeline-with-hashed-voice-cache.md) の `voice` と同じ規則で評価する。`character()` 呼び出しの引数からは `voice` だけを読み、`expressions` は評価しない。`expression` は文字列リテラルに限り、値は読み飛ばす。
 - `characters/<name>.ts` は Node で import できる純粋な値のモジュールとし、remotion や CSS を import しない。
 
 ## Consequences
@@ -106,6 +107,7 @@ Remotion は各フレームを個別に描くため、CSS アニメーション�
 - 立ち絵の表示区間 (章タイトル中の非表示等) は自動化せず、書き手が item を分けて書く。アンカーは `at` にしか渡せないため、区間の終端は秒で書く。
 - watcher が `line()` の `by` を辿る分、静的評価の規則が増える。`characters/<name>.ts` の `voice` を変えても timeline.ts が変わらないと watcher は再生成しないため、`characters/` も監視対象にする。
 - 素材の切り出しはテンプレートの外の作業で、PSD のレイヤー構成ごとに手順が変わる。
+- 呼吸は全レイヤーを一様に動かす剛体変形で、胴だけ膨らませる、腕を遅らせるといった表現には素材のレイヤーを分けて位相をずらす必要がある。
 
 ### 禁止事項
 
