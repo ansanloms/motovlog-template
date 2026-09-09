@@ -7,7 +7,7 @@
     "strict": true,
     "noEmit": true,
     "allowImportingTsExtensions": true,
-    "lib": ["ES2018"],
+    "lib": ["ES2018", "ES2022.Object"],
     "esModuleInterop": true,
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,

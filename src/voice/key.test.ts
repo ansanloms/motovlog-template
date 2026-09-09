@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { linePath, resolveVoice, voiceKey } from "./key.ts";
+import { linePath, mergeVoice, resolveVoice, voiceKey } from "./key.ts";
 
 describe("voiceKey", () => {
   it("同じ入力なら同じ key になる", async () => {
@@ -37,6 +37,35 @@ describe("voiceKey", () => {
     const key = await voiceKey({ text: "こんにちは" });
 
     expect(key).toMatch(/^[0-9a-f]{64}$/);
+  });
+});
+
+describe("mergeVoice", () => {
+  it("base・voice が両方 undefined なら undefined", () => {
+    expect(mergeVoice(undefined, undefined)).toBeUndefined();
+  });
+
+  it("voice が undefined なら base をそのまま返す", () => {
+    expect(mergeVoice({ speaker: 13 }, undefined)).toEqual({ speaker: 13 });
+  });
+
+  it("base が undefined なら voice をそのまま返す", () => {
+    expect(mergeVoice(undefined, { speaker: 13 })).toEqual({ speaker: 13 });
+  });
+
+  it("voice が base の同じキーを上書きする", () => {
+    expect(mergeVoice({ speaker: 13, speed: 1 }, { speed: 0.9 })).toEqual({
+      speaker: 13,
+      speed: 0.9,
+    });
+  });
+
+  it("mergeVoice の結果を渡した voiceKey() は、その値を明示した voiceKey() と同じ key になる", async () => {
+    const merged = mergeVoice({ speaker: 13, speed: 1 }, { speed: 0.9 });
+    const a = await voiceKey({ text: "x", voice: merged });
+    const b = await voiceKey({ text: "x", voice: { speaker: 13, speed: 0.9 } });
+
+    expect(a).toBe(b);
   });
 });
 

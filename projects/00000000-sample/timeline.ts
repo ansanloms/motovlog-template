@@ -1,8 +1,8 @@
 // このファイルは新しい project の出発点として「コピーして直す」ためのサンプル。
-// 走行映像 1 本・OP・章タイトル・写真紹介・ED・BGM・注釈・発話 (3 パターン) の
-// 一通りの要素を、実際に動く形で並べている。仕様の正本は README
-// (「timeline.ts の書き方」「発話」) と ADR で、ここのコメントは仕様の丸写し
-// ではなく「ここをこう変えるとこうなる」を書く。
+// 走行映像 1 本・立ち絵・OP・章タイトル・写真紹介・ED・BGM・注釈・発話
+// (3 パターン) の一通りの要素を、実際に動く形で並べている。仕様の正本は
+// README (「timeline.ts の書き方」「発話」) と ADR で、ここのコメントは
+// 仕様の丸写しではなく「ここをこう変えるとこうなる」を書く。
 //
 // コピーして直す場所:
 // - slug: 下の asset() の "00000000-sample" と .env の REMOTION_PROJECT
@@ -24,6 +24,7 @@
 // (発話の仕組み)。
 
 import { staticFile } from "remotion";
+import { ryusei } from "../../characters/ryusei.ts";
 import {
   annotation,
   audio,
@@ -33,6 +34,7 @@ import {
   thumbnail,
   video,
 } from "../../src/components/index.tsx";
+import { figure } from "../../src/compositions/figure.ts";
 import { line, narration } from "../../src/compositions/narration.ts";
 import {
   crossfade,
@@ -58,7 +60,7 @@ const src = asset("VID_20260802_074903_00_287_359_DASHCAM1.mp4");
 const clipASec = 20;
 const clipBSec = 18;
 const crossfadeSec = 0.4;
-const endingFadeSec = 2; // layer 4 の黒落ちと走行音・BGM のフェードアウトの秒数
+const endingFadeSec = 2; // layer 5 の黒落ちと走行音・BGM のフェードアウトの秒数
 
 // 走行映像は同じ素材を trimBefore (元動画の頭を捨てる秒数) だけ変えて 2 本に
 // 割り、間に crossfade() を挟んでいる。cut()/fade() が返す item は変数に
@@ -67,9 +69,9 @@ const endingFadeSec = 2; // layer 4 の黒落ちと走行音・BGM のフェー�
 //
 // volume は要素の再生開始 (trimBefore 適用後) からの秒を at に持つ折れ線。
 // fade()・crossfade()・frame() は絵 (不透明度) にだけ効いて音には効かない
-// ので、走行音のフェードはここで書く。clipA の頭は layer 4 の黒からの
+// ので、走行音のフェードはここで書く。clipA の頭は layer 5 の黒からの
 // 立ち上がり (openingTiming.fadeIn) と、clipA の末尾と clipB の頭は
-// crossfade の重なり (crossfadeSec) と、clipB の末尾は layer 4 の黒落ち
+// crossfade の重なり (crossfadeSec) と、clipB の末尾は layer 5 の黒落ち
 // (endingFadeSec) と、それぞれ同じ秒数にして絵と音を揃えている。一定値
 // なら `volume: 0.5` のように数値で書く。
 const clipA = cut(
@@ -103,6 +105,68 @@ const clipB = cut(
 // 差分だけをファイル内の const として持てる (ADR-0010)。
 const calm = { ...narrator, speed: 0.9 };
 
+// 発話を先に解決する。n.speech (発話ごとの絶対開始秒・実尺・口パクの母音
+// 区間・by・expression) を立ち絵の口パク・表情に使うため、timeline() より
+// 前に await する (ADR-0011)。narration() は
+// { layers: [暗がり layer, 発話 layer], speech } を返す。
+//
+// text は文字列リテラルで書くこと (watcher が timeline.ts を静的に読む。
+// 変数や関数呼び出しは使えない)。voice に書けるのはリテラル・spread・
+// 同じファイルの const・theme からの import に限る。voice の 8 値:
+// speaker (VOICEVOX のスタイル id)、speed・intonation・volume・pause は
+// 倍率で 1 が中立、pitch はオフセットで 0 が中立、silenceBefore・
+// silenceAfter は秒。音声は public/projects/<slug>/lines/<key>.{wav,json}
+// にキャッシュされ、コミットしない。text か実効の voice (下記) を変えると
+// 別の key になり再生成される。
+//
+// by はキャラクター (characters/ryusei.ts の character() の戻り値)。
+// 実効の声質は theme の narrator ← by.voice ← line() 自身の voice の順で
+// 上書きした値になる (watcher と narration() の両方が同じ関数
+// (mergeVoice()) で合成するため、生成される音声キャッシュの key は一致する)。
+//
+// 1 本目: voice を省略すると by.voice (ryusei では theme の narrator) の
+// ままになる。{漢字|よみ} で読みを添えられる。at は絶対秒。
+//
+// 2 本目: voice にファイル内の const (calm、theme の narrator の差分) を
+// 渡し、by.voice を上書きしている。after は「前の発話の音声の終わりからの
+// 間隔 (秒)」。expression: "sweat" で、この発話の開始と同時に立ち絵の表情が
+// 汗顔に変わる (次に expression を指定する発話まで維持する)。
+//
+// 3 本目: duration を明示すると、位置決め・字幕の尺の両方にその値を
+// そのまま使う (音声の実尺では上書きしない)。字幕を長めに出したいときに
+// 使う。暗がりは字幕が消えるまで出る (duration を明示していれば、その分
+// 長く出る)。時間は timeline() の他の演出と同じくすべて秒で書くため、
+// duration もフレーム数ではなく秒の数値。expression: "teach" でここから
+// 教える表情になる。発話と無関係に表情を変えたい・立ち絵を隠したいときは、
+// layer 1 (立ち絵) の item を分けて書く (expression オプションや、別の
+// duration の cut() を並べる。ADR-0011)。
+const n = await narration([
+  cut(
+    line({
+      text: "{磐梯吾妻|ばんだいあづま}スカイラインを登って、{浄土平|じょうどだいら}へ向かう。",
+      by: ryusei,
+    }),
+    { at: 8 },
+  ),
+  cut(
+    line({
+      text: "今日は雲が多いけど、風は無くて走りやすい。",
+      by: ryusei,
+      voice: calm,
+      expression: "sweat",
+    }),
+    { after: 0.5 },
+  ),
+  cut(
+    line({
+      text: "{浄土平|じょうどだいら}の展望台に着いた。少し休憩していこう。",
+      by: ryusei,
+      expression: "teach",
+    }),
+    { after: 1, duration: 4 },
+  ),
+]);
+
 export default timeline([
   [
     // layer 0: 走行映像。crossfade({ duration }) は layer 内の item と item
@@ -115,12 +179,26 @@ export default timeline([
     clipB,
   ],
   [
-    // layer 1: OP → 章タイトル → 写真紹介 → ED。位置指定の 3 通り
+    // layer 1: 立ち絵 (ADR-0011)。ryusei は characters/ryusei.ts の
+    // character()。figure() は n.speech (上で解決済みの narration() の
+    // 結果) のうち by が ryusei と同じ参照の発話だけを見て、目パチ・口パク・
+    // 表情を sample() で毎フレーム選び直す。duration は動画全体
+    // (clipASec + clipBSec − crossfadeSec の尺) に固定している。cut() の
+    // duration にはまだ start()/end() のようなアンカーを渡せない
+    // (ADR-0009 は at だけがアンカーに対応) ため秒の数値で書く。OP・
+    // 章タイトル・写真紹介・ED は 1 つ上の layer 2 で描くため、走行映像の
+    // みが見えている区間だけ立ち絵が見える。
+    cut(figure(ryusei, { speech: n.speech }), {
+      duration: clipASec + clipBSec - crossfadeSec,
+    }),
+  ],
+  [
+    // layer 2: OP → 章タイトル → 写真紹介 → ED。位置指定の 3 通り
     // (省略・after・at) がここに揃っている。
     //
     // OP (サムネと同じ絵)。位置を省略すると同じ layer の直前の item の
     // 終端に連結する (最初の item は 0 秒から)。黒からの立ち上がりは
-    // layer 4 の frame() が行うので、ここでは in を付けない。
+    // layer 5 の frame() が行うので、ここでは in を付けない。
     fade(
       thumbnail({
         photo: asset("photos/photo-03.jpg"),
@@ -168,7 +246,7 @@ export default timeline([
     ),
   ],
   [
-    // layer 2: 注釈。右端に縦書きで出る補足。text の \n で列を分ける (この
+    // layer 3: 注釈。右端に縦書きで出る補足。text の \n で列を分ける (この
     // 例は 2 列)。位置は絶対秒 (at)。
     cut(
       annotation({
@@ -178,7 +256,7 @@ export default timeline([
     ),
   ],
   [
-    // layer 3: BGM。audio() は音だけの要素で、絵は持たない。loop で素材を
+    // layer 4: BGM。audio() は音だけの要素で、絵は持たない。loop で素材を
     // 繰り返し、volume の折れ線で走行音の下に薄く (0.2) 敷いて、末尾は
     // 走行音・黒落ちと同じ endingFadeSec 秒でフェードアウトする。loop 時も
     // at は周回をまたいだ通算秒なので、素材の長さより長い区間でも末尾の
@@ -198,10 +276,10 @@ export default timeline([
     ),
   ],
   [
-    // layer 4: 下の layer (0〜3) の合成結果を黒から立ち上げ、終端で黒へ
+    // layer 5: 下の layer (0〜4) の合成結果を黒から立ち上げ、終端で黒へ
     // 落とす。frame() は fade() の node にだけ渡せ (cut() や layer 0 には
     // 置けない)、それより下の layer の合成結果にフェードをかける。
-    // end(clipB, -2) は「clipB の終端の 2 秒前」。
+    // end(clipB, -endingFadeSec) は「clipB の終端の endingFadeSec 秒前」。
     fade(frame(), {
       duration: openingTiming.fadeIn,
       in: openingTiming.fadeIn,
@@ -212,51 +290,12 @@ export default timeline([
       out: endingFadeSec,
     }),
   ],
-  // layer 5・6: 発話。narration() が [暗がり layer, 発話 layer] の 2 layer
-  // を返す。配列の最後に置くと、この 2 layer は他のどの layer よりも上に
-  // 重なる (「配列の後ろが上」)。章タイトルの表示中 (〜7.4 秒) と重ならない
-  // よう、最初の発話を 8 秒以降に置いている。写真紹介・ED の表示中に発話が
-  // 重なっても構わない (この配置では字幕・暗がりが写真紹介・ED より上に
-  // 重なって見える。重なる/重ならないも layer の順で決まる例)。
-  //
-  // text は文字列リテラルで書くこと (watcher が timeline.ts を静的に読む。
-  // 変数や関数呼び出しは使えない)。voice に書けるのはリテラル・spread・
-  // 同じファイルの const・theme からの import に限る。voice の 8 値:
-  // speaker (VOICEVOX のスタイル id)、speed・intonation・volume・pause は
-  // 倍率で 1 が中立、pitch はオフセットで 0 が中立、silenceBefore・
-  // silenceAfter は秒。音声は public/projects/<slug>/lines/<key>.{wav,json}
-  // にキャッシュされ、コミットしない。text か voice を変えると別の key に
-  // なり再生成される。
-  //
-  // 1 本目: voice を省略すると theme の narrator (既定話者) になる。
-  // {漢字|よみ} で読みを添えられる。at は絶対秒。
-  //
-  // 2 本目: voice にファイル内の const (calm、theme の narrator の差分) を
-  // 渡している。after は「前の発話の音声の終わりからの間隔 (秒)」。
-  //
-  // 3 本目: duration を明示すると、位置決め・字幕の尺の両方にその値を
-  // そのまま使う (音声の実尺では上書きしない)。字幕を長めに出したいときに
-  // 使う。暗がりは字幕が消えるまで出る (duration を明示していれば、その分
-  // 長く出る)。
-  ...(await narration([
-    cut(
-      line({
-        text: "{磐梯吾妻|ばんだいあづま}スカイラインを登って、{浄土平|じょうどだいら}へ向かう。",
-      }),
-      { at: 8 },
-    ),
-    cut(
-      line({
-        text: "今日は雲が多いけど、風は無くて走りやすい。",
-        voice: calm,
-      }),
-      { after: 0.5 },
-    ),
-    cut(
-      line({
-        text: "{浄土平|じょうどだいら}の展望台に着いた。少し休憩していこう。",
-      }),
-      { after: 1, duration: 4 },
-    ),
-  ])),
+  // layer 6・7: 発話。n.layers ([暗がり layer, 発話 layer]、上で解決済みの
+  // narration() の結果) を配列の最後に置くと、この 2 layer は他のどの
+  // layer よりも上に重なる (「配列の後ろが上」)。章タイトルの表示中
+  // (〜7.4 秒) と重ならないよう、最初の発話を 8 秒以降に置いている
+  // (narration() への入力は上で定義した n を参照)。写真紹介・ED の表示中に
+  // 発話が重なっても構わない (この配置では字幕・暗がりが写真紹介・ED より
+  // 上に重なって見える。重なる/重ならないも layer の順で決まる例)。
+  ...n.layers,
 ]);

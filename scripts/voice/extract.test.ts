@@ -12,16 +12,33 @@ const NARRATION_TS = fileURLToPath(
   new URL("../../src/compositions/narration.ts", import.meta.url),
 );
 
-const lineSpecifierFor = (dir: string): string => {
-  const rel = path.relative(dir, NARRATION_TS).split(path.sep).join("/");
+// isCharacterCall (#39) も同様に、実在する src/compositions/character.ts
+// (character の実体) への相対パスで import する。
+const CHARACTER_TS = fileURLToPath(
+  new URL("../../src/compositions/character.ts", import.meta.url),
+);
+
+const specifierFor = (dir: string, target: string): string => {
+  const rel = path.relative(dir, target).split(path.sep).join("/");
 
   return rel.startsWith(".") ? rel : `./${rel}`;
 };
+
+const lineSpecifierFor = (dir: string): string =>
+  specifierFor(dir, NARRATION_TS);
+
+const characterSpecifierFor = (dir: string): string =>
+  specifierFor(dir, CHARACTER_TS);
 
 const lineImportFor = (dir: string, localName = "line"): string =>
   localName === "line"
     ? `import { line } from "${lineSpecifierFor(dir)}";`
     : `import { line as ${localName} } from "${lineSpecifierFor(dir)}";`;
+
+const characterImportFor = (dir: string, localName = "character"): string =>
+  localName === "character"
+    ? `import { character } from "${characterSpecifierFor(dir)}";`
+    : `import { character as ${localName} } from "${characterSpecifierFor(dir)}";`;
 
 // fs に書かず、path 計算だけに使う架空の timeline.ts のパス
 // (projects/<slug>/timeline.ts と同じ深さに置く。実プロジェクトの import
@@ -52,13 +69,26 @@ afterEach(() => {
  * tmp ディレクトリに theme.ts と timeline.ts を書き出し、timeline.ts の
  * 絶対パスを返す。timeline.ts の先頭には実物の narration.ts から line を
  * import する行を自動で足す (呼び出し側の timelineSource はそれに続く本文)。
+ * timelineSource・otherFiles の値関数は実際に生成される dir を受け取る
+ * (character.ts への相対 specifier は dir から計算するため)。
  */
-const setupProject = (timelineSource: string): string => {
+const setupProject = (
+  timelineSource: string | ((dir: string) => string),
+  otherFiles: Record<string, (dir: string) => string> = {},
+): string => {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), "extract-test-"));
   tmpDirs.push(dir);
   fs.writeFileSync(path.join(dir, "theme.ts"), THEME_SOURCE);
+
+  for (const [name, content] of Object.entries(otherFiles)) {
+    fs.writeFileSync(path.join(dir, name), content(dir));
+  }
+
+  const resolvedSource =
+    typeof timelineSource === "function" ? timelineSource(dir) : timelineSource;
+
   const timelinePath = path.join(dir, "timeline.ts");
-  fs.writeFileSync(timelinePath, `${lineImportFor(dir)}\n${timelineSource}`);
+  fs.writeFileSync(timelinePath, `${lineImportFor(dir)}\n${resolvedSource}`);
   return timelinePath;
 };
 
@@ -291,5 +321,286 @@ describe("extractLines", () => {
     await expect(extractLines(source, timelinePath)).rejects.toThrow(
       /読み込めません/,
     );
+  });
+
+  it("line() に未知のプロパティがあれば位置付きエラーになる", async () => {
+    const source = `${LINE_IMPORT}\nline({ text: "a", foo: 1 });`;
+
+    await expect(extractLines(source, FILE)).rejects.toThrow(
+      /timeline\.ts:2:\d+.*未知のプロパティ/,
+    );
+  });
+
+  describe("by (ADR-0011)", () => {
+    const CHARACTER_IMPORT = characterImportFor(FILE_DIR);
+
+    it("同じファイルの const (character() の呼び出し) の voice を読み、expressions は評価しない", async () => {
+      // unresolved() は評価すれば throw する関数呼び出し。expressions に
+      // 置いても読み飛ばされ (voice しか読まない)、エラーにならないことで
+      // expressions を評価していないことを示す。
+      const source = `${LINE_IMPORT}
+        ${CHARACTER_IMPORT}
+        const ryusei = character({
+          voice: { speaker: 13 },
+          expressions: { normal: [unresolved()] },
+        });
+        line({ text: "a", by: ryusei });
+      `;
+
+      await expect(extractLines(source, FILE)).resolves.toEqual([
+        { text: "a", voice: { speaker: 13 } },
+      ]);
+    });
+
+    it("同じファイルの const の voice に theme からの spread を渡せる", async () => {
+      const timelinePath = setupProject(
+        (dir) => `
+          ${characterImportFor(dir)}
+          import { narrator } from "./theme.ts";
+          const ryusei = character({
+            voice: { ...narrator, speed: 0.9 },
+            expressions: { normal: [] },
+          });
+          line({ text: "a", by: ryusei });
+        `,
+      );
+      const source = fs.readFileSync(timelinePath, "utf-8");
+
+      await expect(extractLines(source, timelinePath)).resolves.toEqual([
+        { text: "a", voice: { speaker: 13, speed: 0.9, pitch: 0 } },
+      ]);
+    });
+
+    it("import した character (別モジュールの export) の voice を読む", async () => {
+      const timelinePath = setupProject(
+        `
+          import { ryusei } from "./characters.ts";
+          line({ text: "a", by: ryusei });
+        `,
+        {
+          "characters.ts": (dir) => `
+            ${characterImportFor(dir)}
+            export const ryusei = character({
+              voice: { speaker: 20 },
+              expressions: { normal: ["body.png"] },
+            });
+          `,
+        },
+      );
+      const source = fs.readFileSync(timelinePath, "utf-8");
+
+      await expect(extractLines(source, timelinePath)).resolves.toEqual([
+        { text: "a", voice: { speaker: 20 } },
+      ]);
+    });
+
+    it("line().voice が by.voice を上書きする", async () => {
+      const source = `${LINE_IMPORT}
+        ${CHARACTER_IMPORT}
+        const ryusei = character({
+          voice: { speaker: 13, speed: 1 },
+          expressions: { normal: [] },
+        });
+        line({ text: "a", by: ryusei, voice: { speed: 0.9 } });
+      `;
+
+      await expect(extractLines(source, FILE)).resolves.toEqual([
+        { text: "a", voice: { speaker: 13, speed: 0.9 } },
+      ]);
+    });
+
+    it("by に voice が無ければ line() に voice が付かない", async () => {
+      const source = `${LINE_IMPORT}
+        ${CHARACTER_IMPORT}
+        const ryusei = character({ expressions: { normal: [] } });
+        line({ text: "a", by: ryusei });
+      `;
+
+      await expect(extractLines(source, FILE)).resolves.toEqual([
+        { text: "a" },
+      ]);
+    });
+
+    it("character 経由の import エイリアスでも通る", async () => {
+      const source = `${LINE_IMPORT}
+        import { character as c } from "${characterSpecifierFor(FILE_DIR)}";
+        const ryusei = c({ voice: { speaker: 13 }, expressions: { normal: [] } });
+        line({ text: "a", by: ryusei });
+      `;
+
+      await expect(extractLines(source, FILE)).resolves.toEqual([
+        { text: "a", voice: { speaker: 13 } },
+      ]);
+    });
+
+    it("character() の voice を shorthand ({ voice }) で書いても読める (#4)", async () => {
+      const source = `${LINE_IMPORT}
+        ${CHARACTER_IMPORT}
+        const voice = { speaker: 13 };
+        const ryusei = character({ voice, expressions: { normal: [] } });
+        line({ text: "a", by: ryusei });
+      `;
+
+      await expect(extractLines(source, FILE)).resolves.toEqual([
+        { text: "a", voice: { speaker: 13 } },
+      ]);
+    });
+
+    it('character() の voice を文字列リテラルキー ("voice": ...) で書いても読める (#4)', async () => {
+      const source = `${LINE_IMPORT}
+        ${CHARACTER_IMPORT}
+        const ryusei = character({ "voice": { speaker: 13 }, expressions: { normal: [] } });
+        line({ text: "a", by: ryusei });
+      `;
+
+      await expect(extractLines(source, FILE)).resolves.toEqual([
+        { text: "a", voice: { speaker: 13 } },
+      ]);
+    });
+
+    it("character() の引数に spread があれば位置付きエラーになる (#4)", async () => {
+      const source = `${LINE_IMPORT}
+        ${CHARACTER_IMPORT}
+        const base = { voice: { speaker: 13 } };
+        const ryusei = character({ ...base, expressions: { normal: [] } });
+        line({ text: "a", by: ryusei });
+      `;
+
+      await expect(extractLines(source, FILE)).rejects.toThrow(
+        /character\(\) の引数は voice を「voice: 式」か「voice」の形で書き、spread と computed key は使えません/,
+      );
+    });
+
+    it('character() の引数の voice が computed property name (["voice"]: ...) なら位置付きエラーになる (#16)', async () => {
+      const source = `${LINE_IMPORT}
+        ${CHARACTER_IMPORT}
+        const ryusei = character({ ["voice"]: { speaker: 13 }, expressions: { normal: [] } });
+        line({ text: "a", by: ryusei });
+      `;
+
+      await expect(extractLines(source, FILE)).rejects.toThrow(
+        /character\(\) の引数は voice を「voice: 式」か「voice」の形で書き、spread と computed key は使えません/,
+      );
+    });
+
+    it("character() の引数の voice が getter の形なら専用のエラーになる (#18)", async () => {
+      const source = `${LINE_IMPORT}
+        ${CHARACTER_IMPORT}
+        const ryusei = character({
+          get voice() { return { speaker: 13 }; },
+          expressions: { normal: [] },
+        });
+        line({ text: "a", by: ryusei });
+      `;
+
+      await expect(extractLines(source, FILE)).rejects.toThrow(
+        /character\(\) の引数の voice はメソッド・getter の形では書けません \(「voice: 式」か「voice」で書いてください\)/,
+      );
+    });
+
+    it("character() の引数の voice がメソッドの形なら専用のエラーになる (#18)", async () => {
+      const source = `${LINE_IMPORT}
+        ${CHARACTER_IMPORT}
+        const ryusei = character({
+          voice() { return { speaker: 13 }; },
+          expressions: { normal: [] },
+        });
+        line({ text: "a", by: ryusei });
+      `;
+
+      await expect(extractLines(source, FILE)).rejects.toThrow(
+        /character\(\) の引数の voice はメソッド・getter の形では書けません \(「voice: 式」か「voice」で書いてください\)/,
+      );
+    });
+
+    it("expression (文字列リテラル) は読み飛ばされ、出力に含まれない", async () => {
+      const source = `${LINE_IMPORT}
+        ${CHARACTER_IMPORT}
+        const ryusei = character({
+          voice: { speaker: 13 },
+          expressions: { normal: [] },
+        });
+        line({ text: "a", by: ryusei, expression: "normal" });
+      `;
+
+      await expect(extractLines(source, FILE)).resolves.toEqual([
+        { text: "a", voice: { speaker: 13 } },
+      ]);
+    });
+
+    it("expression が非リテラルなら位置付きエラーになる", async () => {
+      const source = `${LINE_IMPORT}
+        ${CHARACTER_IMPORT}
+        const ryusei = character({ expressions: { normal: [] } });
+        const e = "normal";
+        line({ text: "a", by: ryusei, expression: e });
+      `;
+
+      await expect(extractLines(source, FILE)).rejects.toThrow(/リテラル/);
+    });
+
+    it("by が識別子でなければ位置付きエラーになる", async () => {
+      const source = `${LINE_IMPORT}\nline({ text: "a", by: { voice: {} } });`;
+
+      await expect(extractLines(source, FILE)).rejects.toThrow(
+        /line\(\)\.by は識別子で書いてください/,
+      );
+    });
+
+    it("by が指す const が character() の呼び出しでなければ位置付きエラーになる", async () => {
+      const source = `${LINE_IMPORT}
+        const notACharacter = { voice: { speaker: 13 } };
+        line({ text: "a", by: notACharacter });
+      `;
+
+      await expect(extractLines(source, FILE)).rejects.toThrow(
+        /character\(\) の呼び出しで書いてください/,
+      );
+    });
+  });
+
+  describe("loadModule のキャッシュバスト (#1)", () => {
+    it("import 先のファイルを書き換えて mtime が変われば、再抽出で新しい voice を読む", async () => {
+      const characterSource = (voice: number) => (dir: string) => `
+        ${characterImportFor(dir)}
+        export const ryusei = character({
+          voice: { speaker: ${voice} },
+          expressions: { normal: ["body.png"] },
+        });
+      `;
+
+      const timelinePath = setupProject(
+        `
+          import { ryusei } from "./characters.ts";
+          line({ text: "a", by: ryusei });
+        `,
+        { "characters.ts": characterSource(1) },
+      );
+      const source = fs.readFileSync(timelinePath, "utf-8");
+
+      await expect(extractLines(source, timelinePath)).resolves.toEqual([
+        { text: "a", voice: { speaker: 1 } },
+      ]);
+
+      const charactersPath = path.join(
+        path.dirname(timelinePath),
+        "characters.ts",
+      );
+      fs.writeFileSync(
+        charactersPath,
+        characterSource(2)(path.dirname(timelinePath)),
+      );
+
+      // 同一プロセス内の書き込みは mtime が変わらないことがある (整数秒
+      // 粒度のファイルシステム等) ため、明示的に未来へずらす (dev 中の
+      // 実際の再保存でも mtime さえ変われば再読み込みされることの確認)。
+      const futureEpochSeconds =
+        Temporal.Now.instant().epochMilliseconds / 1000 + 60;
+      fs.utimesSync(charactersPath, futureEpochSeconds, futureEpochSeconds);
+
+      await expect(extractLines(source, timelinePath)).resolves.toEqual([
+        { text: "a", voice: { speaker: 2 } },
+      ]);
+    });
   });
 });

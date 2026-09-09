@@ -1,0 +1,20 @@
+.box {
+  position: absolute;
+  left: var(--figure-inset);
+  bottom: 0;
+  width: var(--figure-box-width);
+  height: var(--figure-box-height);
+  overflow: hidden;
+}
+
+.figure {
+  filter: drop-shadow(var(--shadow-figure));
+}
+
+.img {
+  position: absolute;
+  left: var(--figure-image-offset);
+  top: 0;
+  height: var(--figure-image-height);
+  width: auto;
+}

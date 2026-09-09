@@ -8,6 +8,8 @@ import {
   toFrameSpan,
   transitionFrames,
 } from "./frames.ts";
+import { isSample } from "./sample.ts";
+import type { SampleTime } from "./sample.ts";
 import type {
   FrameMarker,
   ResolvedFadeItem,
@@ -34,7 +36,8 @@ const isFrameItem = (
  * `crossfade` で直前と繋がる item は、その内側を `<FadeLayer>` で包み
  * 遷移区間の opacity を 0 から 1 に上げる (fade の場合は FadeLayer の外側
  * に置き、乗算にする)。`frame()` を含む layer は、それより下の layer の
- * 合成結果を `<FrameEffects>` で包む (AviUtl のフレームバッファ型)。動画の
+ * 合成結果を `<FrameEffects>` で包む (AviUtl のフレームバッファ型)。
+ * `sample()` の item は `<Sampled>` が毎フレーム render を呼ぶ。動画の
  * ドメイン (章・写真・ED 等) は知らず、ReactNode と秒だけを扱う。
  */
 export const Stage: React.FC<Props> = ({ timeline }) => {
@@ -55,7 +58,13 @@ export const Stage: React.FC<Props> = ({ timeline }) => {
             fps,
           );
 
-          const node = item.node as React.ReactNode;
+          const rawNode = item.node;
+
+          const node: React.ReactNode = isSample(rawNode) ? (
+            <Sampled render={rawNode.render} from={from} fps={fps} />
+          ) : (
+            (rawNode as React.ReactNode)
+          );
 
           const body =
             item.kind === "fade" ? (
@@ -121,6 +130,25 @@ export const Stage: React.FC<Props> = ({ timeline }) => {
         {below}
       </AbsoluteFill>
     </ThemeRoot>
+  );
+};
+
+/**
+ * sample() の node を毎フレーム呼ぶ。`from` は Sequence の from (toFrameSpan
+ * の結果) で、絶対秒 (SampleTime.absolute) の計算に使う。Sequence の内側で
+ * 使うため useCurrentFrame() は 0 起点。
+ */
+const Sampled: React.FC<{
+  render: (t: SampleTime) => React.ReactNode;
+  from: number;
+  fps: number;
+}> = ({ render, from, fps }) => {
+  const frame = useCurrentFrame();
+
+  return (
+    <>
+      {render({ frame, seconds: frame / fps, absolute: (from + frame) / fps })}
+    </>
   );
 };
 

@@ -31,8 +31,8 @@
     "dev": "tsx scripts/dev.ts",
     "build": "remotion bundle",
     "upgrade": "remotion upgrade",
-    "lint": "eslint src scripts projects vitest.config.mts && tsc && prettier --check src scripts projects eslint.config.mjs vitest.config.mts remotion.config.ts",
-    "fix": "eslint --fix src scripts projects vitest.config.mts && prettier --write src scripts projects eslint.config.mjs vitest.config.mts remotion.config.ts",
+    "lint": "eslint src scripts projects characters vitest.config.mts && tsc && prettier --check src scripts projects characters eslint.config.mjs vitest.config.mts remotion.config.ts",
+    "fix": "eslint --fix src scripts projects characters vitest.config.mts && prettier --write src scripts projects characters eslint.config.mjs vitest.config.mts remotion.config.ts",
     "test": "vitest run",
     "convert": "tsx scripts/convert-movie.ts",
     "render": "tsx scripts/voice.ts && remotion render Motovlog"

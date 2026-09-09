@@ -38,6 +38,7 @@ npm run convert -- 20260817-jododaira /mnt/c/path/to/DASHCAM_20260816_133345.MP4
 - layer 1 以降 (OP・章タイトル・注釈・写真紹介等): `fade`・`cut` と要素ファクトリ (`thumbnail`・`chapterTitle`・`annotation`・`photoShowcase`) を組み合わせる。位置は省略 (直前の item の終端に連結)・`after: n` (直前の終端から n 秒後)・`at: n` (絶対秒) のいずれかで指定する。
 - 走行映像の切り替え等は `crossfade({ duration })` を item の間に置いて遷移させる。別 layer の item の開始・終端を基準にした位置指定には `at: start(item, offset?)` / `at: end(item, offset?)` を使う。
 - 発話 (セリフ): `line()`・`narration()` で書く。書き方は README の「発話」参照。
+- 立ち絵: 既存のキャラクターを使うなら `characters/<name>.ts` を import するだけでよい。新しいキャラクターなら `characters/<name>.ts` を書き (既存のものをコピーして直すのが早い)、PNG を `public/assets/characters/<name>/` に置く。`figure()` で layer に置く書き方は README の「立ち絵」参照。
 - layer 内の item は時間が重ならないようにする。重なりや順序の乱れがあると `timeline()` が起動時に throw する。例外は `crossfade` で、遷移の尺だけ直後の item が直前の item に重なる。
 
 項目の一覧と既定値は README の「timeline.ts の書き方」にある。

@@ -17,7 +17,11 @@ export const subtitleTiming = { tail: 0.4 } as const;
 /** 章タイトルの出入りのタイミング (T&M「出入りのタイミング」節)。 */
 export const chapterTiming = { fade: 0.2, hold: 2 } as const; // 6f / 60f / 6f at 30fps
 /** 立ち絵の出入りのタイミング (T&M「出入りのタイミング」節)。 */
-export const characterTiming = { fade: 0.2 } as const; // 6f at 30fps
+export const characterTiming = {
+  fade: 0.2, // 6f at 30fps
+  blinkInterval: 4, // 目パチの周期 (秒)。区間の頭は開眼、末尾で閉じる
+  blinkClosed: 0.1, // 閉眼の尺 (秒)。blinkInterval の末尾側に置く
+} as const;
 /** OP の尺とフェードイン秒 (黒地から)。フェードアウトは無し。 */
 export const openingTiming = { duration: 4.8, fadeIn: 0.4 } as const; // 黒から 0.4 秒
 /** ED の尺。カットイン、フェードなし。 */

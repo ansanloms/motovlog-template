@@ -5,6 +5,7 @@ import { crossfade } from "./crossfade.ts";
 import { cut } from "./cut.ts";
 import { fade } from "./fade.ts";
 import { frame, isFrame } from "./frame.ts";
+import { isSample, sample } from "./sample.ts";
 import { timeline } from "./timeline.ts";
 import type { CutItem, FadeItem } from "./types.ts";
 
@@ -539,5 +540,23 @@ describe("timeline: anchor (start/end)", () => {
     const a = cut(null, { duration: 1 });
 
     expect(() => start(a, Number.NaN)).toThrow();
+  });
+});
+
+describe("timeline: sample()", () => {
+  it("cut(sample(...), ...) の node は isSample を満たす", () => {
+    const render = (): null => null;
+
+    const result = timeline([[cut(sample(render), { duration: 1 })]]);
+
+    expect(isSample(result.layers[0][0].node)).toBe(true);
+  });
+
+  it("fade(sample(...), ...) の node は isSample を満たす", () => {
+    const render = (): null => null;
+
+    const result = timeline([[fade(sample(render), { duration: 1, in: 0.5 })]]);
+
+    expect(isSample(result.layers[0][0].node)).toBe(true);
   });
 });

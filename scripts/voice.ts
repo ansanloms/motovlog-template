@@ -195,9 +195,31 @@ export const run = async (args: readonly string[]): Promise<RunHandle> => {
     }
   });
 
+  // line() の by は characters/<name>.ts の voice を辿るため (ADR-0011)、
+  // そちらの変更でも再生成する。timeline.ts 自体は変わらないため、上の
+  // ディレクトリ監視だけでは拾えない。projectDir の監視と同じく非
+  // 再帰で張る (characters/ にサブディレクトリは無い想定)。
+  const charactersDir = path.join(repoRoot, "characters");
+  let charactersWatcher: fs.FSWatcher | undefined;
+
+  if (fs.existsSync(charactersDir)) {
+    charactersWatcher = fs.watch(charactersDir, (_eventType, filename) => {
+      if (filename?.endsWith(".ts")) {
+        requestRun();
+      }
+    });
+  } else {
+    process.stderr.write("warn: characters/ が無いため監視しません\n");
+  }
+
   process.stdout.write(`watch: ${projectDir}\n`);
 
-  return { close: () => watcher.close() };
+  return {
+    close: () => {
+      watcher.close();
+      charactersWatcher?.close();
+    },
+  };
 };
 
 // tsx で直接実行されたときだけ CLI として動く (scripts/dev.ts からの import では動かない)。

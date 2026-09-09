@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import { isFrame } from "./frame.ts";
+import type { SampleNode } from "./sample.ts";
 import type { CutItem, PendingCutItem, Placement } from "./types.ts";
 
 /** cut() に渡すオプション。 */
@@ -16,11 +17,15 @@ type CutOptions = Placement & {
  * 呼ばれた場合に備えて実行時にも throw する。duration を省くと
  * PendingCutItem になり、narration() だけが duration (発話の実尺) を
  * 埋めて layer に置ける (普通の layer に直接置くと型エラーになる)。
+ * sample() (SampleNode) も node に渡せる (Stage が毎フレーム render を呼ぶ)。
  */
-export function cut(node: ReactNode, options: CutOptions): CutItem;
-export function cut(node: ReactNode, options: Placement): PendingCutItem;
+export function cut(node: ReactNode | SampleNode, options: CutOptions): CutItem;
 export function cut(
-  node: ReactNode,
+  node: ReactNode | SampleNode,
+  options: Placement,
+): PendingCutItem;
+export function cut(
+  node: ReactNode | SampleNode,
   options: CutOptions | Placement,
 ): CutItem | PendingCutItem {
   const { at, after } = options;
