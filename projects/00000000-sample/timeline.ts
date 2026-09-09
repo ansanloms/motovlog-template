@@ -31,11 +31,11 @@ import {
   chapterTitle,
   ending,
   photoShowcase,
-  thumbnail,
   video,
 } from "../../src/components/index.tsx";
 import { figure } from "../../src/compositions/figure.ts";
 import { line, narration } from "../../src/compositions/narration.ts";
+import { thumbnail } from "../../src/compositions/thumbnail.ts";
 import {
   crossfade,
   cut,
@@ -197,7 +197,7 @@ export default timeline([
         photo: asset("photos/photo-03.jpg"),
         badge: "#0 福島 / 磐梯吾妻スカイライン",
         title: "浄土平まで\n走ってきた",
-        character: staticFile("assets/characters/4.png"),
+        character: ryusei,
       }),
       { duration: openingTiming.duration },
     ),

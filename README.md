@@ -39,8 +39,7 @@ slug の日付部分は `00000000` にしている (実際の project は `YYYYM
 | `public/projects/00000000-sample/VID_20260802_074903_00_287_359_DASHCAM1.mp4` | ドラレコの変換済み素材。`npm run convert -- 00000000-sample <原本>` で作る。別のファイルを使うなら timeline.ts の `src` を出力名に合わせる |
 | `public/projects/00000000-sample/photos/photo-03.jpg`                         | サムネに使う走行写真                                                                                                                       |
 | `public/projects/00000000-sample/photos/photo-01.jpg`・`photo-02.jpg`         | 写真紹介に使う走行写真                                                                                                                     |
-| `public/assets/characters/4.png`                                              | サムネに使う立ち絵の png                                                                                                                   |
-| `public/assets/characters/ryusei/*.png`                                       | 立ち絵 (`figure()`) のパーツ一式。`characters/ryusei.ts` が参照する                                                                        |
+| `public/assets/characters/ryusei/*.png`                                       | 立ち絵 (`figure()`・サムネの `thumbnail()`) のパーツ一式。`characters/ryusei.ts` が参照する                                                |
 | `public/assets/bgm/m1.wav`                                                    | サンプルの BGM (`audio()` の例)                                                                                                             |
 
 素材が手元に無い場合、走行映像は次の ffmpeg で同名の合成素材を作れば代わりに使える。既に同名のファイルがあれば `-n` により上書きせずに終了する。
@@ -50,7 +49,7 @@ mkdir -p public/projects/00000000-sample
 ffmpeg -n -f lavfi -i testsrc=size=1920x1080:rate=30:duration=40 -pix_fmt yuv420p public/projects/00000000-sample/VID_20260802_074903_00_287_359_DASHCAM1.mp4
 ```
 
-写真 (`photos/photo-01.jpg`・`photo-02.jpg`・`photo-03.jpg`) と立ち絵 (`assets/characters/4.png`) はイラスト素材で ffmpeg では代替できない。手元の JPG/PNG を同名で置けばサムネ・写真紹介の見た目は仮のものになるが Studio と render は動く。代替の合成動画は変換済み素材と同じファイル名なので、実素材に切り替えるときは代替ファイルを消してから `npm run convert -- 00000000-sample <原本>` を実行する (既存があると skip される)。
+写真 (`photos/photo-01.jpg`・`photo-02.jpg`・`photo-03.jpg`) と立ち絵 (`assets/characters/ryusei/*.png`) はイラスト素材で ffmpeg では代替できない。手元の JPG/PNG を同名で置けばサムネ・写真紹介の見た目は仮のものになるが Studio と render は動く。代替の合成動画は変換済み素材と同じファイル名なので、実素材に切り替えるときは代替ファイルを消してから `npm run convert -- 00000000-sample <原本>` を実行する (既存があると skip される)。
 
 立ち絵 PNG (`public/assets/characters/ryusei/`) が無い場合は、サンプルの立ち絵 layer (layer 2) と `line()` の `by`・`expression` を外すか、`characters/ryusei.ts` の各パーツを手持ちの同一キャンバスの PNG に差し替える。
 
@@ -62,7 +61,9 @@ timeline 定義は `projects/<slug>/timeline.ts` が `export default` する、`
 
 ```ts
 import { staticFile } from "remotion";
-import { chapterTitle, thumbnail, video } from "../../src/components/index.tsx";
+import { ryusei } from "../../characters/ryusei.ts";
+import { chapterTitle, video } from "../../src/components/index.tsx";
+import { thumbnail } from "../../src/compositions/thumbnail.ts";
 import { cut, fade, timeline } from "../../src/effects/index.ts";
 import {
   chapterTiming,
@@ -85,7 +86,7 @@ export default timeline([
         photo: asset("photos/photo-01.jpg"),
         badge: "#1 福島 / 磐梯吾妻スカイライン",
         title: "浄土平まで\n走ってきた",
-        character: staticFile("assets/characters/4.png"),
+        character: ryusei,
       }),
       { duration: openingTiming.duration, in: openingTiming.fadeIn },
     ),
@@ -119,7 +120,6 @@ layer 内の item と item の間には `crossfade({ duration })` を置ける�
 | ---------------------- | ---------------------------------------------------------------------------------------- |
 | `video(props)`         | 走行映像。`src` (staticFile() 済み URL)・`trimBefore?` (秒)・`volume?`                   |
 | `audio(props)`         | 音声。`src` (staticFile() 済み URL)・`trimBefore?` (秒)・`volume?`・`loop?`              |
-| `thumbnail(props)`     | OP・サムネ用フレームの絵。`photo`・`badge`・`title`・`character`                         |
 | `chapterTitle(props)`  | 章タイトル。`title`・`subtitle`                                                          |
 | `annotation(props)`    | 右端の縦書き注釈。`text`                                                                 |
 | `photoShowcase(props)` | 写真紹介 (1〜2 枚)。`photos`                                                             |
@@ -127,7 +127,7 @@ layer 内の item と item の間には `crossfade({ duration })` を置ける�
 | `subtitle(props)`      | セリフ字幕の文字。`text` (通常は `narration()` が組むので直接は使わない)                 |
 | `subtitleBand({})`     | 字幕下の暗がり (props は無いが引数は要る、通常は `narration()` が組むので直接は使わない) |
 
-立ち絵の `figure()` は要素ファクトリではなく `line()`・`narration()` と同じ `src/compositions` に置く (「立ち絵」参照。src/effects の `sample()` を使うため)。
+立ち絵の `figure()` は要素ファクトリではなく `line()`・`narration()` と同じ `src/compositions` に置く (「立ち絵」参照。src/effects の `sample()` を使うため)。サムネ・OP の絵の `thumbnail(props)` も同じく `src/compositions` に置く (`photo`・`badge`・`title`・`character` (`character()` の戻り値)・`expression?` (省略時は `expressions` の最初のキー) を受け、`character()` の表情名の解決 (`figureLayers()`) を伴うため、ADR-0011 の禁止事項により src/components 単体では書けない)。
 
 `volume` は一定値 (数値、0 以上 1 以下) または折れ線 (`{ at, volume }[]`、各点の `volume` も 0 以上 1 以下) で指定する。`at` は要素の再生開始 (`trimBefore` 適用後) からの秒で、点の間は線形補間する。最初の点より前は最初の点の値、最後の点より後は最後の点の値でクランプする。省略時は 1。`audio()` の `loop` と折れ線を併用しても `at` は周回をまたいだ通算秒として扱う (`loopVolumeCurveBehavior="extend"`)。
 

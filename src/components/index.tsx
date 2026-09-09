@@ -6,18 +6,14 @@ import { Ending } from "./Ending.tsx";
 import { PhotoShowcase } from "./PhotoShowcase.tsx";
 import { Subtitle } from "./Subtitle.tsx";
 import { SubtitleBand } from "./SubtitleBand.tsx";
-import { Thumbnail } from "./Thumbnail.tsx";
 import { Video } from "./Video.tsx";
 import { assertVolume } from "./volume.ts";
 
-/**
- * timeline.ts から各コンポーネントを関数呼び出しで並べられるようにする要素
- * ファクトリ。props の型は各コンポーネントの `ComponentProps` をそのまま
- * 使うので、component 側 (このファイル以外) は無変更で済む。
- */
-export const thumbnail = (props: React.ComponentProps<typeof Thumbnail>) => (
-  <Thumbnail {...props} />
-);
+// timeline.ts から各コンポーネントを関数呼び出しで並べられるようにする要素
+// ファクトリ。props の型は各コンポーネントの `ComponentProps` をそのまま
+// 使うので、component 側 (このファイル以外) は無変更で済む (例:
+// `chapterTitle`)。thumbnail() は表情名の解決を伴うため
+// src/compositions/thumbnail.ts に置く (ADR-0011)。
 
 /** ChapterTitle の要素ファクトリ。 */
 export const chapterTitle = (

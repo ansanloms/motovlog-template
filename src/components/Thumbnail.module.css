@@ -48,11 +48,14 @@
   overflow: hidden;
 }
 
+.character {
+  filter: drop-shadow(var(--shadow-figure));
+}
+
 .characterImg {
   position: absolute;
   left: var(--thumb-character-offset);
   top: 0;
   height: var(--thumb-character-height);
   width: auto;
-  filter: drop-shadow(var(--shadow-figure));
 }
