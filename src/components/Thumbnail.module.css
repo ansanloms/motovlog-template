@@ -39,13 +39,13 @@
   white-space: pre-line;
 }
 
-.characterBox {
+/* 大きさを持たない点。立ち絵の右上を画面の右上から測った位置に置くだけで、切り取りはしない。 */
+.characterAnchor {
   position: absolute;
   right: var(--thumb-character-right);
-  bottom: 0;
-  width: var(--thumb-character-box-width);
-  height: var(--thumb-character-box-height);
-  overflow: hidden;
+  top: var(--thumb-character-top);
+  width: 0;
+  height: 0;
 }
 
 .character {
@@ -55,7 +55,7 @@
 
 .characterImg {
   position: absolute;
-  left: var(--thumb-character-offset);
+  right: 0;
   top: 0;
   height: var(--thumb-character-height);
   width: auto;

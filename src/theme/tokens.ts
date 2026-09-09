@@ -106,11 +106,14 @@ export const thumbLayout = {
   titleShadowAlpha: 0.9,
   scrimAlpha: 0.92,
   // 立ち絵 (画面サンプル C の 1 例目の配置。サムネ配置専用)。
-  characterRight: 10,
-  characterBoxWidth: 562,
-  characterBoxHeight: 933,
-  characterOffset: 43,
-  characterHeight: 1743,
+  // 画面 1920x1080、PNG は 480x1553 (上端の透明余白 12px、足の付け根は全体の 58.3%)。枠は
+  // 切り取らず、立ち絵の右上を画面の右上から測った位置に置くだけ (幅は高さから決まる)。
+  // 現在値では立ち絵は x 1298〜1838.9、髪の先が y 93.5、画面の下端は立ち絵の 57.1%
+  // (足の付け根の直前) で切れる。影 (ぼかし 28px) の縁は左右上の三方で画面内に収まるが、
+  // 下は立ち絵が画面外へ続くため縁が無く、腰から下の切り落としは画面の下端が行う。
+  characterRight: 81, // 画面の右端から立ち絵の右端まで。Claude Design の実寸ではなく Studio で見て決めた値
+  characterTop: 80, // 画面の上端から立ち絵の上端 (PNG の上端) まで
+  characterHeight: 1750,
 } as const;
 
 /** ED (T&M「OP・ED・サムネ用フレーム」節 + 画面サンプル E の実寸 px)。 */

@@ -37,7 +37,7 @@ export const Thumbnail: React.FC<Props> = ({
         <div className={styles.badge}>{badge}</div>
         <div className={styles.title}>{title}</div>
       </div>
-      <div className={styles.characterBox}>
+      <div className={styles.characterAnchor}>
         <div className={styles.character}>
           {character.map((src, index) => (
             <Img key={index} src={src} className={styles.characterImg} />
