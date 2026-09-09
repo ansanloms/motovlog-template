@@ -52,7 +52,7 @@ ffmpeg -n -f lavfi -i testsrc=size=1920x1080:rate=30:duration=40 -pix_fmt yuv420
 
 写真 (`photos/photo-01.jpg`・`photo-02.jpg`・`photo-03.jpg`) と立ち絵 (`assets/characters/4.png`) はイラスト素材で ffmpeg では代替できない。手元の JPG/PNG を同名で置けばサムネ・写真紹介の見た目は仮のものになるが Studio と render は動く。代替の合成動画は変換済み素材と同じファイル名なので、実素材に切り替えるときは代替ファイルを消してから `npm run convert -- 00000000-sample <原本>` を実行する (既存があると skip される)。
 
-立ち絵 PNG (`public/assets/characters/ryusei/`) が無い場合は、サンプルの立ち絵 layer (layer 1) と `line()` の `by`・`expression` を外すか、`characters/ryusei.ts` の各パーツを手持ちの同一キャンバスの PNG に差し替える。
+立ち絵 PNG (`public/assets/characters/ryusei/`) が無い場合は、サンプルの立ち絵 layer (layer 2) と `line()` の `by`・`expression` を外すか、`characters/ryusei.ts` の各パーツを手持ちの同一キャンバスの PNG に差し替える。
 
 素材を置けば Studio と render が動く (`REMOTION_PROJECT` は未設定でよく、既定でこのサンプルを読む)。
 
