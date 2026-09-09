@@ -143,14 +143,14 @@ const calm = { ...narrator, speed: 0.9 };
 const n = await narration([
   cut(
     line({
-      text: "{磐梯吾妻|ばんだいあづま}スカイラインを登って、{浄土平|じょうどだいら}へ向かう。",
+      text: "{磐梯吾妻|ばんだいあづま}スカイラインを登って、\n{浄土平|じょうどだいら}へ向かう。",
       by: ryusei,
     }),
     { at: 8 },
   ),
   cut(
     line({
-      text: "今日は雲が多いけど、風は無くて走りやすい。",
+      text: "今日は雲が多いけど、\n風は無くて走りやすい。",
       by: ryusei,
       voice: calm,
       expression: "sweat",
@@ -159,7 +159,7 @@ const n = await narration([
   ),
   cut(
     line({
-      text: "{浄土平|じょうどだいら}の展望台に着いた。少し休憩していこう。",
+      text: "{浄土平|じょうどだいら}の展望台に着いた。\n少し休憩していこう。",
       by: ryusei,
       expression: "teach",
     }),
@@ -261,8 +261,8 @@ export default timeline([
     }),
   ],
   [
-    // layer 3: 注釈。右端に縦書きで出る補足。text の \n で列を分ける (この
-    // 例は 2 列)。位置は絶対秒 (at)。
+    // layer 3: 注釈。右上に横書きで出る補足。text の \n で改行する (最大
+    // 2 行)。位置は絶対秒 (at)。
     cut(
       annotation({
         text: "磐梯吾妻スカイラインは11月中旬から冬季閉鎖\n（概要欄にリンク）",

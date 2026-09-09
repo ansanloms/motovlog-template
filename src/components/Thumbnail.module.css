@@ -49,7 +49,8 @@
 }
 
 .character {
-  filter: drop-shadow(var(--shadow-figure));
+  filter: drop-shadow(var(--shadow-figure-edge))
+    drop-shadow(var(--shadow-figure));
 }
 
 .characterImg {

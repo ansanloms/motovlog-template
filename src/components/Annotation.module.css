@@ -2,22 +2,13 @@
   position: absolute;
   right: var(--note-right);
   top: var(--note-top);
-  height: var(--note-max-height);
-  writing-mode: vertical-rl;
-  /* 英数字を横倒しにせず 1 文字ずつ正立させる。数字の縦中横は .tcy が持つ。 */
-  text-orientation: upright;
+  max-width: var(--note-max-width);
+  padding: var(--note-padding-y) var(--note-padding-x);
+  background: rgba(0, 0, 0, var(--note-background-alpha));
   white-space: pre-line;
   font-family: var(--font);
   font-size: var(--note);
   font-weight: var(--w-regular);
   color: var(--ink-video);
-  letter-spacing: var(--note-letter-spacing);
   line-height: var(--note-line-height);
-  -webkit-text-stroke: var(--note-stroke-width) var(--black);
-  paint-order: stroke fill;
-}
-
-/* 2〜3 桁の数字を 1 文字分にまとめて正立させる (縦中横)。 */
-.tcy {
-  text-combine-upright: all;
 }

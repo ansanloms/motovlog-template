@@ -14,7 +14,7 @@ export const palette = {
   accentSoft: "#9ed9ac",
   warn: "#c4705f",
   inkVideo: "#f2f4ef", // 映像の上に乗る文字 (パレットに依存しない)
-  black: "#000000", // design の :root には無い。OP のフェード元と注釈の縁取りに使う純黒
+  black: "#000000", // design の :root には無い。OP のフェード元に使う純黒
 } as const;
 
 /** design の `--bg-rgb`・`--surface-rgb` と同名。rgba() の合成用。 */
@@ -28,6 +28,7 @@ export const fontWeight = {
   regular: 400,
   medium: 500,
   semibold: 600,
+  bold: 700,
 } as const;
 
 /**
@@ -40,14 +41,14 @@ export const typeScale = {
   subtitle: 44, // 字幕
   badge: 32, // サムネの話数、ED の値
   label: 26, // CHAPTER n、ED のラベル・上段・下段
-  note: 24, // 縦書きの注釈
+  note: 28, // サンプルの :root は 24px だが本文の注釈は 28px。本文を採る
 } as const;
 
 // T&M「画面配置」節 (字幕)。
 export const subtitleLayout = {
   lineHeight: 1.45,
   bottomOffset: 86,
-  maxWidth: 1690, // 暗がりの左右余白 115px いっぱい (1920 - 115 * 2)
+  maxWidth: 1040, // 左右 440px を空ける (1920 - 440 * 2)
 } as const;
 
 // T&M「画面配置」「字幕の出し方」節。
@@ -57,23 +58,29 @@ export const scrim = {
     "linear-gradient(to top, rgba(0, 0, 0, 0.82), rgba(0, 0, 0, 0.45) 45%, rgba(0, 0, 0, 0))",
 } as const;
 
-/** 章タイトル (T&M「章タイトル」節)。暗がりブロック内の padding 134px 115px 86px。 */
+/** 章タイトル (T&M「章タイトル」節)。暗がりブロック内の padding 134px 115px 126px。 */
 export const chapterLayout = {
   paddingTop: 134,
   paddingSide: 115,
-  paddingBottom: 86,
-  gap: 8,
+  paddingBottom: 126, // 字幕より 40px 上
+  gap: 14,
+  ruleWidth: 40,
+  ruleThickness: 2,
+  ruleGap: 16,
   labelLetterSpacing: "0.12em",
+  titleLetterSpacing: "0.02em",
+  titleIndent: 56, // 章番号の線ぶん (ruleWidth 40 + ruleGap 16)。題名を "CHAPTER n" の文字の頭に揃える
 } as const;
 
-/** 右端の縦書き注釈 (T&M「画面配置」節)。値は design の実寸 px に合わせる。 */
+/** 右上の注釈 (T&M「画面配置」節)。値は design の実寸 px に合わせる。 */
 export const noteLayout = {
   right: 67,
-  top: 77,
-  maxHeight: 768,
-  letterSpacing: "0.04em",
-  lineHeight: 1.7,
-  strokeWidth: 4,
+  top: 67,
+  maxWidth: 760,
+  paddingY: 18,
+  paddingX: 28,
+  backgroundAlpha: 0.62,
+  lineHeight: 1.6,
 } as const;
 
 /** 写真紹介 (T&M「写真紹介」節)。列数に関わらず 1 つの枠を CSS の grid で並べる。 */
@@ -85,7 +92,7 @@ export const photoLayout = {
   gap: 19,
 } as const;
 
-/** OP / サムネ用フレーム (T&M「サムネ」節 + design 第 7 版の実寸 px)。 */
+/** OP / サムネ用フレーム (T&M「サムネ」節 + 画面サンプル C の 1 例目の実寸 px)。 */
 export const thumbLayout = {
   padding: 58,
   gap: 15,
@@ -98,20 +105,21 @@ export const thumbLayout = {
   titleShadowBlur: 12, // design サンプルの text-shadow
   titleShadowAlpha: 0.9,
   scrimAlpha: 0.92,
-  // 立ち絵 (design サンプル C の配置。サムネ配置専用)。
+  // 立ち絵 (画面サンプル C の 1 例目の配置。サムネ配置専用)。
   characterRight: 10,
-  characterBoxWidth: 624,
-  characterBoxHeight: 1037,
-  characterOffset: 48,
-  characterHeight: 1937,
+  characterBoxWidth: 562,
+  characterBoxHeight: 933,
+  characterOffset: 43,
+  characterHeight: 1743,
 } as const;
 
-/** ED (T&M「OP・ED・サムネ用フレーム」節 + design 第 7 版の実寸 px)。 */
+/** ED (T&M「OP・ED・サムネ用フレーム」節 + 画面サンプル E の実寸 px)。 */
 export const endingLayout = {
   paddingY: 115,
   paddingX: 134,
   headerLetterSpacing: "0.24em",
   headerPaddingBottom: 27,
+  promptGap: 20, // 「>」「$」とラベルの間隔
   rowHeight: 92,
   rowPaddingY: 21,
   rowRuleAlpha: 0.9, // rgba(surface, 0.9)
@@ -136,7 +144,8 @@ export const figureLayout = {
 
 /** 立ち絵・写真の影 (T&M「画面配置」「写真紹介」節)。design の :root と同名。 */
 export const shadow = {
-  figure: "0 0 24px rgba(0, 0, 0, 0.5)",
+  figure: "0 0 28px rgba(0, 0, 0, 0.7)",
+  figureEdge: "0 0 2px rgba(0, 0, 0, 0.9)", // 輪郭を締める影
   photo: "0 8px 20px rgba(0, 0, 0, 0.55)",
 } as const;
 

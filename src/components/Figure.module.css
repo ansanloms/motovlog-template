@@ -7,8 +7,14 @@
   overflow: hidden;
 }
 
+.right {
+  left: auto;
+  right: var(--figure-inset);
+}
+
 .figure {
-  filter: drop-shadow(var(--shadow-figure));
+  filter: drop-shadow(var(--shadow-figure-edge))
+    drop-shadow(var(--shadow-figure));
 }
 
 .img {
