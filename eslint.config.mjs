@@ -1,5 +1,57 @@
 import { config } from "@remotion/eslint-config-flat";
 
+/**
+ * lib (src/) が利用側 (app/・theme/・projects/・characters/) を静的に import
+ * することを禁じる patterns (ADR-0012 の禁止事項)。利用側の値は configure()
+ * (src/setup.ts) で受け取る。
+ *
+ * app・projects・characters は lib に同名のディレクトリが無いため名前で判定
+ * できる (lib の project は単数形)。theme だけは lib にも src/theme があり、
+ * 同じ `../theme/...` の見た目になるため、src から出る `../` の数で判定する。
+ * up はそのファイルからリポジトリのルートへ戻る `../` の並びで、src 直下の
+ * ファイルなら "../"、src の 1 段下なら "../../"。
+ *
+ * この検査は import 文の文字列の前方一致で、規約の正本は ADR-0012。次の 2 点で
+ * 近似であることを承知の上で使う。
+ *
+ * - 深さごとにブロックを列挙する (下の SRC_DEPTHS)。src に列挙より深い階層を
+ *   足したら、そこにも対応するブロックを足すこと。
+ * - 正規形で書かれた相対パスだけを見る (`./../theme/...` のような書き方は
+ *   抜ける)。prettier と既存の書き方が正規形なので、実務上はこれで足りる。
+ */
+const noConsumerImports = (up) => [
+  {
+    group: ["**/app/**", "**/projects/**", "**/characters/**"],
+    message:
+      "lib (src/) は利用側 (app/・projects/・characters/) を静的に import しない (ADR-0012)。値は configure() で受け取る。",
+  },
+  {
+    group: [`${up}theme`, `${up}theme/**`],
+    message:
+      "lib (src/) は利用側の theme/ を静的に import しない (ADR-0012)。値は configure() で受け取る。lib の見た目トークンは src/theme/。",
+  },
+];
+
+/**
+ * src 直下から数えた階層の深さごとの設定ブロック。深さ n のファイル
+ * (src/<n-1 段のディレクトリ>/<file>) はルートへ "../" を n 個で戻る。
+ * src/components・src/effects は下に個別のブロックを持つため、そちらにも同じ
+ * patterns を混ぜてある (flat config は同じ rule を後のブロックが置き換える)。
+ */
+const SRC_DEPTHS = [1, 2, 3].map((depth) => {
+  const dirs = "*/".repeat(depth - 1);
+
+  return {
+    files: [`src/${dirs}*.ts`, `src/${dirs}*.tsx`],
+    rules: {
+      "no-restricted-imports": [
+        "error",
+        { patterns: noConsumerImports("../".repeat(depth)) },
+      ],
+    },
+  };
+});
+
 export default [
   ...config,
   {
@@ -49,6 +101,7 @@ export default [
       ],
     },
   },
+  ...SRC_DEPTHS,
   {
     // components は見た目だけを描く。timeline の配線と remotion のフレーム
     // API・媒体要素は持たない。
@@ -58,6 +111,7 @@ export default [
         "error",
         {
           patterns: [
+            ...noConsumerImports("../../"),
             {
               group: ["@remotion/*", "!@remotion/media"],
               message:
@@ -88,6 +142,7 @@ export default [
         "error",
         {
           patterns: [
+            ...noConsumerImports("../../"),
             {
               group: [
                 "**/components/**",

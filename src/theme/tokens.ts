@@ -33,6 +33,27 @@ export type Palette = {
   readonly black: string;
 };
 
+/**
+ * Palette の項目名の一覧。configure() (src/setup.ts) が利用側の palette に
+ * 全項目が揃っているかを見るのに使う。`satisfies Record<keyof Palette, true>`
+ * で Palette と 1 対 1 に縛っており、Palette に項目を足してここに書き忘れると
+ * 型検査で止まる。
+ */
+export const PALETTE_KEYS = Object.keys({
+  bg: true,
+  surface: true,
+  ink: true,
+  inkDim: true,
+  inkFaint: true,
+  line: true,
+  lineStrong: true,
+  accent: true,
+  accentSoft: true,
+  warn: true,
+  inkVideo: true,
+  black: true,
+} satisfies Record<keyof Palette, true>) as readonly (keyof Palette)[];
+
 // T&M「タイポグラフィ」節。
 export const fontWeight = {
   regular: 400,

@@ -7,8 +7,10 @@
 // 評価時に動き、composition の props には関数を載せられず (ADR-0006)、watcher
 // (scripts/voice.ts) は Node で同じ値を要る。
 
+import { PALETTE_KEYS } from "./theme/tokens.ts";
 import type { Palette } from "./theme/tokens.ts";
 import type { Narrator } from "./theme/voice.ts";
+import { VOICE_KEYS } from "./voice/cache.ts";
 
 /** 利用側が持つ見た目と声の値。 */
 export type Theme = {
@@ -33,8 +35,61 @@ export type Setup = {
 
 let current: Setup | undefined;
 
-/** 利用側の入口で 1 回だけ呼ぶ。後から呼べば上書きする。 */
+/** palette の色に許す形。themeCssVars() が rgba() の合成に使う (src/theme/cssVars.ts)。 */
+const HEX_COLOR = /^#[0-9a-f]{6}$/i;
+
+/**
+ * theme の値が揃っているかを見る。揃っていないまま通すと、どちらもエラー無しで
+ * 間違った成果物になるため、入口で止める。
+ *
+ * - narrator: 欠けた項目は resolveVoice() (src/voice/key.ts) が undefined を
+ *   埋め、VOICEVOX ENGINE が黙って既定値で合成する。
+ * - palette: 欠けた項目は themeCssVars() が `undefined` の CSS 変数として流し、
+ *   その色を使う箇所だけが初期値で描かれる。
+ */
+const assertTheme = (theme: Theme): void => {
+  // 利用側の app/config.ts は watcher (scripts/voice.ts) が動的 import() で
+  // 読むため、型の付かない値が来ることがある。unknown として見る。
+  const narrator: Record<string, unknown> = theme?.narrator ?? {};
+  const palette: Record<string, unknown> = theme?.palette ?? {};
+
+  const badVoices = VOICE_KEYS.filter((key) => !Number.isFinite(narrator[key]));
+
+  if (badVoices.length > 0) {
+    throw new Error(
+      `configure(): theme.narrator の項目が数値ではありません: ${badVoices.join("・")}`,
+    );
+  }
+
+  const missingColors = PALETTE_KEYS.filter(
+    (key) => typeof palette[key] !== "string",
+  );
+
+  if (missingColors.length > 0) {
+    throw new Error(
+      `configure(): theme.palette の項目がありません: ${missingColors.join("・")}`,
+    );
+  }
+
+  const badColors = PALETTE_KEYS.filter(
+    (key) => !HEX_COLOR.test(String(palette[key])),
+  );
+
+  if (badColors.length > 0) {
+    throw new Error(
+      `configure(): theme.palette の色は #rrggbb の形で書いてください: ${badColors
+        .map((key) => `${key}=${String(palette[key])}`)
+        .join("・")}`,
+    );
+  }
+};
+
+/**
+ * 利用側の入口で 1 回だけ呼ぶ。後から呼べば上書きする。theme が揃っていなければ
+ * 何も記録せずに throw する。
+ */
 export const configure = (setup: Setup): void => {
+  assertTheme(setup.theme);
   current = setup;
 };
 

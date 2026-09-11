@@ -426,6 +426,107 @@ describe("planTimeline", () => {
     );
   });
 
+  /**
+   * 走行映像 1 本 (frame 0..899) と、その終端を越える BGM 1 本 (frame
+   * 600..1199)。BGM の `音量フェード` のイン・アウトを差し替えて、終端で詰めた
+   * ときの扱いを見る。
+   */
+  const overhangingBgm = (fadeIn: string, fadeOut: string) =>
+    parseAup2(
+      [
+        "[1]",
+        "layer=1",
+        "frame=0,899",
+        "[1.0]",
+        "effect.name=動画ファイル",
+        "再生位置=0.000,30.000,再生範囲,0",
+        "ファイル=C:\\movie\\A.mp4",
+        "[2]",
+        "layer=2",
+        "frame=600,1199",
+        "[2.0]",
+        "effect.name=音声ファイル",
+        "再生位置=0.000,20.000,再生範囲,0",
+        "ファイル=C:\\movie\\m1.wav",
+        "[2.1]",
+        "effect.name=音量フェード",
+        `イン=${fadeIn}`,
+        `アウト=${fadeOut}`,
+      ].join("\r\n"),
+    );
+
+  it("終端で詰めた尺にフェードアウトが収まらなければ throw する", () => {
+    // frame 1199 -> 899 に詰めると尺は 10 秒。アウト 15 秒は収まらない。
+    expect(() =>
+      planTimeline(overhangingBgm("0.00", "15.00"), config()),
+    ).toThrow(
+      "aup2: [2] の終端を走行映像の終端に詰めた (frame 1199 -> 899、尺 10 秒) ため、音量フェード のイン (0 秒) + アウト (15 秒) が収まりません",
+    );
+  });
+
+  it("イン + アウトの合計で見る (片側だけなら収まる値でも throw する)", () => {
+    // 詰めた尺は 10 秒。イン 6 秒・アウト 5 秒はどちらも単独なら収まるが、
+    // 合計 11 秒は収まらない (fade() の in + out > duration と同じ規則)。
+    expect(() =>
+      planTimeline(overhangingBgm("6.00", "5.00"), config()),
+    ).toThrow(
+      "aup2: [2] の終端を走行映像の終端に詰めた (frame 1199 -> 899、尺 10 秒) ため、音量フェード のイン (6 秒) + アウト (5 秒) が収まりません",
+    );
+  });
+
+  it("詰めた尺にフェードアウトが収まるなら詰めたまま写す", () => {
+    expect(
+      planTimeline(overhangingBgm("0.00", "1.00"), config()).audios,
+    ).toEqual([
+      {
+        src: "assets/bgm/m1.wav",
+        trimBefore: 0,
+        volume: [
+          { at: 0, volume: 1 },
+          { at: 9, volume: 1 },
+          { at: 10, volume: 0 },
+        ],
+        at: 24.8,
+        duration: 10,
+      },
+    ]);
+  });
+
+  it("再生位置 が無ければオブジェクト id を添えて throw する", () => {
+    const aup2 = parseAup2(
+      [
+        "[1]",
+        "layer=1",
+        "frame=0,299",
+        "[1.0]",
+        "effect.name=動画ファイル",
+        "ファイル=C:\\movie\\A.mp4",
+      ].join("\r\n"),
+    );
+
+    expect(() => planTimeline(aup2, config())).toThrow(
+      "aup2: [1] に 再生位置 がありません (元動画のどこから使うか決まりません)",
+    );
+  });
+
+  it("再生位置 の開始が数値でなければオブジェクト id を添えて throw する", () => {
+    const aup2 = parseAup2(
+      [
+        "[1]",
+        "layer=1",
+        "frame=0,299",
+        "[1.0]",
+        "effect.name=動画ファイル",
+        "再生位置=,10.000,再生範囲,0",
+        "ファイル=C:\\movie\\A.mp4",
+      ].join("\r\n"),
+    );
+
+    expect(() => planTimeline(aup2, config())).toThrow(
+      /\[1\] の 再生位置 の開始が数値ではありません/,
+    );
+  });
+
   it("走行映像が無ければ throw する", () => {
     expect(() =>
       planTimeline(parseAup2("[1]\nlayer=1\nframe=0,9\n"), config()),

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-// vitest の setupFiles (src/test/setup.ts) で temporal-polyfill/global を
+// vitest の setupFiles (test/setup.ts) で temporal-polyfill/global を
 // 読み込んでいるため、import なしで Temporal がグローバルに使えることを
 // 確認する (ADR-0007)。
 describe("Temporal", () => {

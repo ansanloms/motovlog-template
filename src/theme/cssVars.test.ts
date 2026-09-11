@@ -5,7 +5,7 @@ import { describe, expect, it } from "vitest";
 import { getSetup } from "../setup.ts";
 import { themeCssVars } from "./cssVars.ts";
 
-// palette は利用側の値 (ADR-0012)。テストは src/test/setup.ts が configure()
+// palette は利用側の値 (ADR-0012)。テストは test/setup.ts が configure()
 // したものを使う。
 const { palette } = getSetup().theme;
 

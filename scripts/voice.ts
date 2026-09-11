@@ -23,7 +23,6 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 import { resolveProjectSlug } from "../src/project/load.ts";
 import { configure } from "../src/setup.ts";
 import type { Theme } from "../src/setup.ts";
-import { VOICE_KEYS } from "../src/voice/cache.ts";
 import { extractLines } from "./voice/extract.ts";
 import { generateMissing } from "./voice/generate.ts";
 import type { GenerateDeps } from "./voice/generate.ts";
@@ -45,6 +44,9 @@ const consumerRoot = process.cwd();
 /**
  * 利用側の app/config.ts を読み、configure() する。timeline の読み込みは
  * ここでは使わないため (静的解析だけを行う)、呼ばれたら throw する関数を渡す。
+ *
+ * theme の中身 (narrator の全項目・palette の色) は configure() が見るため、
+ * ここは app/config.ts が読めて必要な値を export しているかだけを確かめる。
  */
 export const configureFromConsumer = async (root: string): Promise<void> => {
   const configPath = path.join(root, "app", "config.ts");
@@ -65,38 +67,29 @@ export const configureFromConsumer = async (root: string): Promise<void> => {
     throw new Error(`${configPath} が theme を export していません`);
   }
 
-  if (typeof theme.palette?.bg !== "string") {
-    throw new Error(`${configPath} の theme.palette に色が揃っていません`);
-  }
-
-  // narrator は VOICE_KEYS が全項目必須。欠けたまま通すと resolveVoice() が
-  // undefined を埋め、VOICEVOX が黙って ENGINE の既定値で合成するため、
-  // 間違った音声がエラー無しで生成される。ここで止める。
-  const missing = VOICE_KEYS.filter(
-    (key) => typeof theme.narrator?.[key] !== "number",
-  );
-
-  if (missing.length > 0) {
-    throw new Error(
-      `${configPath} の theme.narrator に数値の項目が足りません: ${missing.join("・")}`,
-    );
-  }
-
   if (typeof defaultProject !== "string") {
     throw new Error(
       `${configPath} が defaultProject (project の slug) を export していません`,
     );
   }
 
-  configure({
-    theme,
-    defaultProject,
-    loadTimeline: () => {
-      throw new Error(
-        "scripts/voice.ts は timeline.ts を静的解析するだけで、読み込みはしません",
-      );
-    },
-  });
+  try {
+    configure({
+      theme,
+      defaultProject,
+      loadTimeline: () => {
+        throw new Error(
+          "scripts/voice.ts は timeline.ts を静的解析するだけで、読み込みはしません",
+        );
+      },
+    });
+  } catch (error) {
+    // configure() のメッセージは theme のどの項目かまでしか言わない。CLI から
+    // は直すファイルが分かった方がよいので、読んだパスを添え直す。
+    throw new Error(
+      `${configPath}: ${error instanceof Error ? error.message : String(error)}`,
+    );
+  }
 };
 
 /** slug を CLI 引数 (先頭の非フラグ) → env (REMOTION_PROJECT) → 既定の順で決める。 */
@@ -164,10 +157,26 @@ export const createRunQueue = (
   };
 };
 
+/**
+ * 抽出した発話が 0 件のときに出す警告文 (1 件以上なら undefined)。発話の無い
+ * project は正当なのでエラーにはしない。ただし timeline.ts の import が lib の
+ * 入口を指していないときも 0 件になる (extract.ts は入口から入った line() だけを
+ * 拾う) ため、黙って 0 件で終えずに確認を促す。
+ */
+export const noLinesWarning = (lineCount: number): string | undefined =>
+  lineCount === 0
+    ? "warn: 発話 (line()) が 0 件でした。timeline.ts の import が lib の入口 (src/compositions/index.ts か motovlog-template/compositions) を指しているか確認してください"
+    : undefined;
+
 const runOnce = async (slug: string, voicevoxUrl: string): Promise<void> => {
   const timelinePath = path.join(consumerRoot, "projects", slug, "timeline.ts");
   const source = fs.readFileSync(timelinePath, "utf-8");
   const lines = await extractLines(source, timelinePath);
+  const warning = noLinesWarning(lines.length);
+
+  if (warning !== undefined) {
+    process.stderr.write(`${warning}\n`);
+  }
 
   const publicDir = path.join(consumerRoot, "public");
   const linesDir = path.join(publicDir, "projects", slug, "lines");
