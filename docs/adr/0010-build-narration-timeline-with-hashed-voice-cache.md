@@ -1,7 +1,7 @@
 ---
 status: accepted
 date: 2026-09-08T13:45:25Z
-refs: [2, 4, 6, 8, 9, 11]
+refs: [2, 4, 6, 8, 9, 11, 12]
 tags: [voicevox, narration, timeline]
 ---
 
@@ -51,7 +51,7 @@ tags: [voicevox, narration, timeline]
   - `voice`: リテラル・オブジェクトリテラル (spread を含む)・同じファイルの top-level const・import の binding・プロパティアクセス。
 - 既定の話者と声質 8 値は theme の `narrator` に置く。
 - VOICEVOX ENGINE の URL は `.env` (`VOICEVOX_URL`) に置く。
-- `narration()` の slug は省略可で、既定は `resolveProjectSlug(process.env.REMOTION_PROJECT)` の解決 (Root.tsx と同じ、`DEFAULT_PROJECT` に落ちる) とする。明示した `slug` はこの既定を上書きする。
+- `narration()` の slug は省略可で、既定は `resolveProjectSlug(process.env.REMOTION_PROJECT)` の解決 (Root.tsx と同じ、利用側が `configure()` で渡す `app/config.ts` の `defaultProject` に落ちる。[ADR-0012](./0012-split-template-library-from-consumer.md)) とする。明示した `slug` はこの既定を上書きする。
 - timeline.ts は `...(await narration([...]))` の top-level await で音声キャッシュを待つ。`timeline()` 自体は同期のままとする。
 - Studio では音声キャッシュが無いとき最大 30 秒待つ。render と、Studio でも rendering でもない環境 (plain Node) では待たずに即エラーにする。
 - `narration()` の item の `at` は秒の数値に限る。[ADR-0009](./0009-add-transition-frame-and-anchor-to-timeline.md) のアンカーは下の layer の解決結果を要するため、`narration()` の中では使えない。

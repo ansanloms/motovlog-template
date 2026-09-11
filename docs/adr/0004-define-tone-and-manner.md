@@ -33,7 +33,7 @@ tags: [design, tone-and-manner]
 - トークン名は design の `:root` と同名にする。
 - 見た目の上流は Claude Design のプロジェクトとし、その画面サンプルと deck の 2 ファイルをスナップショットとして `docs/design/upstream/` に置く。上流の内容はこのスナップショット経由で取り込み、値は画面サンプルから、原則は deck から取る。両者が食い違うときは画面サンプルを採る。
 - 上流を取り込むときはスナップショットの 2 ファイルを上書きする。差分の一次資料は `git diff docs/design/upstream/` とし、`docs/design/tone-and-manner.md`・`src/theme/`・`src/components/` へ反映する。
-- スナップショットの画面サンプルの `:root` と `themeCssVars()` が生成する CSS 変数との drift は `src/theme/designSnapshot.test.ts` で検出する。反映できない変数は同テストの `pending` に理由を添えて残し、反映したらそこから外す。
+- スナップショットの画面サンプルの `:root` と `themeCssVars()` が生成する CSS 変数との drift は `theme/designSnapshot.test.ts` で検出する。反映できない変数は同テストの `pending` に理由を添えて残し、反映したらそこから外す。
 - T&M を変えるときは文書・`src/theme/` (tokens.ts と timing.ts)・本 ADR を更新する。
 
 ## Consequences

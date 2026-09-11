@@ -78,7 +78,7 @@ tags: [remotion, timeline, effects]
 - layer に `frame()` の item があれば、それより下の layer の合成結果を `AbsoluteFill` で包み、その opacity を `frame()` の item の `fadeOpacity` にする (現在フレームが item の区間外なら 1)。その layer の `frame()` 以外の item は包んだ結果の上に兄弟として積む。
 - `frame()` の無い layer は包まない。
 - `frame()` の item の区間外では効果が消える (opacity は 1 に戻る)。フェードアウトで終わる動画は `frame()` の item の終端を動画の終端に合わせて書く。
-- `Stage` の根に `palette.black` (`src/theme/tokens.ts`) の背景を敷く。
+- `Stage` の根に `palette.black` (利用側の `theme/index.ts`、[ADR-0012](./0012-split-template-library-from-consumer.md)) の背景を敷く。
 
 別 layer 基準の位置について次を決めた。
 
