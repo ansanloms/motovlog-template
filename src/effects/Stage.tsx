@@ -5,6 +5,7 @@ import { isFrame } from "./frame.ts";
 import {
   fadeOpacity,
   frameEffectsOpacity,
+  toFrame,
   toFrameSpan,
   transitionFrames,
 } from "./frames.ts";
@@ -70,8 +71,8 @@ export const Stage: React.FC<Props> = ({ timeline }) => {
             item.kind === "fade" ? (
               <FadeLayer
                 durationInFrames={durationInFrames}
-                inFrames={Math.round(item.in * fps)}
-                outFrames={Math.round(item.out * fps)}
+                inFrames={toFrame(item.in, fps)}
+                outFrames={toFrame(item.out, fps)}
               >
                 {node}
               </FadeLayer>

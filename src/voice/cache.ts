@@ -34,7 +34,7 @@ export type Voice = {
  */
 export type VoiceOptions = Partial<Voice>;
 
-/** 口パクの母音区間 1 件 (#39 用。今回は生成して書くだけで読まない)。 */
+/** 口パクの母音区間 1 件。生成は scripts/voice、読み出しは src/compositions/figure.ts (口パク)。 */
 export type LipsyncEntry = {
   readonly start: number;
   readonly end: number;

@@ -18,7 +18,7 @@
 import { createElement } from "react";
 import { staticFile } from "remotion";
 import { Figure } from "../components/Figure.tsx";
-import { sample } from "../effects/index.ts";
+import { sample, toFrame } from "../effects/index.ts";
 import type { SampleNode } from "../effects/index.ts";
 import { characterTiming } from "../theme/index.ts";
 import { fps } from "../theme/timing.ts";
@@ -108,7 +108,7 @@ const mouthFromLocal = (
  * 絶対秒から口形 (MouthKey) を引く純粋関数。発話を含むかどうかの判定は
  * expressionAt() と同じくフレームグリッド上で行う (#21)。s.at・s.duration
  * (narration() が積み上げた生の秒数) と absolute (Stage がフレーム番号から
- * 作る、frame/fps のグリッドに乗った値) をそれぞれ Math.round(x * fps) で
+ * 作る、frame/fps のグリッドに乗った値) をそれぞれ toFrame() (src/effects) で
  * フレーム単位に丸め、`startFrame <= nowFrame < endFrame` で判定する。秒の
  * まま比較すると、at がフレーム境界のわずかに後にある発話で、音声の
  * Sequence (フレームグリッド基準) より口パクの開始が 1 フレーム遅れる
@@ -126,11 +126,11 @@ export const mouthAt = (
   speech: readonly Speech[],
 ): MouthKey => {
   let current: Speech | undefined;
-  const nowFrame = Math.round(absolute * fps);
+  const nowFrame = toFrame(absolute, fps);
 
   for (const s of speech) {
-    const startFrame = Math.round(s.at * fps);
-    const endFrame = Math.round((s.at + s.duration) * fps);
+    const startFrame = toFrame(s.at, fps);
+    const endFrame = toFrame(s.at + s.duration, fps);
 
     if (
       startFrame <= nowFrame &&
@@ -163,9 +163,9 @@ export const mouthAt = (
  * 生の秒数でフレーム境界に乗るとは限らない (#14。例: item の分割位置を
  * speech の開始秒に合わせて書いた場合)。秒のまま比較すると frame に丸め
  * られた境界と生の秒がわずかにずれ、範囲の端でだけ判定を落とすちらつきが
- * 起きるため、s.at 側を Math.round(s.at * fps) でフレーム単位に丸めてから
+ * 起きるため、s.at 側を toFrame() (src/effects) でフレーム単位に丸めてから
  * 比較する (itemStart・absolute は元からこのグリッド上にあるので同じ
- * Math.round を掛けても値は変わらない)。
+ * 丸めを掛けても値は変わらない)。
  */
 export const expressionAt = (
   absolute: number,
@@ -175,11 +175,11 @@ export const expressionAt = (
 ): string => {
   for (let i = speech.length - 1; i >= 0; i--) {
     const s = speech[i];
-    const atFrame = Math.round(s.at * fps);
+    const atFrame = toFrame(s.at, fps);
 
     if (
-      atFrame >= Math.round(itemStart * fps) &&
-      atFrame <= Math.round(absolute * fps) &&
+      atFrame >= toFrame(itemStart, fps) &&
+      atFrame <= toFrame(absolute, fps) &&
       s.expression !== undefined
     ) {
       return s.expression;

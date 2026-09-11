@@ -1,9 +1,18 @@
-// 秒 <-> フレーム換算の共有ヘルパー (旧 src/timeline/frames.ts から移設)。
+// 秒 <-> フレーム換算の共有ヘルパー。
 //
-// 各アイテムが個別に Math.round(秒 * fps) していると、開始秒と終了秒を
+// 各アイテムが個別に秒をフレームへ丸めていると、開始秒と終了秒を
 // それぞれ丸めた際に隣接区間の間で 1 フレームの隙間や重複が生じ得る。
 // toFrameSpan は終端 (start + duration) を先に丸めてから開始との差分で
 // durationInFrames を求めることで、それを防ぐ。
+
+/**
+ * 秒をフレーム番号へ変換する。秒からフレームへの丸めは四捨五入で統一し、
+ * この関数だけが行う (同じ秒が場所によって別のフレームに落ちるのを防ぐ)。
+ * 区間 (開始 + 尺) の換算にはこれを直接使わず toFrameSpan を使う。尺を
+ * 単独で丸めると、開始と終端をそれぞれ丸めた場合と同じ隙間/重複が出る。
+ */
+export const toFrame = (seconds: number, fps: number): number =>
+  Math.round(seconds * fps);
 
 /** 秒区間をフレーム区間へ変換する。終端基準で丸め、隣接区間の隙間/重複を防ぐ。 */
 export const toFrameSpan = (
@@ -11,10 +20,10 @@ export const toFrameSpan = (
   durationSec: number,
   fps: number,
 ): { from: number; durationInFrames: number } => {
-  const from = Math.round(startSec * fps);
+  const from = toFrame(startSec, fps);
   const durationInFrames = Math.max(
     1,
-    Math.round((startSec + durationSec) * fps) - from,
+    toFrame(startSec + durationSec, fps) - from,
   );
 
   return { from, durationInFrames };
@@ -32,7 +41,7 @@ export const transitionFrames = (params: {
 }): number => {
   const { at, duration, fps } = params;
 
-  return Math.round((at + duration) * fps) - Math.round(at * fps);
+  return toFrame(at + duration, fps) - toFrame(at, fps);
 };
 
 /**
@@ -99,7 +108,7 @@ export const frameEffectsOpacity = (params: {
   return fadeOpacity({
     frame: frame - from,
     durationInFrames,
-    inFrames: Math.round(active.in * fps),
-    outFrames: Math.round(active.out * fps),
+    inFrames: toFrame(active.in, fps),
+    outFrames: toFrame(active.out, fps),
   });
 };

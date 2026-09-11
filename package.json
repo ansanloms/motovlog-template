@@ -1,20 +1,21 @@
 {
   "name": "motovlog-template",
   "version": "1.0.0",
-  "description": "My Remotion video",
-  "repository": {},
+  "description": "Remotion で車載動画を作るテンプレート",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/ansanloms/motovlog-template.git"
+  },
   "license": "MIT",
   "private": true,
   "dependencies": {
     "@remotion/cli": "4.0.521",
     "@remotion/google-fonts": "4.0.521",
     "@remotion/media": "4.0.521",
-    "@remotion/zod-types": "4.0.521",
     "react": "19.2.8",
     "react-dom": "19.2.8",
     "remotion": "4.0.521",
-    "temporal-polyfill": "1.0.4",
-    "zod": "4.5.4"
+    "temporal-polyfill": "1.0.4"
   },
   "devDependencies": {
     "@remotion/eslint-config-flat": "4.0.521",
