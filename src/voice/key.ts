@@ -40,7 +40,9 @@ export const mergeVoice = (
  * 返す。key の順序を固定するため、object は必ず text → voice の順で組む。
  */
 export const voiceKey = async (params: {
+  /** 発話のテキスト。 */
   text: string;
+  /** 声質。省略分は既定値 (theme の narrator) で埋める。 */
   voice?: VoiceOptions;
 }): Promise<string> => {
   const { text, voice } = params;

@@ -74,9 +74,11 @@ const addLayoutVars = (
   }
 };
 
-// tokens (TS の値) から CSS 変数の map を作る。ThemeRoot がこれを AbsoluteFill
-// の style に流し込み、各コンポーネントの CSS は var(--...) で参照する。
-// design の :root と同名の変数名にし、design の :root と 1 対 1 で突き合わせられるようにする。
+/**
+ * tokens (TS の値) から CSS 変数の map を作る。ThemeRoot がこれを AbsoluteFill
+ * の style に流し込み、各コンポーネントの CSS は var(--...) で参照する。
+ * design の :root と同名の変数名にし、design の :root と 1 対 1 で突き合わせられるようにする。
+ */
 export const themeCssVars = (
   palette: Palette,
   fontFamily: string,

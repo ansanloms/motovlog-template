@@ -19,7 +19,9 @@ export type SampleTime = {
  * frame() と違い、どの layer にも置ける。
  */
 export type SampleNode = {
+  /** sample() の印であることを示す固定値。 */
   readonly kind: "sample";
+  /** 時刻を受けて描画する node を返す関数。effects が毎フレーム呼ぶ。 */
   readonly render: (t: SampleTime) => ReactNode;
 };
 

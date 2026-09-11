@@ -45,9 +45,11 @@ export const parseConvertArgs = (
   return { slug, inputs };
 };
 
-// ffmpeg の -g は整数しか受けないため、fps を四捨五入した値を GOP 長
-// (1 秒ごとのキーフレーム) にする。fps が 0 または 0.x だと gop が 0 になり
-// -g に渡せないため拒否する。
+/**
+ * ffmpeg の -g は整数しか受けないため、fps を四捨五入した値を GOP 長
+ * (1 秒ごとのキーフレーム) にする。fps が 0 または 0.x だと gop が 0 になり
+ * -g に渡せないため拒否する。
+ */
 export const gopFromFps = (fps: number): number => {
   const gop = Math.round(fps);
 
@@ -60,9 +62,11 @@ export const gopFromFps = (fps: number): number => {
   return gop;
 };
 
-// 入力ファイルの basename から拡張子を除いた出力名を返す (bash の
-// ${base_name%.*} と同じ挙動: 最後の "." 以降を除く。"." が無ければそのまま。
-// ".mp4" のように名前部分が空になる場合は拒否する)。
+/**
+ * 入力ファイルの basename から拡張子を除いた出力名を返す (bash の
+ * ${base_name%.*} と同じ挙動: 最後の "." 以降を除く。"." が無ければそのまま。
+ * ".mp4" のように名前部分が空になる場合は拒否する)。
+ */
 export const outputName = (inFile: string): string => {
   const baseName = path.basename(inFile);
   const dotIndex = baseName.lastIndexOf(".");
@@ -75,8 +79,10 @@ export const outputName = (inFile: string): string => {
   return name;
 };
 
-// 出力先は basename (拡張子除く) だけで決まるため、拡張子違いの重複入力が
-// あると後勝ちで上書きしてしまう。事前に検出して拒否する。
+/**
+ * 出力先は basename (拡張子除く) だけで決まるため、拡張子違いの重複入力が
+ * あると後勝ちで上書きしてしまう。事前に検出して拒否する。
+ */
 export const checkDuplicateOutputs = (inFiles: string[]): void => {
   const seen = new Map<string, string>();
 
@@ -94,7 +100,7 @@ export const checkDuplicateOutputs = (inFiles: string[]): void => {
   }
 };
 
-// WSL で NVENC を使うための LD_LIBRARY_PATH。既存の値を上書きせず前に足す。
+/** WSL で NVENC を使うための LD_LIBRARY_PATH。既存の値を上書きせず前に足す。 */
 export const nvencEnv = (env: NodeJS.ProcessEnv): NodeJS.ProcessEnv => {
   const existing = env.LD_LIBRARY_PATH;
 
@@ -106,10 +112,12 @@ export const nvencEnv = (env: NodeJS.ProcessEnv): NodeJS.ProcessEnv => {
   };
 };
 
-// nvenc が使えるかを起動時に 1 回だけプローブするための ffmpeg 引数。
-// プローブは本番と同じ encoder オプションで打つ。64x64 のような小さいフレームは
-// 最小フレームサイズ未満で失敗し、GOP を 1 にすると B フレーム数の制約で失敗するため、
-// 本番と同じ fps・GOP の 1 秒のテスト映像を使う。
+/**
+ * nvenc が使えるかを起動時に 1 回だけプローブするための ffmpeg 引数。
+ * プローブは本番と同じ encoder オプションで打つ。64x64 のような小さいフレームは
+ * 最小フレームサイズ未満で失敗し、GOP を 1 にすると B フレーム数の制約で失敗するため、
+ * 本番と同じ fps・GOP の 1 秒のテスト映像を使う。
+ */
 export const probeArgs = (fps: number, gop: number): string[] => [
   "-v",
   "error",
@@ -136,11 +144,17 @@ export const probeArgs = (fps: number, gop: number): string[] => [
 
 export type Encoder = "nvenc" | "libx264";
 
+/** 変換 1 本分の ffmpeg 引数を組み立てる。encoder ごとに異なるオプションを使う。 */
 export const encodeArgs = (o: {
+  /** 使うエンコーダ。 */
   encoder: Encoder;
+  /** 入力ファイルパス。 */
   input: string;
+  /** 出力ファイルパス。 */
   output: string;
+  /** 出力の fps。 */
   fps: number;
+  /** GOP 長 (キーフレーム間隔)。 */
   gop: number;
 }): string[] => {
   const { encoder, input, output, fps, gop } = o;
@@ -200,22 +214,35 @@ export const encodeArgs = (o: {
   ];
 };
 
+/** runConvert() が使う I/O・ffmpeg 呼び出しの差し替え口。 */
 export type ConvertDeps = {
+  /** ffmpeg の実行。exit code を返す。 */
   ffmpeg: (args: string[], env: NodeJS.ProcessEnv) => Promise<number>;
+  /** パスの存在確認。 */
   exists: (p: string) => boolean;
+  /** ディレクトリの作成。 */
   mkdir: (dir: string) => void;
+  /** ファイルのリネーム (tmp から本番パスへの確定に使う)。 */
   rename: (from: string, to: string) => void;
+  /** ファイルの削除 (失敗・中断時の tmp 掃除に使う)。 */
   unlink: (p: string) => void;
+  /** 進捗ログの出力。 */
   log: (line: string) => void;
+  /** 警告ログの出力。 */
   warn: (line: string) => void;
+  /** ffmpeg に渡す環境変数の元。 */
   env: NodeJS.ProcessEnv;
-  // 変換途中で失敗・中断した場合に不完全な出力ファイルが残らないよう、現在の
-  // 一時ファイルパスを呼び出し側に伝える (シグナル受信時の削除に使う)。
+  /**
+   * 変換途中で失敗・中断した場合に不完全な出力ファイルが残らないよう、現在の
+   * 一時ファイルパスを呼び出し側に伝える (シグナル受信時の削除に使う)。
+   */
   onTmp: (p: string | null) => void;
 };
 
-// シグナルによる中断を呼び出し側 (convert-movie.ts) に伝えるための専用エラー。
-// 通常の失敗 (Error) と区別できるよう、main 側でメッセージを出し分ける。
+/**
+ * シグナルによる中断を呼び出し側 (convert-movie.ts) に伝えるための専用エラー。
+ * 通常の失敗 (Error) と区別できるよう、main 側でメッセージを出し分ける。
+ */
 export class ConvertAbortedError extends Error {
   constructor() {
     super("中断されました");
@@ -223,17 +250,24 @@ export class ConvertAbortedError extends Error {
   }
 }
 
-// 各入力を <outDir>/<basename>.mp4 へ変換する (ADR-0003)。nvenc が使えるかを
-// 起動時にプローブし、以降の変換はプローブ結果の encoder で統一する。nvenc が
-// 使える場合でも、あるファイルの変換に失敗したときはそのファイルだけ libx264
-// で再試行し、以降のファイルも libx264 に切り替える。signal が中断されたら、
-// nvenc → libx264 の再試行はせず ConvertAbortedError を投げる。
+/**
+ * 各入力を <outDir>/<basename>.mp4 へ変換する (ADR-0003)。nvenc が使えるかを
+ * 起動時にプローブし、以降の変換はプローブ結果の encoder で統一する。nvenc が
+ * 使える場合でも、あるファイルの変換に失敗したときはそのファイルだけ libx264
+ * で再試行し、以降のファイルも libx264 に切り替える。signal が中断されたら、
+ * nvenc → libx264 の再試行はせず ConvertAbortedError を投げる。
+ */
 export const runConvert = async (
   o: {
+    /** 入力ファイルパスの列。 */
     inputs: string[];
+    /** 出力先ディレクトリ。 */
     outDir: string;
+    /** 出力の fps。 */
     fps: number;
+    /** GOP 長 (キーフレーム間隔)。 */
     gop: number;
+    /** 中断シグナル。abort されたら ConvertAbortedError を投げる。 */
     signal?: AbortSignal;
   },
   deps: ConvertDeps,

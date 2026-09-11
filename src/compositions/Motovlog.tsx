@@ -7,7 +7,10 @@ import { loadTimeline } from "../project/load.ts";
 
 /** Motovlog composition の props。動画の中身 (Timeline) は React 要素を含み
  * JSON 直列化できないため props には載せず、slug だけを持つ (ADR-0006)。 */
-export type MotovlogProps = { slug: string };
+export type MotovlogProps = {
+  /** 描画する project の slug (ADR-0002 の YYYYMMDD-<name> 形式)。 */
+  slug: string;
+};
 
 /**
  * project の timeline.ts (timeline() の戻り値) を読み、fps・width・height・

@@ -38,7 +38,9 @@ export type Expressions = Readonly<Record<string, readonly FigureLayer[]>>;
 
 /** character() が受ける定義・返す値。voice は line() の by から実効の声質を求めるのに使う既定値。 */
 export type Character = {
+  /** line() の by から実効の声質を求めるのに使う既定値。省略時は theme の既定話者のみを使う。 */
   readonly voice?: VoiceOptions;
+  /** 表情名から画像レイヤーの列への対応。1 つ以上必要。 */
   readonly expressions: Expressions;
 };
 

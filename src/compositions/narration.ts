@@ -47,9 +47,13 @@ import type { Character } from "./character.ts";
 
 /** line() が組み立てる要素の props。 */
 type LineProps = {
+  /** 発話のテキスト (VOICEVOX の {漢字|よみ} 記法を含んでよい)。リテラルで書く。 */
   text: string;
+  /** 声質。省略分は theme の既定話者に by.voice を重ねた値で埋める。 */
   voice?: VoiceOptions;
+  /** character() の参照。figure() が自分宛の発話を選ぶのに使う (identity で結び付く)。 */
   by?: Character;
+  /** by の expressions のキー。指定するとその場で表情を切り替える (省略時は現在の表情を維持)。 */
   expression?: string;
 };
 
@@ -189,7 +193,10 @@ type NarrationItem = CutItem | FadeItem | PendingCutItem;
  * 省略時は resolveProjectSlug(process.env.REMOTION_PROJECT) (Root.tsx と
  * 同じ解決) を使う。
  */
-type NarrationOptions = { slug?: string };
+type NarrationOptions = {
+  /** staticFile() のパス組み立てに使う slug。省略時は resolveProjectSlug(process.env.REMOTION_PROJECT) (Root.tsx と同じ解決)。 */
+  slug?: string;
+};
 
 /**
  * 発話 1 本分の音声の実測値 (#39 の立ち絵の口パク・表情に使う)。line() 以外の
@@ -215,7 +222,9 @@ export type Speech = {
 
 /** narration() の戻り値。[暗がり layer, 発話 layer] に加え、発話ごとの音声の実測値を持つ。 */
 export type Narration = {
+  /** [暗がり layer, 発話 layer]。 */
   readonly layers: readonly [Layer, Layer];
+  /** 発話 (line() item) ごとの音声の実測値。渡した順。 */
   readonly speech: readonly Speech[];
 };
 

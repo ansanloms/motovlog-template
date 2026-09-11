@@ -23,10 +23,12 @@ export const resolveProjectSlug = (env: string | undefined): string => {
   return env;
 };
 
-// default export が Timeline の形 (fps・width・height・durationSec が
-// number、layers が配列の配列、各 item は kind が fade/cut で at・duration
-// (fade は in・out も) が有限の number) かどうかだけを検査する
-// (ADR-0006: zod schema は持たない)。
+/**
+ * default export が Timeline の形 (fps・width・height・durationSec が
+ * number、layers が配列の配列、各 item は kind が fade/cut で at・duration
+ * (fade は in・out も) が有限の number) かどうかだけを検査する
+ * (ADR-0006: zod schema は持たない)。
+ */
 export const isTimeline = (value: unknown): value is Timeline => {
   if (typeof value !== "object" || value === null) {
     return false;
@@ -76,9 +78,11 @@ export const isTimeline = (value: unknown): value is Timeline => {
   );
 };
 
-// projects/<slug>/timeline.ts を読み、timeline() の戻り値 (Timeline) を返す。
-// 実際の読み込みは利用側が configure() で渡した loadTimeline() が行う
-// (ADR-0012)。lib は default export が Timeline の形かどうかだけを検査する。
+/**
+ * projects/<slug>/timeline.ts を読み、timeline() の戻り値 (Timeline) を返す。
+ * 実際の読み込みは利用側が configure() で渡した loadTimeline() が行う
+ * (ADR-0012)。lib は default export が Timeline の形かどうかだけを検査する。
+ */
 export const loadTimeline = async (slug: string): Promise<Timeline> => {
   const resolved = resolveProjectSlug(slug);
 

@@ -35,8 +35,11 @@ export const toFrameSpan = (
  * で丸めてから開始との差分を取り、toFrameSpan と同じ丸め方にする。
  */
 export const transitionFrames = (params: {
+  /** 直後の item の開始秒 (= 直前の item の終端 − duration)。 */
   at: number;
+  /** 遷移の尺 (秒)。 */
   duration: number;
+  /** フレームレート。 */
   fps: number;
 }): number => {
   const { at, duration, fps } = params;
@@ -55,9 +58,13 @@ export const transitionFrames = (params: {
  * 並んで throw するのを避けるため。純粋関数なので vitest で直接叩ける。
  */
 export const fadeOpacity = (params: {
+  /** 区間先頭からのフレーム番号 (0 起点)。 */
   frame: number;
+  /** 区間の尺 (フレーム数)。 */
   durationInFrames: number;
+  /** フェードインの尺 (フレーム数)。0 ならフェードなし。 */
   inFrames: number;
+  /** フェードアウトの尺 (フレーム数)。0 ならフェードなし。 */
   outFrames: number;
 }): number => {
   const { frame, durationInFrames, inFrames, outFrames } = params;
@@ -77,12 +84,19 @@ export const fadeOpacity = (params: {
  * 区間内に item が無ければ 1 (効果無し)。React に依存しない純粋関数。
  */
 export const frameEffectsOpacity = (params: {
+  /** 現在のフレーム番号 (0 起点、動画先頭から)。 */
   frame: number;
+  /** フレームレート。 */
   fps: number;
+  /** frame() の item の列 (同じ layer 内で時間は重ならない)。 */
   items: readonly {
+    /** item の開始秒。 */
     at: number;
+    /** item の尺 (秒)。 */
     duration: number;
+    /** フェードインの尺 (秒)。 */
     in: number;
+    /** フェードアウトの尺 (秒)。 */
     out: number;
   }[];
 }): number => {

@@ -47,7 +47,14 @@
 //   消え、9.8 秒 (10.0 - leadIn) から出直す。
 
 /** 秒。フェードイン・アウトを含む区間。fadeIn は leadIn を start の 0 clamp 分だけ短縮した実効フェードイン秒。 */
-export type BandSpan = { start: number; duration: number; fadeIn: number };
+export type BandSpan = {
+  /** 区間の開始秒 (フェードイン込み)。 */
+  start: number;
+  /** 区間の尺 (秒、フェードイン・アウトを含む)。 */
+  duration: number;
+  /** 実効フェードイン秒。start を 0 に clamp した分だけ leadIn より短くなる。 */
+  fadeIn: number;
+};
 
 /**
  * 発話 (line) の列から下部の暗がりの表示区間 (フェードイン・アウトを含む)
@@ -58,11 +65,21 @@ export type BandSpan = { start: number; duration: number; fadeIn: number };
  */
 export const computeBandSpans = (
   lines: ReadonlyArray<{
+    /** 発話の開始秒 (絶対値)。 */
     start: number;
+    /** 音声が鳴っている終端秒 (start + 実尺 と captionEnd の小さい方)。 */
     speechEnd: number;
+    /** 字幕が消える時刻 (start + 字幕の尺)。 */
     captionEnd: number;
   }>,
-  opts: { leadIn: number; silenceGap: number; fadeOut: number },
+  opts: {
+    /** 語り出しの何秒前から出すか (= フェードイン秒)。 */
+    leadIn: number;
+    /** 無音が何秒続いたら消すか (次の発話との統合閾値でもある)。 */
+    silenceGap: number;
+    /** フェードアウトの尺 (秒)。 */
+    fadeOut: number;
+  },
 ): BandSpan[] => {
   const { leadIn, silenceGap, fadeOut } = opts;
 

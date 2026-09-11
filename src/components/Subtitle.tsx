@@ -2,6 +2,7 @@ import React from "react";
 import { AbsoluteFill } from "remotion";
 import styles from "./Subtitle.module.css";
 
+/** Subtitle の props。 */
 type Props = {
   /** 表示する字幕文。 */
   text: string;

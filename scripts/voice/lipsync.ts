@@ -5,19 +5,27 @@
 import type { LipsyncEntry } from "../../src/voice/cache.ts";
 
 type Mora = {
+  /** 子音の音素記号。子音を持たない mora (母音のみ) は null。 */
   consonant: string | null;
+  /** 子音の長さ (秒)。consonant が null なら null。 */
   consonant_length: number | null;
+  /** 母音の音素記号 (無声化すると大文字になる)。 */
   vowel: string;
+  /** 母音の長さ (秒)。 */
   vowel_length: number;
-  // mora の音高。無声化した mora には ENGINE が 0 を返す。
+  /** mora の音高。無声化した mora には ENGINE が 0 を返す。 */
   pitch: number;
 };
 
 type AccentPhrase = {
+  /** アクセント句を構成する mora の列。 */
   moras: Mora[];
+  /** アクセント句の直後の句読点の間 (mora)。無ければ null。 */
   pause_mora: Mora | null;
-  // 疑問文の accent phrase 末尾かどうか。true なら ENGINE が /synthesis で
-  // 上昇 mora を足して合成する (下記 UPSPEAK_LENGTH 参照)。
+  /**
+   * 疑問文の accent phrase 末尾かどうか。true なら ENGINE が /synthesis で
+   * 上昇 mora を足して合成する (下記 UPSPEAK_LENGTH 参照)。
+   */
   is_interrogative?: boolean;
 };
 
@@ -27,11 +35,17 @@ type AccentPhrase = {
  * (query には他にも項目があるが未使用)。
  */
 export type AudioQuery = {
+  /** アクセント句の列 (テキスト全体の分割単位)。 */
   accent_phrases: AccentPhrase[];
+  /** 話速の倍率。 */
   speedScale: number;
+  /** 音高のオフセット。 */
   pitchScale: number;
+  /** 抑揚の倍率。 */
   intonationScale: number;
+  /** 音量の倍率。 */
   volumeScale: number;
+  /** 句読点の間の倍率 (pauseLength が null のときに pause_mora.vowel_length へ掛ける)。 */
   pauseLengthScale: number;
   /**
    * 句読点の間の絶対秒。既定 (ENGINE の /audio_query の応答) は null で、
@@ -39,7 +53,9 @@ export type AudioQuery = {
    * 非 null なら ENGINE の OpenAPI の記述どおり絶対秒として優先する。
    */
   pauseLength: number | null;
+  /** 発話開始前の無音 (秒)。 */
   prePhonemeLength: number;
+  /** 発話終了後の無音 (秒)。 */
   postPhonemeLength: number;
 };
 
