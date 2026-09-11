@@ -59,10 +59,6 @@ export default [
         {
           patterns: [
             {
-              group: ["**/timeline/**"],
-              message: "components は timeline を import しない。",
-            },
-            {
               group: ["@remotion/*", "!@remotion/media"],
               message:
                 "components は @remotion/media 以外の @remotion のパッケージを import しない。",

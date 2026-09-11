@@ -1,7 +1,7 @@
 import React from "react";
 import { staticFile } from "remotion";
 import { describe, expect, it, vi } from "vitest";
-import { subtitle } from "../components/index.tsx";
+import { annotation } from "../components/index.tsx";
 import { Line } from "../components/Line.tsx";
 import { cut, fade, frame, start } from "../effects/index.ts";
 import type { CutItem, FadeItem } from "../effects/index.ts";
@@ -145,7 +145,7 @@ describe("narration", () => {
   });
 
   it("item の at にアンカーを渡すと throw する (narration() は下の layer を知らないため使えない)", async () => {
-    const other = cut(subtitle({ text: "x" }), { at: 0, duration: 1 });
+    const other = cut(annotation({ text: "x" }), { at: 0, duration: 1 });
 
     await expect(
       narration(
@@ -189,7 +189,7 @@ describe("narration", () => {
     const {
       layers: [, speechLayer],
     } = await narration(
-      [cut(subtitle({ text: "x" }), { after: 1, duration: 3 })],
+      [cut(annotation({ text: "x" }), { after: 1, duration: 3 })],
       { slug: "sample" },
       { fetchCache, isStudio: () => false },
     );
@@ -212,7 +212,7 @@ describe("narration", () => {
       layers: [, speechLayer],
     } = await narration(
       [
-        fade(subtitle({ text: "y" }), {
+        fade(annotation({ text: "y" }), {
           at: 5,
           duration: 2,
           in: 0.5,
@@ -240,7 +240,7 @@ describe("narration", () => {
 
     await expect(
       narration(
-        [cut(subtitle({ text: "x" }), { at: 1 })],
+        [cut(annotation({ text: "x" }), { at: 1 })],
         { slug: "sample" },
         { fetchCache, isStudio: () => false },
       ),
@@ -565,13 +565,13 @@ describe("narration", () => {
     );
   });
 
-  it("line() 以外の item (subtitle だけの cut()) は speech に含まれない", async () => {
+  it("line() 以外の item (annotation だけの cut()) は speech に含まれない", async () => {
     const fetchCache = await fetchCacheFor({ A: 1 });
 
     const { speech } = await narration(
       [
         cut(line({ text: "A" }), { at: 0 }),
-        cut(subtitle({ text: "x" }), { after: 0, duration: 1 }),
+        cut(annotation({ text: "x" }), { after: 0, duration: 1 }),
       ],
       { slug: "sample" },
       { fetchCache, isStudio: () => false },

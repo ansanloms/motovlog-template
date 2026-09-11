@@ -124,7 +124,6 @@ layer 内の item と item の間には `crossfade({ duration })` を置ける�
 | `annotation(props)`    | 右上の注釈。`text`                                                                       |
 | `photoShowcase(props)` | 写真紹介 (1〜2 枚)。`photos`                                                             |
 | `ending(props)`        | ED。`title`・`subtitle`・`date`・`distance`・`ridingTime`・`routes`・`credits`           |
-| `subtitle(props)`      | セリフ字幕の文字。`text` (通常は `narration()` が組むので直接は使わない)                 |
 | `subtitleBand({})`     | 字幕下の暗がり (props は無いが引数は要る、通常は `narration()` が組むので直接は使わない) |
 
 立ち絵の `figure()` は要素ファクトリではなく `line()`・`narration()` と同じ `src/compositions` に置く (「立ち絵」参照。src/effects の `sample()` を使うため)。サムネ・OP の絵の `thumbnail(props)` も同じく `src/compositions` に置く (`photo`・`badge`・`title`・`character` (`character()` の戻り値)・`expression?` (省略時は `expressions` の最初のキー) を受け、`character()` の表情名の解決 (`figureLayers()`) を伴うため、ADR-0011 の禁止事項により src/components 単体では書けない)。
@@ -137,7 +136,7 @@ layer 内の item と item の間には `crossfade({ duration })` を置ける�
 
 ### 発話
 
-セリフ (発話) は `src/compositions/narration.ts` が公開する `line()`・`narration()` で書く ([ADR-0010](docs/adr/0010-build-narration-timeline-with-hashed-voice-cache.md), [ADR-0011](docs/adr/0011-draw-figure-from-character-presets-linked-by-speech.md))。字幕・下部の暗がり・セリフ音声をまとめて組み立てるため、要素ファクトリ (`subtitle`・`subtitleBand`) を直接 layer に置く必要はない。
+セリフ (発話) は `src/compositions/narration.ts` が公開する `line()`・`narration()` で書く ([ADR-0010](docs/adr/0010-build-narration-timeline-with-hashed-voice-cache.md), [ADR-0011](docs/adr/0011-draw-figure-from-character-presets-linked-by-speech.md))。字幕・下部の暗がり・セリフ音声をまとめて組み立てるため、要素ファクトリ (`subtitleBand`) を直接 layer に置く必要はない。
 
 ```ts
 import { ryusei } from "../../characters/ryusei.ts";

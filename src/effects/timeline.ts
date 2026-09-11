@@ -1,7 +1,7 @@
 import { fps } from "../theme/timing.ts";
 import { isAnchor } from "./anchor.ts";
 import { isFrame } from "./frame.ts";
-import { transitionFrames } from "./frames.ts";
+import { toFrame, transitionFrames } from "./frames.ts";
 import type {
   Item,
   Layer,
@@ -88,11 +88,11 @@ export const resolveLayer = (
         );
       }
 
-      const prevStartFrame = Math.round(prev.at * fps);
+      const prevStartFrame = toFrame(prev.at, fps);
       const prevVisibleFromFrame = prev.transitionIn
-        ? Math.round((prev.at + prev.transitionIn.duration) * fps)
+        ? toFrame(prev.at + prev.transitionIn.duration, fps)
         : prevStartFrame;
-      const nextStartFrame = Math.round((cursor - duration) * fps);
+      const nextStartFrame = toFrame(cursor - duration, fps);
 
       if (nextStartFrame < prevVisibleFromFrame) {
         throw new Error(
@@ -201,13 +201,13 @@ export const resolveLayer = (
 
       start = resolvedAt ?? cursor + (after ?? 0);
 
-      if (Math.round((start + duration) * fps) <= Math.round(start * fps)) {
+      if (toFrame(start + duration, fps) <= toFrame(start, fps)) {
         throw new Error(
           `timeline: layer ${layerIndex} の item ${entryIndex} (start ${start}, duration ${duration}) が 1 フレームに満たない。フレームに丸めると開始と終端が同じになります`,
         );
       }
 
-      if (Math.round(start * fps) < Math.round(cursor * fps)) {
+      if (toFrame(start, fps) < toFrame(cursor, fps)) {
         throw new Error(
           `timeline: layer ${layerIndex} の item ${entryIndex} (start ${start}) が直前の item の終端 (${cursor}) より前です。layer 内の item は時間順に並べる`,
         );

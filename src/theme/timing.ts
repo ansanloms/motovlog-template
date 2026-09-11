@@ -26,8 +26,6 @@ export const characterTiming = {
 export const openingTiming = { duration: 4.8, fadeIn: 0.4 } as const; // 黒から 0.4 秒
 /** ED の尺。カットイン、フェードなし。 */
 export const endingTiming = { duration: 12 } as const; // カットイン、フェードなし
-/** サムネ用フレームの尺と、ED からのクロスフェード秒。 */
-export const thumbnailFrameTiming = { duration: 4.8, crossfade: 4.8 } as const; // ED の上にクロスフェード
 
 /** 章タイトルの表示尺 (フェードイン + 保持 + フェードアウト)。 */
 export const chapterTitleDurationSec =

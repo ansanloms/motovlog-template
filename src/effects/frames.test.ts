@@ -2,9 +2,26 @@ import { describe, expect, it } from "vitest";
 import {
   fadeOpacity,
   frameEffectsOpacity,
+  toFrame,
   toFrameSpan,
   transitionFrames,
 } from "./frames.ts";
+
+describe("toFrame", () => {
+  it("秒を fps でフレーム番号にする", () => {
+    expect(toFrame(2, 30)).toBe(60);
+  });
+
+  it("フレーム境界の間は四捨五入する", () => {
+    expect(toFrame(1 / 30 / 2, 30)).toBe(1);
+    expect(toFrame(1 / 30 / 2 - 1e-9, 30)).toBe(0);
+  });
+
+  it("0 と負の秒もそのまま換算する", () => {
+    expect(toFrame(0, 30)).toBe(0);
+    expect(toFrame(-1, 30)).toBe(-30);
+  });
+});
 
 describe("toFrameSpan", () => {
   it("開始と尺を fps でフレーム化する", () => {

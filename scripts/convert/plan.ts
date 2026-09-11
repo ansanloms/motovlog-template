@@ -3,9 +3,12 @@
 // テストしやすくするための分離。
 
 import path from "node:path";
+import { PROJECT_SLUG_PATTERN } from "../../src/project/load.ts";
 
-// slug は ADR-0002 の形式 (YYYYMMDD-<name>、ASCII 小文字の kebab-case)。
-export const PROJECT_SLUG_PATTERN = /^[0-9]{8}-[a-z0-9]+(-[a-z0-9]+)*$/;
+// slug の形式 (ADR-0002) は project を読む側 (src/project/load.ts) と同じ
+// ものを使う。ここからも再 export して、この層の利用者が src を辿らずに
+// 済むようにする。
+export { PROJECT_SLUG_PATTERN };
 
 export const USAGE = "usage: npm run convert -- <slug> <入力ファイル>...";
 

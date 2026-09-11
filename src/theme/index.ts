@@ -23,7 +23,6 @@ export {
   fps,
   openingTiming,
   subtitleTiming,
-  thumbnailFrameTiming,
 } from "./timing.ts";
 export { narrator } from "./voice.ts";
 export { themeCssVars } from "./cssVars.ts";
