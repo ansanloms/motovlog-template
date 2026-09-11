@@ -50,7 +50,7 @@ projects/<slug>/timeline.ts の要素 (コンポーネントの呼び出し) に
 
 ### 禁止事項
 
-- 見た目の値をコンポーネントの props や timeline.ts に持たせること (`figure()` の `side` を除く)。
+- 見た目の値をコンポーネントの props や timeline.ts に持たせること。
 - コンポーネントが theme を迂回して色・サイズを持つこと。
 
 ## Assumptions

@@ -44,7 +44,7 @@ mora の母音区間をそのまま口パクのタイムラインにし、母音
 
 - 読みは `{漢字|よみ}` の記法で台本に書く。読みが無い部分はそのまま読む。字幕には漢字表記を、合成には読みを使う。この展開はスクリプトが行う。繰り返し使う固有名詞は ENGINE のユーザ辞書に登録してもよい。
 - 話者は VOICEVOX のスタイル id (`speaker`) で指定する。
-- 音声と口パクデータの生成は Node.js のスクリプト (`scripts/` 配下、TypeScript) が行う。生成は `npm run dev` の watcher と `npm run render` の前段が行う ([ADR-0010](./0010-build-narration-timeline-with-hashed-voice-cache.md))。ENGINE の URL は `.env` の `VOICEVOX_URL` で渡す。
+- 音声と口パクデータの生成は Node.js のスクリプト (`scripts/` 配下、TypeScript) が行う。生成は `npm run dev` の watcher と `npm run render` の前段が行う ([ADR-0010](./0010-build-narration-timeline-with-hashed-voice-cache.md))。ENGINE の URL は環境変数 `VOICEVOX_URL` で渡し、既定の置き場は `.env` とする。
 - スクリプトはセリフごとに `/audio_query` を呼んで query を得て、`/synthesis` でその query から wav を合成する。
 - 生成物 (wav と JSON) は `public/projects/<slug>/lines/` に置く。生成物はコミットしない ([ADR-0002](./0002-project-directory-layout.md))。
 - JSON は次の項目を持つ。

@@ -14,7 +14,7 @@ tags: [remotion, timeline, effects]
   - 走行映像 A から B へのクロスフェード。B を別 layer に上げて `fade` で重ねる形になり、境目の演出が同じ layer の item と item の間に置けない。
   - layer 0 の走行映像と layer 1 の写真をまとめて黒へフェードアウトする演出。それぞれの opacity を独立に下げると写真が半透明になり下の映像が透けて見え、「合成した絵を薄くする」とは別の絵になる。CSS では親要素の `opacity` が子を合成した後に乗る (CSS Color Module Level 4 §3.3)。
   - 別 layer の item を基準にした位置指定。`after` は同じ layer の直前にしか効かず、「あの clip の終端の 2 秒前」は絶対秒を手で書くしかない。
-- `Stage` は layer を `Fragment` で積み、item ごとに `Sequence` を置いてその内側を `AbsoluteFill` で包む。黒地は敷いておらず、opacity 0 のときに何が見えるかは Remotion の既定に依存している。
+- `Stage` は layer ごとに `AbsoluteFill` を並べ、item ごとに `Sequence` を置く。黒地は敷いておらず、opacity 0 のときに何が見えるかは Remotion の既定に依存している。
 - `@remotion/transitions` の `TransitionSeries` は自身の子しか取れない ([ADR-0006](./0006-write-timeline-as-effects-dsl.md) に記載)。
 
 ## Decision Drivers

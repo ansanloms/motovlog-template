@@ -73,7 +73,7 @@ Remotion は各フレームを個別に描くため、CSS アニメーション�
   - 目 `{ eyes: { open, closed } }`。`figure()` が目パチで切り替える。
   - 口 `{ mouth: { a, i, u, e, o, n } }`。`figure()` が口パクで切り替える。
   - 目・口の切り替えをしない表情は、目・口も静止画で書く。
-- すべてのレイヤー画像は同一キャンバスの画像 (PNG・SVG) とし、`figure()` は座標計算をしない。素材の切り出し (PSD からの書き出し等) はテンプレートの外で行う。
+- すべてのレイヤー画像は同一キャンバスの画像 (PNG・SVG) とし、`figure()` は座標計算をしない。SVG は幅と高さを持つ形で書き出す。理由: 枠内の拡縮は CSS の `height` と `width: auto` で行うため、画像に本来の縦横比が要る。素材の切り出し (PSD からの書き出し等) はテンプレートの外で行う。
 - キャラクターの定義は `characters/<name>.ts` に置き、画像は `public/assets/characters/<name>/` に置く。定義は project をまたいで使い回し、画像は第三者の素材なら [ADR-0002](./0002-project-directory-layout.md) の規則どおりコミットしない。
 - `line()` に `by` と `expression` を足す。発話の声質は theme の `narrator` を `by` の `voice` で上書きし、さらに `line()` の `voice` で上書きした値とする。音声キャッシュの key は text とこの実効の声質だけから作り、`by` と `expression` は含めない。
   - `by` は `character()` が返す値の参照とする。

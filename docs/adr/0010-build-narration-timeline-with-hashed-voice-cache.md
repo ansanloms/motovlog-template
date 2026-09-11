@@ -44,7 +44,7 @@ tags: [voicevox, narration, timeline]
 - 暗がりは、次の発話が音声終了から `silenceGap` 以内なら出したまま。超えるなら字幕消灯 (通常は音声終了 + `tail`) 直後から `fadeOut` で消し、次の発話の `leadIn` 前から出し直す。最後の発話も同じ (`bandTiming`、[ADR-0004](./0004-define-tone-and-manner.md))。
 - 音声キャッシュの key は、theme の `narrator` (既定の話者と声質) で正規化した声質 8 値 (speaker・speed・pitch・intonation・volume・pause・silenceBefore・silenceAfter) と text の SHA-256 とする。
 - キャッシュは `public/projects/<slug>/lines/<key>.{wav,json}` に置き、コミットしない ([ADR-0002](./0002-project-directory-layout.md))。
-- 生成は `npm run dev` の watcher と `npm run render` の前段が行い、どちらも `tsx scripts/voice.ts` を呼ぶ。生成だけを行う npm script は公開しない。
+- 生成は `npm run dev` の watcher と `npm run render` の前段が行う。watcher は `scripts/dev.ts` が `scripts/voice.ts` の監視を同プロセスで起動し、render は前段で `tsx scripts/voice.ts` を実行する。生成だけを行う npm script は公開しない。
 - watcher は `projects/<slug>/` と `characters/` の変更を監視する ([ADR-0011](./0011-draw-figure-from-character-presets-linked-by-speech.md))。
 - watcher は timeline.ts を静的に評価する。`text`・`voice` に書ける式は次に限り、それ以外 (関数呼び出し・条件式・置換ありテンプレート等) は timeline.ts 内の位置付きエラーにする。
   - `text`: 文字列リテラルまたは置換無しテンプレートリテラル。
