@@ -14,7 +14,9 @@ Remotion でモトブログ動画を作るためのライブラリ (lib) と、�
 lib (動画を作る機能) は次の 2 つ。
 
 - `src/`: 演出の DSL・コンポーネント・compositions・配置と秒数のトークン
-- `scripts/`: 音声生成・素材の変換・Studio の起動
+- `scripts/` (`scripts/migrate/` を除く): 音声生成・素材の変換・Studio の起動
+
+`scripts/migrate/` は 1 回限りの移行スクリプトの置き場で、lib の公開面にも配布物にも含めない ([ADR-0012](docs/adr/0012-split-template-library-from-consumer.md))。
 
 利用側 (動画 1 本ごとの値) は次のとおり。
 

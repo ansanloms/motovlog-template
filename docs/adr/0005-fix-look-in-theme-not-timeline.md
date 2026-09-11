@@ -1,7 +1,7 @@
 ---
 status: accepted
 date: 2026-09-08T12:13:14Z
-refs: [4]
+refs: [4, 12]
 tags: [remotion, timeline, theme]
 ---
 
@@ -29,10 +29,10 @@ projects/<slug>/timeline.ts の要素 (コンポーネントの呼び出し) に
 ## Decision
 
 - コンポーネントの props に色・書体等の見た目の値を持たせない。
-- 見た目の値は `src/theme/tokens.ts` に置き、秒数は `src/theme/timing.ts` に置く。コンポーネントは `src/theme` から読む。
+- 見た目の値のうち色 (パレット) は利用側の `theme/index.ts` に置き ([ADR-0012](./0012-split-template-library-from-consumer.md))、それ以外 (書体・文字階層・配置) は `src/theme/tokens.ts` に、秒数は `src/theme/timing.ts` に置く。コンポーネントはどちらも `src/theme` から読む。
 - 暗がりの区間は timeline の要素から導出する (導出の関数はこの ADR では決めない)。
 - 見た目を変えるときは theme と T&M 文書を変え、timeline.ts は変えない。
-- 見た目のトークン (色・書体・文字階層・配置) の正本は `src/theme/tokens.ts` とし、CSS からは CSS 変数 (`ThemeRoot` が流し込む) で参照する。
+- 色 (パレット) の正本は利用側の `theme/index.ts` ([ADR-0012](./0012-split-template-library-from-consumer.md))、配置・文字階層などそれ以外のトークンの正本は `src/theme/tokens.ts` とする。CSS からはどちらも CSS 変数 (`ThemeRoot` が流し込む) で参照する。
 - 静的なスタイルは各コンポーネントの `*.module.css` に書き、トークンは `var(--...)` で参照する。色・サイズの値を CSS に直接書かない。
 - フレームごとに変わる値 (不透明度・位置・スケール) はインラインスタイルで渡す。CSS の `transition`・`@keyframes` は使わない (Remotion のフレーム独立描画と同期しないため、https://www.remotion.dev/docs/troubleshooting/css-animations を参照)。
 - 秒数のトークンは `src/theme/timing.ts` に置き、CSS 変数にしない。
@@ -51,7 +51,7 @@ projects/<slug>/timeline.ts の要素 (コンポーネントの呼び出し) に
 ### 禁止事項
 
 - 見た目の値をコンポーネントの props や timeline.ts に持たせること。
-- コンポーネントが theme を迂回して色・サイズを持つこと。
+- コンポーネントが theme を迂回して色・サイズを持つこと。ここでの theme は、色は利用側の `theme/index.ts`、それ以外は `src/theme/` を指す。
 
 ## Assumptions
 

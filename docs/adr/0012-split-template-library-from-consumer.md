@@ -142,7 +142,7 @@ Remotion には次の仕様がある (2026-09-11 時点のドキュメント)。
 
 | 前提                                                                                     | 状態   | 確認方法 / 結果                                                                        |
 | ---------------------------------------------------------------------------------------- | ------ | -------------------------------------------------------------------------------------- |
-| `Config.setEntryPoint("./app/index.ts")` で Studio と render の両方が利用側の入口を読む  | 未検証 | `npx remotion compositions` と `npx remotion render` を引数無しで実行して確認する      |
+| `Config.setEntryPoint("./app/index.ts")` で入口が `app/index.ts` になる                  | 検証済 | `npx remotion render Motovlog` を引数無しで実行して確認 (2026-09-11)                   |
 | node_modules 配下の TypeScript と CSS Modules を Remotion の既定のバンドラ設定が処理する | 未検証 | 外部リポジトリから依存として読み込み、Studio と render が通るかを確認する              |
 | パッケージ自己参照 (自リポジトリ内から `motovlog-template` を import) を解決できる       | 未検証 | 利用側ファイルの import を bare specifier に変えて Studio と render が通るかを確認する |
 | 配置 (layout) と秒数 (timing) のトークンは lib に固定したままで利用側の要求を満たす      | 未検証 | 2 本目以降の project を作る際に、これらを利用側で変えたい場面が出るかを確認する        |
