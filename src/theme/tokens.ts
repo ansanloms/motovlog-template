@@ -94,8 +94,6 @@ export const subtitleLayout = {
   lineHeight: 1.45,
   /** 画面下端からの距離。px。 */
   bottomOffset: 86,
-  /** 最大幅。px。左右 440px を空ける (1920 - 440 * 2)。 */
-  maxWidth: 1040,
 } as const;
 
 /** T&M「画面配置」「字幕の出し方」節。 */
