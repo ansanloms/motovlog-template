@@ -211,7 +211,7 @@ project の選択は環境変数 `REMOTION_PROJECT` (slug) で行う。`.env` �
 - 目 `{ eyes: { open, closed } }`。`figure()` が目パチで開閉を切り替える。
 - 口 `{ mouth: { a, i, u, e, o, n } }`。`figure()` が口パクで母音を切り替える (`n` は無音・撥音・子音の隙間)。
 
-画像はすべて同一キャンバスの PNG または SVG とし、`character()`・`figure()` は座標計算をしない。素材の切り出し (PSD からのレイヤー書き出し、例えば `psd-tools` を使う) はこのテンプレートの外で行い、`public/assets/characters/<name>/` に置く (第三者素材は既定でコミットしない、「ディレクトリ構成」)。同梱の `characters/sample.ts` は、パーツを単色の図形で描いた SVG の placeholder (`public/assets/characters/sample/`) を参照する。自分のキャラクターを用意するまではこれを差し替え先の雛形として使う。
+画像はすべて同一キャンバスの PNG または SVG とし、`character()`・`figure()` は座標計算をしない。SVG は幅と高さを持つ形で書き出す ([ADR-0011](docs/adr/0011-draw-figure-from-character-presets-linked-by-speech.md))。素材の切り出し (PSD からのレイヤー書き出し、例えば `psd-tools` を使う) はこのテンプレートの外で行い、`public/assets/characters/<name>/` に置く (第三者素材は既定でコミットしない、「ディレクトリ構成」)。同梱の `characters/sample.ts` は、パーツを単色の図形で描いた SVG の placeholder (`public/assets/characters/sample/`) を参照する。自分のキャラクターを用意するまではこれを差し替え先の雛形として使う。
 
 timeline.ts では `figure(character, { expression?, speech, side? })` を `cut()`/`fade()` の node として立ち絵 layer に置く。`character` は `characters/<name>.ts` の戻り値の参照 (`line()` の `by` に渡したのと同じもの)、`speech` は `narration()` の戻り値の `speech` をそのまま渡してよい (`figure()` が `by` が自分と同じ発話だけを使う)。`expression` は初期の表情名 (省略時は `expressions` の最初のキー)。`side` は `"left"` (既定) か `"right"`。右へ移すのは章の区切りでのみ、1 本 2 回まで (T&M「画面配置」)。
 

@@ -86,6 +86,8 @@ Remotion には次の仕様がある (2026-09-11 時点のドキュメント)。
 - lib に `src/setup.ts` を置き、`configure({ theme, loadTimeline, defaultProject })` と `getSetup()` を公開する。利用側の入口が `configure()` を 1 回呼び、lib の内部は `getSetup()` で読む。`configure()` を呼ぶ前に `getSetup()` を呼ぶと、どこで `configure()` を呼ぶかを示すメッセージで throw する。
 - `Theme` 型は `{ palette, narrator }` の 2 つとする。`palette` は T&M のカラー、`narrator` は既定の話者と声質。
 - `paletteRgb` (rgba() の合成用) は利用側に持たせず、lib が `palette` から導出する。
+- [ADR-0005](./0005-fix-look-in-theme-not-timeline.md) の見た目のトークンのうちパレットと、[ADR-0010](./0010-build-narration-timeline-with-hashed-voice-cache.md) の既定の話者 `narrator` は、値の置き場を利用側の `theme/index.ts` に移す。参照の形は変えず、コンポーネントは `src/theme` から読み、CSS 変数は `ThemeRoot` が流す。
+- [ADR-0010](./0010-build-narration-timeline-with-hashed-voice-cache.md) の `DEFAULT_PROJECT` は `app/config.ts` の `defaultProject` に移す。`narration()` の slug の既定が `REMOTION_PROJECT` の解決に落ちる点は変えない。
 - 配置 (layout) と秒数 (timing) のトークンは lib の `src/theme/` に残し、利用側には出さない。
 - 利用側は次のファイルを持つ。
 
