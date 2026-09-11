@@ -42,13 +42,15 @@ tags: [voicevox, narration, timeline]
 - `after` は前の発話の音声の終わりからの間隔 (秒) を表す。
 - 字幕の尺は `min(音声の実尺 + tail, 次の発話の開始 − 自分の開始)` とする (最後の発話は前者のまま)。`duration` を明示した `line()` の item は例外で、tail もクランプも掛けず、位置決めと字幕の尺の両方にその値を使う。
 - 暗がりは、次の発話が音声終了から `silenceGap` 以内なら出したまま。超えるなら字幕消灯 (通常は音声終了 + `tail`) 直後から `fadeOut` で消し、次の発話の `leadIn` 前から出し直す。最後の発話も同じ (`bandTiming`、[ADR-0004](./0004-define-tone-and-manner.md))。
-- 音声キャッシュの key は、theme の `narrator` (既定の話者と声質) で正規化した声質 8 値 (speaker・speed・pitch・intonation・volume・pause・silenceBefore・silenceAfter) と text の SHA-256 とする。
+- 音声キャッシュの key は、theme の `narrator` (既定の話者と声質) で正規化した声質 8 値 (speaker・speed・pitch・intonation・volume・pause・silenceBefore・silenceAfter) と text の SHA-256 とする。`line()` に `reading` (合成に渡す文、省略時は `text`) を明示したときだけ、key の JSON に `reading` を含める。理由: 既存の (`reading` を書いていない) 行の key を変えないため。
+- `line()` の `voice` に `null` を渡すと声無し (wav・lipsync を作らない) になる。声無しの item は `cut()`/`fade()` の `duration` の明示が必須で、字幕の尺は `duration` と同じにする。`by`・`expression` は声無しでも書け、`figure()` の表情の切り替えだけに使う (口パクは付かない、`narration()` の `speech` には `lipsync: []` で載せる)。`voice: null` と `reading` は同時に指定できず (声無しの行に `reading` は意味を持たない)、`line()`・watcher の両方で throw する。
 - キャッシュは `public/projects/<slug>/lines/<key>.{wav,json}` に置き、コミットしない ([ADR-0002](./0002-project-directory-layout.md))。
 - 生成は `npm run dev` の watcher と `npm run render` の前段が行う。watcher は `scripts/dev.ts` が `scripts/voice.ts` の監視を同プロセスで起動し、render は前段で `tsx scripts/voice.ts` を実行する。生成だけを行う npm script は公開しない。
 - watcher は `projects/<slug>/` と `characters/` の変更を監視する ([ADR-0011](./0011-draw-figure-from-character-presets-linked-by-speech.md))。
-- watcher は timeline.ts を静的に評価する。`text`・`voice` に書ける式は次に限り、それ以外 (関数呼び出し・条件式・置換ありテンプレート等) は timeline.ts 内の位置付きエラーにする。
-  - `text`: 文字列リテラルまたは置換無しテンプレートリテラル、あるいはそれらの配列 (空配列は不可)。配列は `\n` で結合する。
-  - `voice`: リテラル・オブジェクトリテラル (spread を含む)・同じファイルの top-level const・import の binding・プロパティアクセス。
+- watcher は timeline.ts を静的に評価する。`text`・`reading`・`voice` に書ける式は次に限り、それ以外 (関数呼び出し・条件式・置換ありテンプレート等) は timeline.ts 内の位置付きエラーにする。
+  - `text`・`reading`: 文字列リテラルまたは置換無しテンプレートリテラル、あるいはそれらの配列 (空配列は不可、`\n` で結合する)。結合した文字列の `{漢字|よみ}` 記法の片側が空・`|` が無い・入れ子や非対称の括弧 (閉じ忘れ・開き忘れ) であれば位置付きエラーにする。
+  - `voice`: リテラル (`null` を含む)・オブジェクトリテラル (spread を含む)・同じファイルの top-level const・import の binding・プロパティアクセス。`voice` が `null` に評価される行は声無しとして watcher の抽出結果 (`lines`) から除外し、件数を `silent` に集計する (wav・lipsync を生成しない)。`voice: null` と `reading` を同時に指定すると位置付きエラーにする。
+  - 発話 0 件の警告 (`scripts/voice.ts` の `noLinesWarning()`) は、`lines.length + silent` (`voice: null` で除外する前の呼び出し数) で判定する。声無しの行だけの project を、`timeline.ts` の import が lib の入口を指していないときと同じ警告にしないため。
 - 既定の話者と声質 8 値は theme の `narrator` に置く。
 - VOICEVOX ENGINE の URL は `.env` (`VOICEVOX_URL`) に置く。
 - `narration()` の slug は省略可で、既定は `resolveProjectSlug(process.env.REMOTION_PROJECT)` の解決 (Root.tsx と同じ、利用側が `configure()` で渡す `app/config.ts` の `defaultProject` に落ちる。[ADR-0012](./0012-split-template-library-from-consumer.md)) とする。明示した `slug` はこの既定を上書きする。

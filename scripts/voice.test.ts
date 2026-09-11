@@ -38,16 +38,20 @@ describe("readVoicevoxUrl", () => {
 });
 
 describe("noLinesWarning", () => {
-  it("0 件なら lib の入口の確認を促す警告を返す", () => {
-    const warning = noLinesWarning(0);
+  it("lineCount・silentCount ともに 0 件なら lib の入口の確認を促す警告を返す", () => {
+    const warning = noLinesWarning(0, 0);
 
     expect(warning).toContain("発話 (line()) が 0 件でした");
     expect(warning).toContain("src/compositions/index.ts");
     expect(warning).toContain("motovlog-template/compositions");
   });
 
-  it("1 件以上なら何も返さない (発話の無い project はエラーにしない)", () => {
-    expect(noLinesWarning(1)).toBeUndefined();
+  it("lineCount が 1 件以上なら何も返さない (発話の無い project はエラーにしない)", () => {
+    expect(noLinesWarning(1, 0)).toBeUndefined();
+  });
+
+  it("lineCount が 0 でも silentCount が 1 件以上なら何も返さない (声無しだけの project は正当)", () => {
+    expect(noLinesWarning(0, 1)).toBeUndefined();
   });
 });
 

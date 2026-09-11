@@ -172,6 +172,39 @@ describe("generateMissing", () => {
     expect(written.voice).toEqual(narrator);
   });
 
+  it("reading があれば合成に使い、キャッシュの reading に書く", async () => {
+    const deps = makeDeps();
+
+    const result = await generateMissing(
+      "00000000-sample",
+      [{ text: "{浄土平|じょうどだいら}", reading: "じょうどだいらだよ" }],
+      deps,
+    );
+
+    expect(result).toEqual({ generated: 1, skipped: 0 });
+
+    const key = await voiceKey({
+      text: "{浄土平|じょうどだいら}",
+      reading: "じょうどだいらだよ",
+    });
+    const { json: jsonPath } = cachePaths(key);
+    const written = JSON.parse(deps.writes.get(jsonPath) as string);
+
+    expect(written.reading).toBe("じょうどだいらだよ");
+  });
+
+  it("reading の有無で別の key になり、両方生成される (キャッシュが分かれる)", async () => {
+    const deps = makeDeps();
+
+    const result = await generateMissing(
+      "00000000-sample",
+      [{ text: "こんにちは" }, { text: "こんにちは", reading: "こんにちわ" }],
+      deps,
+    );
+
+    expect(result).toEqual({ generated: 2, skipped: 0 });
+  });
+
   it("wav・json が両方あれば skip する", async () => {
     const key = await voiceKey({ text: "こんにちは" });
     const deps = makeDeps({ existingKeys: new Set([key]) });

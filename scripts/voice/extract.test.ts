@@ -106,39 +106,46 @@ describe("extractLines", () => {
   it("lib の入口 (src/compositions/index.ts) からの import も line() と見なす", async () => {
     const source = `import { line } from "${specifierFor(FILE_DIR, COMPOSITIONS_INDEX_TS)}";\nline({ text: "こんにちは" });`;
 
-    await expect(extractLines(source, FILE)).resolves.toEqual([
-      { text: "こんにちは" },
-    ]);
+    await expect(extractLines(source, FILE)).resolves.toEqual({
+      lines: [{ text: "こんにちは" }],
+      silent: 0,
+    });
   });
 
   it("lib の root export (src/index.ts) からの import も line() と見なす", async () => {
     const source = `import { line } from "${specifierFor(FILE_DIR, ROOT_INDEX_TS)}";\nline({ text: "こんにちは" });`;
 
-    await expect(extractLines(source, FILE)).resolves.toEqual([
-      { text: "こんにちは" },
-    ]);
+    await expect(extractLines(source, FILE)).resolves.toEqual({
+      lines: [{ text: "こんにちは" }],
+      silent: 0,
+    });
   });
 
   it("bare specifier (motovlog-template/compositions) からの import も line() と見なす", async () => {
     const source = `import { line } from "motovlog-template/compositions";\nline({ text: "こんにちは" });`;
 
-    await expect(extractLines(source, FILE)).resolves.toEqual([
-      { text: "こんにちは" },
-    ]);
+    await expect(extractLines(source, FILE)).resolves.toEqual({
+      lines: [{ text: "こんにちは" }],
+      silent: 0,
+    });
   });
 
   it("bare specifier (motovlog-template) からの import も line() と見なす", async () => {
     const source = `import { line } from "motovlog-template";\nline({ text: "こんにちは" });`;
 
-    await expect(extractLines(source, FILE)).resolves.toEqual([
-      { text: "こんにちは" },
-    ]);
+    await expect(extractLines(source, FILE)).resolves.toEqual({
+      lines: [{ text: "こんにちは" }],
+      silent: 0,
+    });
   });
 
   it("lib 以外の bare specifier からの line は拾わない", async () => {
     const source = `import { line } from "other-package";\nline({ text: "こんにちは" });`;
 
-    await expect(extractLines(source, FILE)).resolves.toEqual([]);
+    await expect(extractLines(source, FILE)).resolves.toEqual({
+      lines: [],
+      silent: 0,
+    });
   });
 
   it("bare specifier の character() も by の voice として読む", async () => {
@@ -154,33 +161,37 @@ describe("extractLines", () => {
     );
     const source = fs.readFileSync(timelinePath, "utf-8");
 
-    await expect(extractLines(source, timelinePath)).resolves.toEqual([
-      { text: "a", voice: { speaker: 13 } },
-    ]);
+    await expect(extractLines(source, timelinePath)).resolves.toEqual({
+      lines: [{ text: "a", voice: { speaker: 13 } }],
+      silent: 0,
+    });
   });
 
   it("正常系: text だけの呼び出しを読む", async () => {
     const source = `${LINE_IMPORT}\nline({ text: "こんにちは" });`;
 
-    await expect(extractLines(source, FILE)).resolves.toEqual([
-      { text: "こんにちは" },
-    ]);
+    await expect(extractLines(source, FILE)).resolves.toEqual({
+      lines: [{ text: "こんにちは" }],
+      silent: 0,
+    });
   });
 
   it("正常系: voice (リテラルのみの object literal) を読む", async () => {
     const source = `${LINE_IMPORT}\nline({ text: "こんにちは", voice: { speaker: 13 } });`;
 
-    await expect(extractLines(source, FILE)).resolves.toEqual([
-      { text: "こんにちは", voice: { speaker: 13 } },
-    ]);
+    await expect(extractLines(source, FILE)).resolves.toEqual({
+      lines: [{ text: "こんにちは", voice: { speaker: 13 } }],
+      silent: 0,
+    });
   });
 
   it("正常系: voice に単項マイナスの数値リテラルを渡せる", async () => {
     const source = `${LINE_IMPORT}\nline({ text: "こんにちは", voice: { pitch: -0.1 } });`;
 
-    await expect(extractLines(source, FILE)).resolves.toEqual([
-      { text: "こんにちは", voice: { pitch: -0.1 } },
-    ]);
+    await expect(extractLines(source, FILE)).resolves.toEqual({
+      lines: [{ text: "こんにちは", voice: { pitch: -0.1 } }],
+      silent: 0,
+    });
   });
 
   it("正常系: 複数の line() 呼び出しをすべて集める", async () => {
@@ -189,10 +200,71 @@ describe("extractLines", () => {
       cut(line({ text: "b", voice: { speaker: 1 } }), { after: 0.5 });
     `;
 
-    await expect(extractLines(source, FILE)).resolves.toEqual([
-      { text: "a" },
-      { text: "b", voice: { speaker: 1 } },
-    ]);
+    await expect(extractLines(source, FILE)).resolves.toEqual({
+      lines: [{ text: "a" }, { text: "b", voice: { speaker: 1 } }],
+      silent: 0,
+    });
+  });
+
+  it("正常系: reading (リテラル) を読む", async () => {
+    const source = `${LINE_IMPORT}\nline({ text: "{浄土平|じょうどだいら}", reading: "浄土平です" });`;
+
+    await expect(extractLines(source, FILE)).resolves.toEqual({
+      lines: [{ text: "{浄土平|じょうどだいら}", reading: "浄土平です" }],
+      silent: 0,
+    });
+  });
+
+  it("reading が変数参照 (非リテラル) なら位置付きエラーになる", async () => {
+    const source = `${LINE_IMPORT}\nconst r = "a"; line({ text: "x", reading: r });`;
+
+    await expect(extractLines(source, FILE)).rejects.toThrow(
+      /timeline\.ts:2:\d+.*リテラル/,
+    );
+  });
+
+  it("reading が空文字なら位置付きエラーになる", async () => {
+    const source = `${LINE_IMPORT}\nline({ text: "x", reading: "" });`;
+
+    await expect(extractLines(source, FILE)).rejects.toThrow(
+      /timeline\.ts:2:\d+.*line\(\)\.reading を空文字にはできません \(声無しは voice: null で書いてください\)/,
+    );
+  });
+
+  it("voice: null と reading を同時に指定すると位置付きエラーになる", async () => {
+    const source = `${LINE_IMPORT}\nline({ text: "a", reading: "エー", voice: null });`;
+
+    await expect(extractLines(source, FILE)).rejects.toThrow(
+      /timeline\.ts:2:\d+.*声無しの行 \(voice: null\) に reading は書けません/,
+    );
+  });
+
+  it("voice: null の line() は抽出結果から除外する (声無し)", async () => {
+    const source = `${LINE_IMPORT}
+      cut(line({ text: "a" }), { at: 0 });
+      cut(line({ text: "b", voice: null }), { at: 1, duration: 1 });
+    `;
+
+    await expect(extractLines(source, FILE)).resolves.toEqual({
+      lines: [{ text: "a" }],
+      silent: 1,
+    });
+  });
+
+  it("text の {漢字|よみ} 記法が壊れていれば位置付きエラーになる", async () => {
+    const source = `${LINE_IMPORT}\nline({ text: "{浄土平|}" });`;
+
+    await expect(extractLines(source, FILE)).rejects.toThrow(
+      /timeline\.ts:2:\d+.*\{漢字\|よみ\} の形で書いてください/,
+    );
+  });
+
+  it("reading の {漢字|よみ} 記法が壊れていれば位置付きエラーになる", async () => {
+    const source = `${LINE_IMPORT}\nline({ text: "a", reading: "{|じょうどだいら}" });`;
+
+    await expect(extractLines(source, FILE)).rejects.toThrow(
+      /timeline\.ts:2:\d+.*\{漢字\|よみ\} の形で書いてください/,
+    );
   });
 
   it("text が変数参照なら位置付きエラーになる", async () => {
@@ -214,9 +286,10 @@ describe("extractLines", () => {
   it("text が置換無しテンプレートリテラルなら通る", async () => {
     const source = `${LINE_IMPORT}\nline({ text: \`こんにちは\` });`;
 
-    await expect(extractLines(source, FILE)).resolves.toEqual([
-      { text: "こんにちは" },
-    ]);
+    await expect(extractLines(source, FILE)).resolves.toEqual({
+      lines: [{ text: "こんにちは" }],
+      silent: 0,
+    });
   });
 
   it("正常系: text が文字列リテラルの配列なら改行で結合する", async () => {
@@ -280,23 +353,28 @@ describe("extractLines", () => {
   });
 
   it("line() の呼び出しが無ければ空配列を返す", async () => {
-    await expect(extractLines("const x = 1;", FILE)).resolves.toEqual([]);
+    await expect(extractLines("const x = 1;", FILE)).resolves.toEqual({
+      lines: [],
+      silent: 0,
+    });
   });
 
   it("import の別名 (line as l) も拾う", async () => {
     const source = `${lineImportFor(FILE_DIR, "l")}\nl({ text: "alias" });`;
 
-    await expect(extractLines(source, FILE)).resolves.toEqual([
-      { text: "alias" },
-    ]);
+    await expect(extractLines(source, FILE)).resolves.toEqual({
+      lines: [{ text: "alias" }],
+      silent: 0,
+    });
   });
 
   it("namespace import (import * as n) 経由の n.line() も拾う", async () => {
     const source = `import * as n from "${lineSpecifierFor(FILE_DIR)}";\nn.line({ text: "namespace" });`;
 
-    await expect(extractLines(source, FILE)).resolves.toEqual([
-      { text: "namespace" },
-    ]);
+    await expect(extractLines(source, FILE)).resolves.toEqual({
+      lines: [{ text: "namespace" }],
+      silent: 0,
+    });
   });
 
   it("無関係なモジュールの namespace import の同名プロパティ (m.line()) は拾わない", async () => {
@@ -307,7 +385,10 @@ describe("extractLines", () => {
     const timelinePath = setupProject(source);
     const written = fs.readFileSync(timelinePath, "utf-8");
 
-    await expect(extractLines(written, timelinePath)).resolves.toEqual([]);
+    await expect(extractLines(written, timelinePath)).resolves.toEqual({
+      lines: [],
+      silent: 0,
+    });
   });
 
   it("ローカルの line 関数 (import ではない) は拾わない", async () => {
@@ -316,7 +397,10 @@ describe("extractLines", () => {
       line({ text: "local" });
     `;
 
-    await expect(extractLines(source, FILE)).resolves.toEqual([]);
+    await expect(extractLines(source, FILE)).resolves.toEqual({
+      lines: [],
+      silent: 0,
+    });
   });
 
   it("const の循環参照は位置付きエラーになる", async () => {
@@ -336,9 +420,10 @@ describe("extractLines", () => {
     `);
     const source = fs.readFileSync(timelinePath, "utf-8");
 
-    await expect(extractLines(source, timelinePath)).resolves.toEqual([
-      { text: "a", voice: { speaker: 13, speed: 1, pitch: 0 } },
-    ]);
+    await expect(extractLines(source, timelinePath)).resolves.toEqual({
+      lines: [{ text: "a", voice: { speaker: 13, speed: 1, pitch: 0 } }],
+      silent: 0,
+    });
   });
 
   it("voice に spread (...narrator) と上書きを渡せる", async () => {
@@ -348,9 +433,10 @@ describe("extractLines", () => {
     `);
     const source = fs.readFileSync(timelinePath, "utf-8");
 
-    await expect(extractLines(source, timelinePath)).resolves.toEqual([
-      { text: "a", voice: { speaker: 13, speed: 0.9, pitch: 0 } },
-    ]);
+    await expect(extractLines(source, timelinePath)).resolves.toEqual({
+      lines: [{ text: "a", voice: { speaker: 13, speed: 0.9, pitch: 0 } }],
+      silent: 0,
+    });
   });
 
   it("voice に同じファイルの top-level const を渡せる", async () => {
@@ -361,9 +447,12 @@ describe("extractLines", () => {
     `);
     const source = fs.readFileSync(timelinePath, "utf-8");
 
-    await expect(extractLines(source, timelinePath)).resolves.toEqual([
-      { text: "a", voice: { speaker: 13, speed: 1, pitch: 0, volume: 0.8 } },
-    ]);
+    await expect(extractLines(source, timelinePath)).resolves.toEqual({
+      lines: [
+        { text: "a", voice: { speaker: 13, speed: 1, pitch: 0, volume: 0.8 } },
+      ],
+      silent: 0,
+    });
   });
 
   it("voice にプロパティアクセス (speeds.slow) を渡せる", async () => {
@@ -373,9 +462,10 @@ describe("extractLines", () => {
     `);
     const source = fs.readFileSync(timelinePath, "utf-8");
 
-    await expect(extractLines(source, timelinePath)).resolves.toEqual([
-      { text: "a", voice: { speaker: 13, speed: 0.8 } },
-    ]);
+    await expect(extractLines(source, timelinePath)).resolves.toEqual({
+      lines: [{ text: "a", voice: { speaker: 13, speed: 0.8 } }],
+      silent: 0,
+    });
   });
 
   it("voice に関数呼び出しがあれば位置付きエラーになる", async () => {
@@ -437,9 +527,10 @@ describe("extractLines", () => {
         line({ text: "a", by: hero });
       `;
 
-      await expect(extractLines(source, FILE)).resolves.toEqual([
-        { text: "a", voice: { speaker: 13 } },
-      ]);
+      await expect(extractLines(source, FILE)).resolves.toEqual({
+        lines: [{ text: "a", voice: { speaker: 13 } }],
+        silent: 0,
+      });
     });
 
     it("同じファイルの const の voice に theme からの spread を渡せる", async () => {
@@ -456,9 +547,10 @@ describe("extractLines", () => {
       );
       const source = fs.readFileSync(timelinePath, "utf-8");
 
-      await expect(extractLines(source, timelinePath)).resolves.toEqual([
-        { text: "a", voice: { speaker: 13, speed: 0.9, pitch: 0 } },
-      ]);
+      await expect(extractLines(source, timelinePath)).resolves.toEqual({
+        lines: [{ text: "a", voice: { speaker: 13, speed: 0.9, pitch: 0 } }],
+        silent: 0,
+      });
     });
 
     it("import した character (別モジュールの export) の voice を読む", async () => {
@@ -479,9 +571,10 @@ describe("extractLines", () => {
       );
       const source = fs.readFileSync(timelinePath, "utf-8");
 
-      await expect(extractLines(source, timelinePath)).resolves.toEqual([
-        { text: "a", voice: { speaker: 20 } },
-      ]);
+      await expect(extractLines(source, timelinePath)).resolves.toEqual({
+        lines: [{ text: "a", voice: { speaker: 20 } }],
+        silent: 0,
+      });
     });
 
     it("line().voice が by.voice を上書きする", async () => {
@@ -494,9 +587,10 @@ describe("extractLines", () => {
         line({ text: "a", by: hero, voice: { speed: 0.9 } });
       `;
 
-      await expect(extractLines(source, FILE)).resolves.toEqual([
-        { text: "a", voice: { speaker: 13, speed: 0.9 } },
-      ]);
+      await expect(extractLines(source, FILE)).resolves.toEqual({
+        lines: [{ text: "a", voice: { speaker: 13, speed: 0.9 } }],
+        silent: 0,
+      });
     });
 
     it("by に voice が無ければ line() に voice が付かない", async () => {
@@ -506,9 +600,10 @@ describe("extractLines", () => {
         line({ text: "a", by: hero });
       `;
 
-      await expect(extractLines(source, FILE)).resolves.toEqual([
-        { text: "a" },
-      ]);
+      await expect(extractLines(source, FILE)).resolves.toEqual({
+        lines: [{ text: "a" }],
+        silent: 0,
+      });
     });
 
     it("character 経由の import エイリアスでも通る", async () => {
@@ -518,9 +613,10 @@ describe("extractLines", () => {
         line({ text: "a", by: hero });
       `;
 
-      await expect(extractLines(source, FILE)).resolves.toEqual([
-        { text: "a", voice: { speaker: 13 } },
-      ]);
+      await expect(extractLines(source, FILE)).resolves.toEqual({
+        lines: [{ text: "a", voice: { speaker: 13 } }],
+        silent: 0,
+      });
     });
 
     it("character() の voice を shorthand ({ voice }) で書いても読める (#4)", async () => {
@@ -531,9 +627,10 @@ describe("extractLines", () => {
         line({ text: "a", by: hero });
       `;
 
-      await expect(extractLines(source, FILE)).resolves.toEqual([
-        { text: "a", voice: { speaker: 13 } },
-      ]);
+      await expect(extractLines(source, FILE)).resolves.toEqual({
+        lines: [{ text: "a", voice: { speaker: 13 } }],
+        silent: 0,
+      });
     });
 
     it('character() の voice を文字列リテラルキー ("voice": ...) で書いても読める (#4)', async () => {
@@ -543,9 +640,10 @@ describe("extractLines", () => {
         line({ text: "a", by: hero });
       `;
 
-      await expect(extractLines(source, FILE)).resolves.toEqual([
-        { text: "a", voice: { speaker: 13 } },
-      ]);
+      await expect(extractLines(source, FILE)).resolves.toEqual({
+        lines: [{ text: "a", voice: { speaker: 13 } }],
+        silent: 0,
+      });
     });
 
     it("character() の引数に spread があれば位置付きエラーになる (#4)", async () => {
@@ -613,9 +711,10 @@ describe("extractLines", () => {
         line({ text: "a", by: hero, expression: "normal" });
       `;
 
-      await expect(extractLines(source, FILE)).resolves.toEqual([
-        { text: "a", voice: { speaker: 13 } },
-      ]);
+      await expect(extractLines(source, FILE)).resolves.toEqual({
+        lines: [{ text: "a", voice: { speaker: 13 } }],
+        silent: 0,
+      });
     });
 
     it("expression が非リテラルなら位置付きエラーになる", async () => {
@@ -668,9 +767,10 @@ describe("extractLines", () => {
       );
       const source = fs.readFileSync(timelinePath, "utf-8");
 
-      await expect(extractLines(source, timelinePath)).resolves.toEqual([
-        { text: "a", voice: { speaker: 1 } },
-      ]);
+      await expect(extractLines(source, timelinePath)).resolves.toEqual({
+        lines: [{ text: "a", voice: { speaker: 1 } }],
+        silent: 0,
+      });
 
       const charactersPath = path.join(
         path.dirname(timelinePath),
@@ -688,9 +788,10 @@ describe("extractLines", () => {
         Temporal.Now.instant().epochMilliseconds / 1000 + 60;
       fs.utimesSync(charactersPath, futureEpochSeconds, futureEpochSeconds);
 
-      await expect(extractLines(source, timelinePath)).resolves.toEqual([
-        { text: "a", voice: { speaker: 2 } },
-      ]);
+      await expect(extractLines(source, timelinePath)).resolves.toEqual({
+        lines: [{ text: "a", voice: { speaker: 2 } }],
+        silent: 0,
+      });
     });
   });
 });

@@ -38,6 +38,36 @@ describe("voiceKey", () => {
 
     expect(key).toMatch(/^[0-9a-f]{64}$/);
   });
+
+  it("reading 無しは従来と同じ JSON を hash する (既存キャッシュの key を変えない)", async () => {
+    const withoutReading = await voiceKey({ text: "こんにちは" });
+    const legacy = await (async () => {
+      const json = JSON.stringify({
+        text: "こんにちは",
+        voice: resolveVoice(undefined),
+      });
+      const digest = await crypto.subtle.digest(
+        "SHA-256",
+        new TextEncoder().encode(json),
+      );
+
+      return Array.from(new Uint8Array(digest))
+        .map((byte) => byte.toString(16).padStart(2, "0"))
+        .join("");
+    })();
+
+    expect(withoutReading).toBe(legacy);
+  });
+
+  it("reading の有無で key が変わる", async () => {
+    const withoutReading = await voiceKey({ text: "こんにちは" });
+    const withReading = await voiceKey({
+      text: "こんにちは",
+      reading: "こんにちわ",
+    });
+
+    expect(withoutReading).not.toBe(withReading);
+  });
 });
 
 describe("mergeVoice", () => {

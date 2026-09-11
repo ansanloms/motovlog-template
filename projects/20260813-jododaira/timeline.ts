@@ -9,7 +9,6 @@ import {
   chapter,
   ending,
   photoShowcase,
-  subtitle,
   video,
 } from "../../src/components/index.tsx";
 import {
@@ -142,11 +141,18 @@ const n = await narration([
   cut(line({ text: "浄土平に", by: ryusei }), { after: 2.034 }),
   cut(line({ text: "行きます", by: ryusei }), { after: 1.433 }),
   cut(line({ text: "今日は", by: ryusei }), { at: 61.7 }),
-  cut(line({ text: "(2026年)8月は中旬", by: ryusei }), { after: 1.067 }),
-  cut(line({ text: "お盆です", by: ryusei }), { after: 1.233 }),
-  cut(line({ text: "ここは 南ゲート入口(土湯峠側)", by: ryusei }), {
-    after: 2.234,
+  cut(line({ text: "(2026年)8月は中旬", reading: "8月は中旬", by: ryusei }), {
+    after: 1.067,
   }),
+  cut(line({ text: "お盆です", by: ryusei }), { after: 1.233 }),
+  cut(
+    line({
+      text: "ここは 南ゲート入口(土湯峠側)",
+      reading: "ここは 南ゲート入口",
+      by: ryusei,
+    }),
+    { after: 2.234 },
+  ),
   cut(line({ text: "磐梯吾妻スカイラインの平均標高は", by: ryusei }), {
     after: 2.533,
   }),
@@ -199,8 +205,9 @@ const n = await narration([
   }),
   cut(line({ text: "そんな景色でした", by: ryusei }), { after: 3.2 }),
   cut(
-    subtitle({
+    line({
       text: "(「火山ガス注意」「窓を閉めて走行下さい」の看板にビビり散らかしている)",
+      voice: null,
     }),
     { at: 275.9, duration: 3.167 },
   ),
