@@ -1,5 +1,6 @@
 // 使い方: npm run convert -- <slug> <入力ファイル>...
 // 各入力を public/projects/<slug>/<basename>.mp4 へ変換する (ADR-0003)。
+// 出力先は cwd (利用側のルート) から引く (ADR-0012)。
 // fps は theme の定数 1 つで、composition と一致させる (ADR-0003)。
 // 起動時に nvenc が使えるかを確認し、使えなければ libx264 を使う。nvenc が使える場合でも、
 // あるファイルの変換に失敗したときはそのファイルだけ libx264 で再試行する。
@@ -8,7 +9,6 @@ import "temporal-polyfill/global";
 import { spawn, spawnSync } from "node:child_process";
 import fs, { constants as fsConstants } from "node:fs";
 import path from "node:path";
-import { fileURLToPath } from "node:url";
 import { fps } from "../src/theme/timing.ts";
 import {
   ConvertAbortedError,
@@ -47,11 +47,7 @@ const main = async (): Promise<void> => {
     return;
   }
 
-  const repoRoot = path.join(
-    path.dirname(fileURLToPath(import.meta.url)),
-    "..",
-  );
-  const outDir = path.join(repoRoot, "public", "projects", slug);
+  const outDir = path.join(process.cwd(), "public", "projects", slug);
 
   // 変換に入る前に、出力先が未生成の入力ファイルが読めることを確認する。
   // 出力が既に存在する入力は変換済みで原本が未マウントの場合があるため確認をスキップする。

@@ -2,7 +2,12 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
+import { getSetup } from "../setup.ts";
 import { themeCssVars } from "./cssVars.ts";
+
+// palette は利用側の値 (ADR-0012)。テストは src/test/setup.ts が configure()
+// したものを使う。
+const { palette } = getSetup().theme;
 
 const srcDir = path.join(path.dirname(fileURLToPath(import.meta.url)), "..");
 
@@ -21,7 +26,7 @@ const findModuleCssFiles = (dir: string): string[] => {
 
 describe("themeCssVars", () => {
   it("すべてのキーが -- で始まり、値が空文字でない", () => {
-    const vars = themeCssVars("Noto Sans JP");
+    const vars = themeCssVars(palette, "Noto Sans JP");
 
     for (const [key, value] of Object.entries(vars)) {
       expect(key.startsWith("--")).toBe(true);
@@ -32,7 +37,7 @@ describe("themeCssVars", () => {
   it("-alpha・-line-height で終わる変数は px を付けない", () => {
     // 無単位キーの判定 (isRawValueKey) は大文字小文字を区別しないため、
     // 小文字始まりの接尾辞 (例: characterShadow.alpha) も px を付けない。
-    const vars = themeCssVars("Noto Sans JP");
+    const vars = themeCssVars(palette, "Noto Sans JP");
 
     for (const [key, value] of Object.entries(vars)) {
       if (key.endsWith("-alpha") || key.endsWith("-line-height")) {
@@ -43,7 +48,7 @@ describe("themeCssVars", () => {
 
   it("*.module.css が参照する var(--...) はすべて themeCssVars に存在する", () => {
     // CSS 変数のタイプミスは実行時に黙って効かなくなるため、ここで止める。
-    const vars = themeCssVars("Noto Sans JP");
+    const vars = themeCssVars(palette, "Noto Sans JP");
     const files = findModuleCssFiles(srcDir);
 
     expect(files.length).toBeGreaterThan(0);

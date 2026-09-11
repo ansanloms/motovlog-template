@@ -103,6 +103,37 @@ export default [
     },
   },
   {
+    // 利用側 (app・theme・projects) は lib の公開面 (package.json の exports と
+    // 同じ 5 入口) だけを見る (ADR-0012)。characters/** の制限は下のブロックに
+    // まとめて書く (flat config は同じ rule を後のブロックが置き換えるため)。
+    files: ["app/**", "theme/**", "projects/**"],
+    rules: {
+      "no-restricted-imports": [
+        "error",
+        {
+          patterns: [
+            {
+              group: [
+                // gitignore 構文。"**/src/**" は src の下のディレクトリごと
+                // 除外するため、"!**/src/*/" で中間ディレクトリを戻してから
+                // でないと下の否定が効かない。
+                "**/src/**",
+                "!**/src/*/",
+                "!**/src/index.ts",
+                "!**/src/effects/index.ts",
+                "!**/src/components/index.tsx",
+                "!**/src/compositions/index.ts",
+                "!**/src/theme/index.ts",
+              ],
+              message:
+                "利用側は lib の 5 入口 (src/index.ts・src/effects/index.ts・src/components/index.tsx・src/compositions/index.ts・src/theme/index.ts) だけを import する (ADR-0012)。",
+            },
+          ],
+        },
+      ],
+    },
+  },
+  {
     // characters/<name>.ts は Node からそのまま import できる純粋な値の
     // モジュールに保つ (remotion・CSS・src/components を import しない。
     // watcher (scripts/voice/extract.ts) が line().by から voice だけを
@@ -113,6 +144,28 @@ export default [
         "error",
         {
           patterns: [
+            {
+              // 利用側の入口の制限 (ADR-0012)。characters/<name>.ts だけは
+              // 入口の src/compositions/index.ts に代えて実体の
+              // src/compositions/character.ts を import してよい。入口は
+              // figure()・line() 経由で src/components と CSS Modules を辿り、
+              // 素の Node から import できなくなるため (ADR-0011)。
+              // gitignore 構文。"**/src/**" は src の下のディレクトリごと
+              // 除外するため、"!**/src/*/" で中間ディレクトリを戻してから
+              // でないと下の否定が効かない。
+              group: [
+                "**/src/**",
+                "!**/src/*/",
+                "!**/src/index.ts",
+                "!**/src/effects/index.ts",
+                "!**/src/components/index.tsx",
+                "!**/src/compositions/index.ts",
+                "!**/src/compositions/character.ts",
+                "!**/src/theme/index.ts",
+              ],
+              message:
+                "利用側は lib の 5 入口 (src/index.ts・src/effects/index.ts・src/components/index.tsx・src/compositions/index.ts・src/theme/index.ts) だけを import する。characters/<name>.ts は src/compositions/character.ts も直に import してよい (ADR-0011・ADR-0012)。",
+            },
             {
               group: ["remotion", "@remotion/*"],
               message:

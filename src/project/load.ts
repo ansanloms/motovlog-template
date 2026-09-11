@@ -1,15 +1,17 @@
+import { getSetup } from "../setup.ts";
 import type { Timeline } from "../effects/index.ts";
-
-/** 環境変数未設定・空のときに読む project (ADR-0006)。 */
-export const DEFAULT_PROJECT = "00000000-sample";
 
 /** ADR-0002 の slug 形式 (YYYYMMDD-<name>、ASCII 小文字の kebab-case)。 */
 export const PROJECT_SLUG_PATTERN = /^[0-9]{8}-[a-z0-9]+(-[a-z0-9]+)*$/;
 
-/** slug (未設定・空なら DEFAULT_PROJECT) を検証して返す。値は REMOTION_PROJECT か composition の props から来る。 */
+/**
+ * slug を検証して返す。未設定・空なら利用側が configure() で渡した
+ * defaultProject を返す (ADR-0012)。値は REMOTION_PROJECT か composition の
+ * props から来る。
+ */
 export const resolveProjectSlug = (env: string | undefined): string => {
   if (!env) {
-    return DEFAULT_PROJECT;
+    return getSetup().defaultProject;
   }
 
   if (!PROJECT_SLUG_PATTERN.test(env)) {
@@ -74,15 +76,13 @@ export const isTimeline = (value: unknown): value is Timeline => {
   );
 };
 
-// projects/<slug>/timeline.ts を動的 import で読み、timeline() の戻り値
-// (Timeline) を返す。ディレクトリ部分をリテラルで書いた import() でないと
-// Rspack が解決できないため、テンプレートリテラルの形は変えないこと。
+// projects/<slug>/timeline.ts を読み、timeline() の戻り値 (Timeline) を返す。
+// 実際の読み込みは利用側が configure() で渡した loadTimeline() が行う
+// (ADR-0012)。lib は default export が Timeline の形かどうかだけを検査する。
 export const loadTimeline = async (slug: string): Promise<Timeline> => {
   const resolved = resolveProjectSlug(slug);
 
-  const timelineModule: { default: unknown } = await import(
-    `../../projects/${resolved}/timeline.ts`
-  );
+  const timelineModule = await getSetup().loadTimeline(resolved);
 
   if (!isTimeline(timelineModule.default)) {
     throw new Error(

@@ -2,11 +2,11 @@
 //
 // 書き手は line({ text, voice?, by?, expression? }) を cut() の node に渡して
 // narration() にまとめて渡す。text はリテラルで書くこと。voice はリテラルの
-// 他、theme の narrator の参照・spread・同じファイルの const・プロパティ
+// 他、利用側の theme の narrator の参照・spread・同じファイルの const・プロパティ
 // アクセスが書ける (scripts/voice/extract.ts が読める式に限る。watcher が
 // timeline.ts を静的解析して wav・キャッシュを作るため)。by は
 // character() が返す Character の参照で、figure() が自分宛の発話を選ぶのに
-// 使う (identity で結び付く)。声質の実効値は theme の narrator ← by.voice ←
+// 使う (identity で結び付く)。声質の実効値は利用側の theme の narrator ← by.voice ←
 // line() の voice の順で上書きした値 (src/voice/key.ts の mergeVoice())。
 // 音声キャッシュの key は text とこの実効の声質だけから作り、by・expression は
 // 含めない。expression は by の expressions のキーで、指定した表情に
