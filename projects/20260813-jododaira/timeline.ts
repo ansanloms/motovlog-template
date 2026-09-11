@@ -124,9 +124,13 @@ const clip7 = cut(
 );
 
 const n = await narration([
-  cut(line({ text: "取りました", by: ryusei, expression: "normal" }), {
-    at: 8.433,
-  }),
+  cut(
+    line({
+      text: "取りました",
+      by: { character: ryusei, expression: "normal" },
+    }),
+    { at: 8.433 },
+  ),
   cut(line({ text: "免許を", by: ryusei }), { after: 2.334 }),
   cut(line({ text: "買いました", by: ryusei }), { after: 2.266 }),
   cut(line({ text: "バイクも", by: ryusei }), { after: 2.366 }),
@@ -260,7 +264,7 @@ export default timeline([
         photo: asset("photos/PXL_20260815_045406555.RAW-01.jpg"),
         badge: "",
         title: "",
-        character: ryusei,
+        by: ryusei,
       }),
       { at: 0, duration: openingTiming.duration },
     ),

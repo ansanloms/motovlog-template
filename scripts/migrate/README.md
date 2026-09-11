@@ -79,7 +79,7 @@ Remotion CLI を通さないため、引数かシェルの環境変数で slug �
 | `シーンチェンジ` (クロスフェード)                                   | `crossfade()`。直前の走行映像の尺を遷移の尺だけ延ばし、直後の絶対開始を保つ                                                                  |
 | `音声ファイル` (最も下の layer)                                     | `audio()` (BGM)                                                                                                                              |
 | `画像ファイル` (走行映像の layer 以外)                              | `photoShowcase()` 1 枚ずつ                                                                                                                   |
-| `音声ファイル` (それより上の layer) + 同じ開始フレームの `テキスト` | `narration()` の `line({ text, by, expression })`                                                                                            |
+| `音声ファイル` (それより上の layer) + 同じ開始フレームの `テキスト` | `narration()` の `line({ text, by })` (表情の切り替えは `by: { character, expression }`)                                                     |
 | 声の無い `テキスト`                                                 | `narration()` に置く `cut(line({ text, voice: null }), { duration })`                                                                        |
 | ED の区間の `テキスト`                                              | `ending()` の `credits`                                                                                                                      |
 | `PSDファイル@PSDToolKit`                                            | `figure()`。`標準描画` の X の符号が `side`、`レイヤー` 文字列が `expression`                                                                |

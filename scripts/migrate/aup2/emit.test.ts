@@ -164,7 +164,7 @@ describe("emitTimeline", () => {
 
   it("発話と声の無い字幕を narration() に渡す", () => {
     expect(source).toContain(
-      `cut(line({ text: "こんにちは", by: hero, expression: "normal" }), { at: 7.8 })`,
+      `cut(line({ text: "こんにちは", by: { character: hero, expression: "normal" } }), { at: 7.8 })`,
     );
     expect(source).toContain(
       `cut(line({ text: "(声の無い字幕)", voice: null }), { after: 1, duration: 1 })`,

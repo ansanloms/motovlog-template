@@ -44,6 +44,13 @@ export type Character = {
   readonly expressions: Expressions;
 };
 
+/**
+ * line()・thumbnail() の by に渡せる値。character() の参照 (表情は既定) か、
+ * `{ character, expression? }` の形 (表情を明示する) のどちらか。
+ */
+export type ByRef =
+  Character | { readonly character: Character; readonly expression?: string };
+
 /** layer が EyesLayer かどうかを判定する。 */
 export const isEyesLayer = (layer: FigureLayer): layer is EyesLayer =>
   typeof layer === "object" && layer !== null && "eyes" in layer;
@@ -74,4 +81,38 @@ export const character = (definition: Character): Character => {
   }
 
   return definition;
+};
+
+/** resolveBy() が by の形を認識できないときに throw するエラーメッセージ。 */
+const INVALID_BY_MESSAGE =
+  "by は character() の戻り値か { character, expression? } の形で書いてください";
+
+/** value が Character (expressions を持つオブジェクト) かどうかを判定する。 */
+const looksLikeCharacter = (value: unknown): value is Character =>
+  typeof value === "object" && value !== null && "expressions" in value;
+
+/**
+ * ByRef を `{ character, expression? }` に正規化する。character() の参照
+ * (Character、必ず expressions を持つ) をそのまま渡した場合は expression
+ * 無しとして扱う。by が null・非オブジェクト、またはオブジェクト形で
+ * character が Character でない場合は、型では弾けない JS からの誤用として
+ * 生の TypeError ではなく Error を throw する。
+ */
+export const resolveBy = (
+  by: ByRef,
+): { character: Character; expression?: string } => {
+  if (looksLikeCharacter(by)) {
+    return { character: by };
+  }
+
+  if (
+    typeof by === "object" &&
+    by !== null &&
+    "character" in by &&
+    looksLikeCharacter(by.character)
+  ) {
+    return by;
+  }
+
+  throw new Error(INVALID_BY_MESSAGE);
 };

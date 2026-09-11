@@ -132,17 +132,18 @@ const calm = { ...narrator, speed: 0.9 };
 //
 // 2 本目: voice にファイル内の const (calm、theme の narrator の差分) を
 // 渡し、by.voice を上書きしている。after は「前の発話の音声の終わりからの
-// 間隔 (秒)」。expression: "sweat" で、この発話の開始と同時に立ち絵の表情が
-// 汗顔に変わる (次に expression を指定する発話まで維持する)。
+// 間隔 (秒)」。by: { character, expression: "sweat" } で、この発話の開始と
+// 同時に立ち絵の表情が汗顔に変わる (次に expression を指定する発話まで維持
+// する)。
 //
 // 3 本目: duration を明示すると、位置決め・字幕の尺の両方にその値を
 // そのまま使う (音声の実尺では上書きしない)。字幕を長めに出したいときに
 // 使う。暗がりは字幕が消えるまで出る (duration を明示していれば、その分
 // 長く出る)。時間は timeline() の他の演出と同じくすべて秒で書くため、
-// duration もフレーム数ではなく秒の数値。expression: "teach" でここから
-// 教える表情になる。発話と無関係に表情を変えたい・立ち絵を隠したいときは、
-// layer 2 (立ち絵) の item を分けて書く (expression オプションや、別の
-// duration の cut() を並べる。ADR-0011)。
+// duration もフレーム数ではなく秒の数値。by: { character, expression:
+// "teach" } でここから教える表情になる。発話と無関係に表情を変えたい・
+// 立ち絵を隠したいときは、layer 2 (立ち絵) の item を分けて書く (figure()
+// の expression オプションや、別の duration の cut() を並べる。ADR-0011)。
 const n = await narration([
   cut(
     line({
@@ -154,17 +155,15 @@ const n = await narration([
   cut(
     line({
       text: "今日は雲が多いけど、\n風は無くて走りやすい。",
-      by: sampleCharacter,
+      by: { character: sampleCharacter, expression: "sweat" },
       voice: calm,
-      expression: "sweat",
     }),
     { after: 0.5 },
   ),
   cut(
     line({
       text: "{浄土平|じょうどだいら}の展望台に着いた。\n少し休憩していこう。",
-      by: sampleCharacter,
-      expression: "teach",
+      by: { character: sampleCharacter, expression: "teach" },
     }),
     { after: 1, duration: 4 },
   ),
@@ -200,7 +199,7 @@ export default timeline([
         photo: asset("photos/photo-03.jpg"),
         badge: "#0 福島 / 磐梯吾妻スカイライン",
         title: "浄土平まで\n走ってきた",
-        character: sampleCharacter,
+        by: sampleCharacter,
       }),
       { duration: openingTiming.duration },
     ),

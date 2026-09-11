@@ -1,5 +1,5 @@
 // projects/<slug>/timeline.ts を TypeScript の compiler API で静的解析し、
-// line({ text, reading?, voice?, by?, expression? }) 呼び出しの text・reading
+// line({ text, reading?, voice?, by? }) 呼び出しの text・reading
 // と実効の voice を集める (ADR-0010, ADR-0011)。
 //
 // watcher (scripts/voice.ts --watch) が timeline.ts の変更ごとに実行時
@@ -24,15 +24,19 @@
 // extractLines() の lines から除外し、件数を silent に集計する (reading と
 // voice: null を同時に指定すると位置付きで throw する)。
 //
-// by は識別子に限る。次のいずれかに解決し、その voice プロパティ (無ければ
-// undefined) だけを読む (expressions は評価しない)。
+// by は「識別子」または「オブジェクトリテラル ({ character, expression? }、
+// character は識別子)」に限る。character が指す値は次のいずれかに解決し、
+// その voice プロパティ (無ければ undefined) だけを読む (expressions は
+// 評価しない)。
 // - 同じファイルの top-level const で、初期化式が character() の呼び出し
 //   (character() の実体、src/compositions/character.ts の export を指す
 //   import に解決されるものに限る)。
 // - import の binding (character() の呼び出し結果を export しているモジュール
 //   を動的 import() で読む)。
-// expression は文字列リテラル・置換無しテンプレートリテラルに限り、値は
-// 読み飛ばす (extractLines() の出力には含めない)。
+// by がオブジェクトリテラルのときの expression は文字列リテラル・置換無し
+// テンプレートリテラルに限り、値は読み飛ばす (extractLines() の出力には
+// 含めない)。line() 直下に expression が来た場合は未知のプロパティとして
+// throw し、メッセージで by の中に書くよう促す。
 // 実効の voice は mergeVoice(by の voice, line() 自身の voice) (実行時の
 // narration.ts と同じ関数を使い、静的解析側と実行時側で結果を一致させる)。
 
@@ -706,6 +710,112 @@ const assertReadingNotationAt = (
 };
 
 /**
+ * readObjectProps() が返す 1 プロパティ分。node は `key: 式` の式、または
+ * shorthand (`{ key }`) の識別子そのもの (ts.Identifier は ts.Expression の
+ * 一種なのでどちらも同じ型で持てる)。
+ */
+type ObjectProp = { readonly node: ts.Expression };
+
+/**
+ * オブジェクトリテラルのプロパティを列挙し、キーごとの値を Map で返す
+ * (readByObject()・readLineCall() の共通処理)。識別子キーの
+ * PropertyAssignment (`key: 式`) と、shorthandKeys に挙げたキーの
+ * ShorthandPropertyAssignment (`{ key }`) だけを許す。それ以外の形
+ * (spread・computed key・shorthandKeys に無いキーの shorthand 等) は
+ * 「プロパティは識別子 = 式の形で書いてください」で throw する。重複キー・
+ * allowedKeys に無いキーも位置付きエラーになる。
+ */
+const readObjectProps = (
+  sourceFile: ts.SourceFile,
+  obj: ts.ObjectLiteralExpression,
+  label: string,
+  allowedKeys: readonly string[],
+  shorthandKeys: readonly string[] = [],
+): Map<string, ObjectProp> => {
+  const result = new Map<string, ObjectProp>();
+
+  for (const prop of obj.properties) {
+    let key: string;
+    let node: ts.Expression;
+
+    if (
+      ts.isShorthandPropertyAssignment(prop) &&
+      shorthandKeys.includes(prop.name.text)
+    ) {
+      key = prop.name.text;
+      node = prop.name;
+    } else if (ts.isPropertyAssignment(prop) && ts.isIdentifier(prop.name)) {
+      key = prop.name.text;
+      node = prop.initializer;
+    } else {
+      throw new ExtractLineError(
+        `${positionOf(sourceFile, prop)}: ${label} のプロパティは識別子 = 式の形で書いてください`,
+      );
+    }
+
+    if (result.has(key)) {
+      throw new ExtractLineError(
+        `${positionOf(sourceFile, prop)}: ${label} の ${key} が重複しています`,
+      );
+    }
+
+    if (!allowedKeys.includes(key)) {
+      throw new ExtractLineError(
+        `${positionOf(sourceFile, prop)}: ${label} に未知のプロパティ ${key} があります`,
+      );
+    }
+
+    result.set(key, { node });
+  }
+
+  return result;
+};
+
+/**
+ * line().by がオブジェクトリテラル ({ character, expression? }) のときの
+ * character (識別子) を取り出す。character は識別子か shorthand (`{ character }`)
+ * で書け、expression は文字列リテラル (置換無しテンプレートを含む) で
+ * あることだけを検査し、値は読み飛ばす (resolveByVoice() は character だけを
+ * 使う)。character が無い・識別子でない、または未知のキーがあれば位置付き
+ * エラーになる。
+ */
+const readByObject = (
+  sourceFile: ts.SourceFile,
+  obj: ts.ObjectLiteralExpression,
+): ts.Identifier => {
+  const props = readObjectProps(
+    sourceFile,
+    obj,
+    "line().by",
+    ["character", "expression"],
+    ["character"],
+  );
+
+  const characterProp = props.get("character");
+
+  if (!characterProp) {
+    throw new ExtractLineError(
+      `${positionOf(sourceFile, obj)}: line().by には character が必要です`,
+    );
+  }
+
+  if (!ts.isIdentifier(characterProp.node)) {
+    throw new ExtractLineError(
+      `${positionOf(sourceFile, characterProp.node)}: line().by.character は識別子で書いてください`,
+    );
+  }
+
+  const expressionProp = props.get("expression");
+
+  if (expressionProp) {
+    // expression の値は読み飛ばす (リテラルであることだけを検査する)。
+    readTextLiteral(sourceFile, expressionProp.node, "line().by.expression");
+  }
+
+  return characterProp.node;
+};
+
+/**
  * line() 呼び出し 1 回分を読む。voice に null リテラルが来た (声無し) 場合は
  * undefined を返し、呼び出し側 (extractLines()) が抽出結果から除外する。
  */
@@ -722,99 +832,81 @@ const readLineCall = async (
     );
   }
 
-  const seen = new Set<string>();
-  let text: string | undefined;
-  let reading: string | undefined;
-  let readingNode: ts.Expression | undefined;
-  let voice: VoiceOptions | null | undefined;
-  let by: ts.Identifier | undefined;
+  const props = readObjectProps(sourceFile, arg, "line()", [
+    "text",
+    "reading",
+    "voice",
+    "by",
+    "expression",
+  ]);
 
-  for (const prop of arg.properties) {
-    if (!ts.isPropertyAssignment(prop) || !ts.isIdentifier(prop.name)) {
-      throw new ExtractLineError(
-        `${positionOf(sourceFile, prop)}: line() のプロパティは識別子 = 式の形で書いてください`,
-      );
-    }
+  const expressionProp = props.get("expression");
 
-    const key = prop.name.text;
-
-    if (seen.has(key)) {
-      throw new ExtractLineError(
-        `${positionOf(sourceFile, prop)}: line() の ${key} が重複しています`,
-      );
-    }
-
-    seen.add(key);
-
-    if (key === "text") {
-      text = readTextLiteral(sourceFile, prop.initializer, "line().text");
-      assertReadingNotationAt(sourceFile, prop.initializer, text);
-      continue;
-    }
-
-    if (key === "reading") {
-      reading = readTextLiteral(sourceFile, prop.initializer, "line().reading");
-      readingNode = prop.initializer;
-
-      if (reading === "") {
-        throw new ExtractLineError(
-          `${positionOf(sourceFile, prop.initializer)}: line().reading を空文字にはできません (声無しは voice: null で書いてください)`,
-        );
-      }
-
-      assertReadingNotationAt(sourceFile, prop.initializer, reading);
-      continue;
-    }
-
-    if (key === "voice") {
-      const value = await evaluateExpr(
-        prop.initializer,
-        context,
-        "line().voice",
-      );
-
-      voice =
-        value === null ? null : validateVoice(value, "line().voice", prop);
-      continue;
-    }
-
-    if (key === "by") {
-      if (!ts.isIdentifier(prop.initializer)) {
-        throw new ExtractLineError(
-          `${positionOf(sourceFile, prop)}: line().by は識別子で書いてください`,
-        );
-      }
-
-      by = prop.initializer;
-      continue;
-    }
-
-    if (key === "expression") {
-      // expression の値は読み飛ばす (リテラルであることだけを検査する)。
-      readTextLiteral(sourceFile, prop.initializer, "line().expression");
-      continue;
-    }
-
+  if (expressionProp) {
     throw new ExtractLineError(
-      `${positionOf(sourceFile, prop)}: line() に未知のプロパティ ${key} があります`,
+      `${positionOf(sourceFile, expressionProp.node)}: expression は by の中に書いてください (by: { character, expression })`,
     );
   }
 
-  if (text === undefined) {
+  const textProp = props.get("text");
+
+  if (!textProp) {
     throw new ExtractLineError(
       `${positionOf(sourceFile, call)}: line() に text がありません`,
     );
   }
 
-  if (voice === null && readingNode !== undefined) {
-    throw new ExtractLineError(
-      `${positionOf(sourceFile, readingNode)}: 声無しの行 (voice: null) に reading は書けません`,
-    );
+  const text = readTextLiteral(sourceFile, textProp.node, "line().text");
+  assertReadingNotationAt(sourceFile, textProp.node, text);
+
+  const readingProp = props.get("reading");
+  let reading: string | undefined;
+
+  if (readingProp) {
+    reading = readTextLiteral(sourceFile, readingProp.node, "line().reading");
+
+    if (reading === "") {
+      throw new ExtractLineError(
+        `${positionOf(sourceFile, readingProp.node)}: line().reading を空文字にはできません (声無しは voice: null で書いてください)`,
+      );
+    }
+
+    assertReadingNotationAt(sourceFile, readingProp.node, reading);
   }
 
-  if (voice === null) {
-    // 声無し: wav・lipsync を作らないため抽出結果から除外する。
-    return undefined;
+  const voiceProp = props.get("voice");
+  let voice: VoiceOptions | undefined;
+
+  if (voiceProp) {
+    const value = await evaluateExpr(voiceProp.node, context, "line().voice");
+
+    if (value === null) {
+      if (readingProp) {
+        throw new ExtractLineError(
+          `${positionOf(sourceFile, readingProp.node)}: 声無しの行 (voice: null) に reading は書けません`,
+        );
+      }
+
+      // 声無し: wav・lipsync を作らないため抽出結果から除外する。
+      return undefined;
+    }
+
+    voice = validateVoice(value, "line().voice", voiceProp.node);
+  }
+
+  const byProp = props.get("by");
+  let by: ts.Identifier | undefined;
+
+  if (byProp) {
+    if (ts.isIdentifier(byProp.node)) {
+      by = byProp.node;
+    } else if (ts.isObjectLiteralExpression(byProp.node)) {
+      by = readByObject(sourceFile, byProp.node);
+    } else {
+      throw new ExtractLineError(
+        `${positionOf(sourceFile, byProp.node)}: line().by は識別子か { character, expression } の形で書いてください`,
+      );
+    }
   }
 
   const byVoice = by ? await resolveByVoice(by, context) : undefined;

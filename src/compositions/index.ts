@@ -9,6 +9,7 @@
 // characters/<name>.ts をそのまま import して voice を読む) を壊す。
 export { character, isEyesLayer, isMouthLayer } from "./character.ts";
 export type {
+  ByRef,
   Character,
   Expressions,
   EyesLayer,

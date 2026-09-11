@@ -711,14 +711,14 @@ describe("extractLines", () => {
       );
     });
 
-    it("expression (文字列リテラル) は読み飛ばされ、出力に含まれない", async () => {
+    it("by がオブジェクトリテラル ({ character, expression }) のとき、character の voice を読み expression は出力に含まれない", async () => {
       const source = `${LINE_IMPORT}
         ${CHARACTER_IMPORT}
         const hero = character({
           voice: { speaker: 13 },
           expressions: { normal: [] },
         });
-        line({ text: "a", by: hero, expression: "normal" });
+        line({ text: "a", by: { character: hero, expression: "normal" } });
       `;
 
       await expect(extractLines(source, FILE)).resolves.toEqual({
@@ -727,22 +727,98 @@ describe("extractLines", () => {
       });
     });
 
-    it("expression が非リテラルなら位置付きエラーになる", async () => {
+    it("by がオブジェクトリテラルで expression 省略なら character の voice だけを読む", async () => {
+      const source = `${LINE_IMPORT}
+        ${CHARACTER_IMPORT}
+        const hero = character({
+          voice: { speaker: 13 },
+          expressions: { normal: [] },
+        });
+        line({ text: "a", by: { character: hero } });
+      `;
+
+      await expect(extractLines(source, FILE)).resolves.toEqual({
+        lines: [{ text: "a", voice: { speaker: 13 } }],
+        silent: 0,
+      });
+    });
+
+    it("by.character は shorthand ({ character }) でも書ける", async () => {
+      // ローカル変数名を character にするため character() 自体は別名で import する
+      // (同じスコープに character という名前を 2 つ置けないため)。
+      const source = `${LINE_IMPORT}
+        ${characterImportFor(FILE_DIR, "makeCharacter")}
+        const character = makeCharacter({
+          voice: { speaker: 13 },
+          expressions: { normal: [] },
+        });
+        line({ text: "a", by: { character } });
+      `;
+
+      await expect(extractLines(source, FILE)).resolves.toEqual({
+        lines: [{ text: "a", voice: { speaker: 13 } }],
+        silent: 0,
+      });
+    });
+
+    it("by.expression が非リテラルなら位置付きエラーになる", async () => {
       const source = `${LINE_IMPORT}
         ${CHARACTER_IMPORT}
         const hero = character({ expressions: { normal: [] } });
         const e = "normal";
-        line({ text: "a", by: hero, expression: e });
+        line({ text: "a", by: { character: hero, expression: e } });
       `;
 
       await expect(extractLines(source, FILE)).rejects.toThrow(/リテラル/);
     });
 
-    it("by が識別子でなければ位置付きエラーになる", async () => {
-      const source = `${LINE_IMPORT}\nline({ text: "a", by: { voice: {} } });`;
+    it("by.character が識別子でなければ位置付きエラーになる", async () => {
+      const source = `${LINE_IMPORT}
+        line({ text: "a", by: { character: { expressions: {} } } });
+      `;
 
       await expect(extractLines(source, FILE)).rejects.toThrow(
-        /line\(\)\.by は識別子で書いてください/,
+        /line\(\)\.by\.character は識別子で書いてください/,
+      );
+    });
+
+    it("by のオブジェクトリテラルに未知のキーがあれば位置付きエラーになる", async () => {
+      const source = `${LINE_IMPORT}
+        ${CHARACTER_IMPORT}
+        const hero = character({ expressions: { normal: [] } });
+        line({ text: "a", by: { character: hero, voice: {} } });
+      `;
+
+      await expect(extractLines(source, FILE)).rejects.toThrow(
+        /line\(\)\.by に未知のプロパティ voice があります/,
+      );
+    });
+
+    it("by のオブジェクトリテラルに character が無ければ位置付きエラーになる", async () => {
+      const source = `${LINE_IMPORT}\nline({ text: "a", by: {} });`;
+
+      await expect(extractLines(source, FILE)).rejects.toThrow(
+        /line\(\)\.by には character が必要です/,
+      );
+    });
+
+    it("line() 直下の expression は「by の中に書いてください」のエラーになる", async () => {
+      const source = `${LINE_IMPORT}
+        ${CHARACTER_IMPORT}
+        const hero = character({ expressions: { normal: [] } });
+        line({ text: "a", by: hero, expression: "normal" });
+      `;
+
+      await expect(extractLines(source, FILE)).rejects.toThrow(
+        /expression は by の中に書いてください \(by: \{ character, expression \}\)/,
+      );
+    });
+
+    it("by が識別子でもオブジェクトリテラルでもなければ位置付きエラーになる", async () => {
+      const source = `${LINE_IMPORT}\nline({ text: "a", by: 1 });`;
+
+      await expect(extractLines(source, FILE)).rejects.toThrow(
+        /line\(\)\.by は識別子か \{ character, expression \} の形で書いてください/,
       );
     });
 
