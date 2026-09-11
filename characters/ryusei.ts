@@ -21,7 +21,7 @@
 // 読むため)。
 
 import { character } from "../src/compositions/character.ts";
-import { narrator } from "../src/theme/voice.ts";
+import { narrator } from "../theme/index.ts";
 
 const dir = "assets/characters/ryusei";
 const part = (name: string) => `${dir}/${name}.png`;

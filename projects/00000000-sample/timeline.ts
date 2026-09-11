@@ -33,9 +33,12 @@ import {
   photoShowcase,
   video,
 } from "../../src/components/index.tsx";
-import { figure } from "../../src/compositions/figure.ts";
-import { line, narration } from "../../src/compositions/narration.ts";
-import { thumbnail } from "../../src/compositions/thumbnail.ts";
+import {
+  figure,
+  line,
+  narration,
+  thumbnail,
+} from "../../src/compositions/index.ts";
 import {
   crossfade,
   cut,
@@ -50,8 +53,8 @@ import {
   chapterTitleDurationSec,
   endingTiming,
   openingTiming,
-} from "../../src/theme/timing.ts";
-import { narrator } from "../../src/theme/voice.ts";
+} from "../../src/theme/index.ts";
+import { narrator } from "../../theme/index.ts";
 
 const asset = (path: string) => staticFile(`projects/00000000-sample/${path}`);
 

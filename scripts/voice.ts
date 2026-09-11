@@ -3,7 +3,11 @@
 // projects/<slug>/timeline.ts を静的解析し (scripts/voice/extract.ts)、
 // line() ごとの音声キャッシュ (public/projects/<slug>/lines/<key>.{wav,json}、
 // ADR-0010) を VOICEVOX ENGINE で生成する (scripts/voice/generate.ts)。
-// slug は引数 → REMOTION_PROJECT → DEFAULT_PROJECT の順で決める。
+// slug は引数 → REMOTION_PROJECT → app/config.ts の defaultProject の順で
+// 決める。
+//
+// 利用側のルートは cwd (ADR-0012)。projects/・characters/・public/・.env・
+// app/config.ts はすべて cwd から引く。
 //
 // 既定 (--watch 無し) は 1 回生成して終了する (npm run render の前段)。
 // --watch は projects/<slug>/ ディレクトリの変更を fs.watch で監視し、
@@ -15,8 +19,11 @@
 import "temporal-polyfill/global";
 import fs from "node:fs";
 import path from "node:path";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 import { resolveProjectSlug } from "../src/project/load.ts";
+import { configure } from "../src/setup.ts";
+import type { Theme } from "../src/setup.ts";
+import { VOICE_KEYS } from "../src/voice/cache.ts";
 import { extractLines } from "./voice/extract.ts";
 import { generateMissing } from "./voice/generate.ts";
 import type { GenerateDeps } from "./voice/generate.ts";
@@ -31,7 +38,66 @@ try {
   }
 }
 
-const repoRoot = path.join(path.dirname(fileURLToPath(import.meta.url)), "..");
+// 利用側のルート。lib (このファイル) がどこに置かれていても、実行した
+// ディレクトリを利用側のルートと見なす (ADR-0012)。
+const consumerRoot = process.cwd();
+
+/**
+ * 利用側の app/config.ts を読み、configure() する。timeline の読み込みは
+ * ここでは使わないため (静的解析だけを行う)、呼ばれたら throw する関数を渡す。
+ */
+export const configureFromConsumer = async (root: string): Promise<void> => {
+  const configPath = path.join(root, "app", "config.ts");
+
+  if (!fs.existsSync(configPath)) {
+    throw new Error(
+      `${configPath} がありません (利用側のルートで実行してください)`,
+    );
+  }
+
+  const config: unknown = await import(pathToFileURL(configPath).href);
+  const { theme, defaultProject } = config as {
+    theme?: Theme;
+    defaultProject?: string;
+  };
+
+  if (theme === undefined) {
+    throw new Error(`${configPath} が theme を export していません`);
+  }
+
+  if (typeof theme.palette?.bg !== "string") {
+    throw new Error(`${configPath} の theme.palette に色が揃っていません`);
+  }
+
+  // narrator は VOICE_KEYS が全項目必須。欠けたまま通すと resolveVoice() が
+  // undefined を埋め、VOICEVOX が黙って ENGINE の既定値で合成するため、
+  // 間違った音声がエラー無しで生成される。ここで止める。
+  const missing = VOICE_KEYS.filter(
+    (key) => typeof theme.narrator?.[key] !== "number",
+  );
+
+  if (missing.length > 0) {
+    throw new Error(
+      `${configPath} の theme.narrator に数値の項目が足りません: ${missing.join("・")}`,
+    );
+  }
+
+  if (typeof defaultProject !== "string") {
+    throw new Error(
+      `${configPath} が defaultProject (project の slug) を export していません`,
+    );
+  }
+
+  configure({
+    theme,
+    defaultProject,
+    loadTimeline: () => {
+      throw new Error(
+        "scripts/voice.ts は timeline.ts を静的解析するだけで、読み込みはしません",
+      );
+    },
+  });
+};
 
 /** slug を CLI 引数 (先頭の非フラグ) → env (REMOTION_PROJECT) → 既定の順で決める。 */
 export const resolveSlugArg = (
@@ -99,11 +165,11 @@ export const createRunQueue = (
 };
 
 const runOnce = async (slug: string, voicevoxUrl: string): Promise<void> => {
-  const timelinePath = path.join(repoRoot, "projects", slug, "timeline.ts");
+  const timelinePath = path.join(consumerRoot, "projects", slug, "timeline.ts");
   const source = fs.readFileSync(timelinePath, "utf-8");
   const lines = await extractLines(source, timelinePath);
 
-  const publicDir = path.join(repoRoot, "public");
+  const publicDir = path.join(consumerRoot, "public");
   const linesDir = path.join(publicDir, "projects", slug, "lines");
 
   const deps: GenerateDeps = {
@@ -134,6 +200,10 @@ const noopHandle: RunHandle = { close: () => {} };
  */
 export const run = async (args: readonly string[]): Promise<RunHandle> => {
   const watch = args.includes("--watch");
+
+  // slug の既定値は利用側の app/config.ts が持つため、slug を決める前に読む。
+  await configureFromConsumer(consumerRoot);
+
   const slug = resolveSlugArg(
     args.filter((arg) => arg !== "--watch"),
     process.env,
@@ -158,7 +228,7 @@ export const run = async (args: readonly string[]): Promise<RunHandle> => {
     return noopHandle;
   }
 
-  const projectDir = path.join(repoRoot, "projects", slug);
+  const projectDir = path.join(consumerRoot, "projects", slug);
 
   if (!fs.existsSync(projectDir)) {
     process.stderr.write(
@@ -199,7 +269,7 @@ export const run = async (args: readonly string[]): Promise<RunHandle> => {
   // そちらの変更でも再生成する。timeline.ts 自体は変わらないため、上の
   // ディレクトリ監視だけでは拾えない。projectDir の監視と同じく非
   // 再帰で張る (characters/ にサブディレクトリは無い想定)。
-  const charactersDir = path.join(repoRoot, "characters");
+  const charactersDir = path.join(consumerRoot, "characters");
   let charactersWatcher: fs.FSWatcher | undefined;
 
   if (fs.existsSync(charactersDir)) {

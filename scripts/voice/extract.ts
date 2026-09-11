@@ -38,22 +38,50 @@ import { VOICE_KEYS } from "../../src/voice/cache.ts";
 import type { VoiceOptions } from "../../src/voice/cache.ts";
 import { mergeVoice } from "../../src/voice/key.ts";
 
-// narration() の line() の実体 (src/compositions/narration.ts) の絶対パス。
-// findLineCalls() は import がここに解決されるものだけを発話の呼び出しと
-// 見なす (単なる識別子名 "line" の一致では、import の別名や無関係な同名の
-// ローカル関数を誤検出するため)。
-const NARRATION_MODULE = path.resolve(
+const LIB_DIR = path.resolve(
   path.dirname(fileURLToPath(import.meta.url)),
-  "../../src/compositions/narration.ts",
+  "../../src",
 );
 
-// character() の実体 (src/compositions/character.ts) の絶対パス。
-// isCharacterCall() は import がここに解決されるものだけを character() の
-// 呼び出しと見なす (isNarrationLineCall() と同じ理由)。
-const CHARACTER_MODULE = path.resolve(
-  path.dirname(fileURLToPath(import.meta.url)),
-  "../../src/compositions/character.ts",
-);
+// lib を bare specifier で参照する利用側 (外部リポジトリ) の import 元
+// (package.json の exports、ADR-0012)。同じリポジトリ内の利用側は相対 import
+// で下の絶対パスに解決される。
+const LIB_PACKAGE_SPECIFIERS = [
+  "motovlog-template",
+  "motovlog-template/compositions",
+];
+
+// line() を export する lib のモジュール (実体と、そこへ再 export する入口)
+// の絶対パス。findLineCalls() は import がこのいずれかに解決されるものだけを
+// 発話の呼び出しと見なす (単なる識別子名 "line" の一致では、import の別名や
+// 無関係な同名のローカル関数を誤検出するため)。
+const NARRATION_MODULES = [
+  path.join(LIB_DIR, "compositions/narration.ts"),
+  path.join(LIB_DIR, "compositions/index.ts"),
+  path.join(LIB_DIR, "index.ts"),
+];
+
+// character() を export する lib のモジュールの絶対パス。isCharacterCall() は
+// import がこのいずれかに解決されるものだけを character() の呼び出しと見なす
+// (isNarrationLineCall() と同じ理由)。
+const CHARACTER_MODULES = [
+  path.join(LIB_DIR, "compositions/character.ts"),
+  path.join(LIB_DIR, "compositions/index.ts"),
+  path.join(LIB_DIR, "index.ts"),
+];
+
+/**
+ * import の specifier が lib の入口を指すかどうかを見る。bare specifier
+ * (外部リポジトリからの依存) は文字列一致、相対 specifier は timeline.ts の
+ * ディレクトリを起点に解決した絶対パスで突き合わせる。
+ */
+const specifierIsLibModule = (
+  context: EvalContext,
+  specifier: string,
+  modules: readonly string[],
+): boolean =>
+  LIB_PACKAGE_SPECIFIERS.includes(specifier) ||
+  modules.includes(path.resolve(path.dirname(context.fileName), specifier));
 
 /** extractLines() が返す 1 件 (line() 呼び出し 1 回分)。 */
 export type ExtractedLine = { text: string; voice?: VoiceOptions };
@@ -267,12 +295,11 @@ const unwrapExpr = (node: ts.Expression): ts.Expression => {
   return node;
 };
 
-// specifier が character.ts (character() の実体) を指すかどうかを見る。
+// specifier が character() を export する lib のモジュールを指すかどうかを見る。
 const specifierIsCharacterModule = (
   context: EvalContext,
   specifier: string,
-): boolean =>
-  path.resolve(path.dirname(context.fileName), specifier) === CHARACTER_MODULE;
+): boolean => specifierIsLibModule(context, specifier, CHARACTER_MODULES);
 
 /**
  * call の callee が character.ts の character (import の別名・namespace
@@ -703,12 +730,11 @@ const readLineCall = async (
   return mergedVoice === undefined ? { text } : { text, voice: mergedVoice };
 };
 
-// specifier が narration.ts (line の実体) を指すかどうかを見る。
+// specifier が line() を export する lib のモジュールを指すかどうかを見る。
 const specifierIsNarrationModule = (
   context: EvalContext,
   specifier: string,
-): boolean =>
-  path.resolve(path.dirname(context.fileName), specifier) === NARRATION_MODULE;
+): boolean => specifierIsLibModule(context, specifier, NARRATION_MODULES);
 
 // call の callee が narration.ts の line (import の別名を含む) を指す import
 // の binding に解決されるかどうかを見る。ローカルの const/関数宣言の
@@ -751,7 +777,9 @@ const isNarrationLineCall = (
 
 /**
  * timeline.ts のソースを解析し、line({...}) 呼び出しの text・voice をすべて
- * 集める。line() は src/compositions/narration.ts からの import (別名を
+ * 集める。line() は lib の入口 (src/compositions/narration.ts・
+ * src/compositions/index.ts・src/index.ts、または bare specifier の
+ * motovlog-template・motovlog-template/compositions) からの import (別名を
  * 含む) に解決されるものだけを対象にする。text はリテラル (文字列・置換無し
  * テンプレート) 限定、voice は上記の評価器が読める式限定で、それ以外が
  * あれば位置情報付きのエラーを投げる。voice の import 解決のため、

@@ -3,19 +3,24 @@
 // 実装で同じ key を作れるよう、crypto.subtle (Node 24 とブラウザで共通の
 // Web Crypto API) だけを使う。
 
-import { narrator } from "../theme/voice.ts";
+import { getSetup } from "../setup.ts";
+import { VOICE_KEYS } from "./cache.ts";
 import type { Voice, VoiceOptions } from "./cache.ts";
 
 /**
- * voice の省略項目に既定値 (theme の narrator) を埋める。narrator のキー順
- * (speaker → speed → pitch → intonation → volume → pause → silenceBefore →
- * silenceAfter) がそのまま結果のキー順になり、voiceKey() の JSON 化の順序が
- * 固定される。
+ * voice の省略項目に既定値 (利用側の theme の narrator) を埋める。結果は必ず
+ * VOICE_KEYS の順 (speaker → speed → pitch → intonation → volume → pause →
+ * silenceBefore → silenceAfter) で組み直す。narrator は利用側が書くオブジェクト
+ * なので、そのキー順を voiceKey() の JSON 化の順序に持ち込むと、利用側がキーを
+ * 並べ替えただけで既存の音声キャッシュが全部無効になる。
  */
-export const resolveVoice = (voice: VoiceOptions | undefined): Voice => ({
-  ...narrator,
-  ...voice,
-});
+export const resolveVoice = (voice: VoiceOptions | undefined): Voice => {
+  const merged: Voice = { ...getSetup().theme.narrator, ...voice };
+
+  return Object.fromEntries(
+    VOICE_KEYS.map((key) => [key, merged[key]]),
+  ) as unknown as Voice;
+};
 
 /**
  * base (line().by の voice) と voice (line() 自身の voice) を合成する唯一の

@@ -1,6 +1,7 @@
 import React, { Fragment } from "react";
 import { AbsoluteFill, Sequence, useCurrentFrame } from "remotion";
-import { palette, ThemeRoot } from "../theme/index.ts";
+import { getSetup } from "../setup.ts";
+import { ThemeRoot } from "../theme/index.ts";
 import { isFrame } from "./frame.ts";
 import {
   fadeOpacity,
@@ -127,7 +128,7 @@ export const Stage: React.FC<Props> = ({ timeline }) => {
 
   return (
     <ThemeRoot>
-      <AbsoluteFill style={{ backgroundColor: palette.black }}>
+      <AbsoluteFill style={{ backgroundColor: getSetup().theme.palette.black }}>
         {below}
       </AbsoluteFill>
     </ThemeRoot>

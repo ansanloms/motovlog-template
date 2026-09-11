@@ -1,17 +1,16 @@
 // docs/design/upstream/ に置いた Claude Design のスナップショット (画面サンプル)
-// の :root と、themeCssVars が生成する CSS 変数の drift を検出する。
-// スナップショットの同期手順は CLAUDE.md「Claude Design の同期」を参照。
+// の :root と、利用側のパレット (theme/index.ts) を themeCssVars に通した結果の
+// drift を検出する。パレットは利用側の値なのでこの検査も利用側に置く
+// (ADR-0012)。スナップショットの同期手順は CLAUDE.md「Claude Design の同期」を
+// 参照。
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
-import { themeCssVars } from "./cssVars.ts";
+import { themeCssVars } from "../src/theme/index.ts";
+import { palette } from "./index.ts";
 
-const repoRoot = path.join(
-  path.dirname(fileURLToPath(import.meta.url)),
-  "..",
-  "..",
-);
+const repoRoot = path.join(path.dirname(fileURLToPath(import.meta.url)), "..");
 const designPath = path.join(
   repoRoot,
   "docs/design/upstream/車載画面サンプル.dc.html",
@@ -79,7 +78,7 @@ const pending: Record<string, string> = {
 
 const html = fs.readFileSync(designPath, "utf-8");
 const designVars = parseCssVars(extractRootBlock(html));
-const localVars = themeCssVars("Noto Sans JP");
+const localVars = themeCssVars(palette, "Noto Sans JP");
 
 describe("design/upstream との drift", () => {
   it("design の :root から CSS 変数が読み取れる", () => {

@@ -1,27 +1,37 @@
 // T&M (docs/design/tone-and-manner.md) の値を定数で持つ (ADR-0004, ADR-0005)。
 // すべて 1920×1080 換算の px。
 
-// T&M「カラー」節。design の :root と同名。値は design と一致させる。
-export const palette = {
-  bg: "#0f1a14",
-  surface: "#1a2c22",
-  ink: "#edf3ed",
-  inkDim: "#9db0a3",
-  inkFaint: "#7f9686",
-  line: "#223529",
-  lineStrong: "#2f4638",
-  accent: "#74c48a",
-  accentSoft: "#9ed9ac",
-  warn: "#c4705f",
-  inkVideo: "#f2f4ef", // 映像の上に乗る文字 (パレットに依存しない)
-  black: "#000000", // design の :root には無い。OP のフェード元に使う純黒
-} as const;
-
-/** design の `--bg-rgb`・`--surface-rgb` と同名。rgba() の合成用。 */
-export const paletteRgb = {
-  bg: "15, 26, 20",
-  surface: "26, 44, 34",
-} as const;
+/**
+ * T&M「カラー」節のパレットの形 (ADR-0012)。値は利用側の theme/index.ts が
+ * 持つ。キー名は design の `:root` と同名にし、themeCssVars() が
+ * `--<kebab-case>` の CSS 変数に流す。
+ */
+export type Palette = {
+  /** 背景 */
+  readonly bg: string;
+  /** 面 (帯・カード) */
+  readonly surface: string;
+  /** 本文 */
+  readonly ink: string;
+  /** 弱い本文 */
+  readonly inkDim: string;
+  /** さらに弱い本文 */
+  readonly inkFaint: string;
+  /** 罫線 */
+  readonly line: string;
+  /** 強い罫線 */
+  readonly lineStrong: string;
+  /** 差し色 */
+  readonly accent: string;
+  /** 淡い差し色 */
+  readonly accentSoft: string;
+  /** 注意 */
+  readonly warn: string;
+  /** 映像の上に乗る文字 (パレットに依存しない) */
+  readonly inkVideo: string;
+  /** OP のフェード元に使う純黒 (design の :root には無い) */
+  readonly black: string;
+};
 
 // T&M「タイポグラフィ」節。
 export const fontWeight = {
@@ -151,6 +161,3 @@ export const shadow = {
   figureEdge: "0 0 2px rgba(0, 0, 0, 0.9)", // 輪郭を締める影
   photo: "0 8px 20px rgba(0, 0, 0, 0.55)",
 } as const;
-
-/** OP / サムネ用フレームの暗がり。グラデーション文字列は色を合成して作る (リテラルの重複を避ける)。 */
-export const thumbScrim = `linear-gradient(to top, rgba(${paletteRgb.bg}, ${thumbLayout.scrimAlpha}), transparent)`;

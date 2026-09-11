@@ -2,7 +2,7 @@ import React from "react";
 import { Composition } from "remotion";
 import { calculateMetadata, Motovlog } from "./compositions/Motovlog.tsx";
 import { DEFAULT_HEIGHT, DEFAULT_WIDTH } from "./effects/index.ts";
-import { DEFAULT_PROJECT } from "./project/load.ts";
+import { resolveProjectSlug } from "./project/load.ts";
 import { fps } from "./theme/index.ts";
 
 export const RemotionRoot: React.FC = () => {
@@ -12,7 +12,7 @@ export const RemotionRoot: React.FC = () => {
         id="Motovlog"
         component={Motovlog}
         defaultProps={{
-          slug: process.env.REMOTION_PROJECT || DEFAULT_PROJECT,
+          slug: resolveProjectSlug(process.env.REMOTION_PROJECT),
         }}
         calculateMetadata={calculateMetadata}
         fps={fps}

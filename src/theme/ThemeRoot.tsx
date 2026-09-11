@@ -1,6 +1,7 @@
 import React from "react";
 import { AbsoluteFill } from "remotion";
 import { fontFamily } from "../fonts.ts";
+import { getSetup } from "../setup.ts";
 import { themeCssVars } from "./cssVars.ts";
 
 type Props = {
@@ -15,7 +16,7 @@ export const ThemeRoot: React.FC<Props> = ({ children, style }) => {
     <AbsoluteFill
       style={
         {
-          ...themeCssVars(fontFamily),
+          ...themeCssVars(getSetup().theme.palette, fontFamily),
           ...style,
         } as React.CSSProperties
       }

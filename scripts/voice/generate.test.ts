@@ -1,7 +1,7 @@
 import path from "node:path";
 import { describe, expect, it, vi } from "vitest";
 import { linePath, voiceKey } from "../../src/voice/key.ts";
-import { narrator } from "../../src/theme/index.ts";
+import { narrator } from "../../theme/index.ts";
 import { generateMissing } from "./generate.ts";
 import type { GenerateDeps } from "./generate.ts";
 

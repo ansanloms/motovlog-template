@@ -4,16 +4,41 @@ import {
   figureLayout,
   fontWeight,
   noteLayout,
-  palette,
-  paletteRgb,
   photoLayout,
   scrim,
   shadow,
   subtitleLayout,
   thumbLayout,
-  thumbScrim,
   typeScale,
 } from "./tokens.ts";
+import type { Palette } from "./tokens.ts";
+
+/**
+ * `#rrggbb` を rgba() の合成に使う `"r, g, b"` にする。design の `--bg-rgb`・
+ * `--surface-rgb` は palette の同名の色と同じ値なので、利用側に二重に書かせず
+ * ここで導出する。`#rrggbb` 以外が来たら書き手の打ち間違いなので止める。
+ */
+const toRgbChannels = (hex: string): string => {
+  const match = /^#([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})$/i.exec(hex);
+
+  if (!match) {
+    throw new Error(
+      `palette の色は #rrggbb の形で書いてください (rgba() の合成に使います): ${hex}`,
+    );
+  }
+
+  return match
+    .slice(1)
+    .map((channel) => Number.parseInt(channel, 16))
+    .join(", ");
+};
+
+/**
+ * OP / サムネ用フレームの暗がり。グラデーション文字列は色を合成して作る
+ * (リテラルの重複を避ける)。
+ */
+export const thumbScrim = (palette: Palette): string =>
+  `linear-gradient(to top, rgba(${toRgbChannels(palette.bg)}, ${thumbLayout.scrimAlpha}), transparent)`;
 
 // PascalCase/camelCase のキーを CSS 変数名の kebab-case に変える。
 const toKebabCase = (value: string): string =>
@@ -52,7 +77,10 @@ const addLayoutVars = (
 // tokens (TS の値) から CSS 変数の map を作る。ThemeRoot がこれを AbsoluteFill
 // の style に流し込み、各コンポーネントの CSS は var(--...) で参照する。
 // design の :root と同名の変数名にし、design の :root と 1 対 1 で突き合わせられるようにする。
-export const themeCssVars = (fontFamily: string): Record<string, string> => {
+export const themeCssVars = (
+  palette: Palette,
+  fontFamily: string,
+): Record<string, string> => {
   const vars: Record<string, string> = {
     "--font": fontFamily,
     "--scrim-height": `${scrim.height}px`,
@@ -60,7 +88,7 @@ export const themeCssVars = (fontFamily: string): Record<string, string> => {
     "--subtitle-line-height": `${subtitleLayout.lineHeight}`,
     "--subtitle-bottom-offset": `${subtitleLayout.bottomOffset}px`,
     "--subtitle-max-width": `${subtitleLayout.maxWidth}px`,
-    "--thumb-scrim": thumbScrim,
+    "--thumb-scrim": thumbScrim(palette),
     "--shadow-figure": shadow.figure,
     "--shadow-figure-edge": shadow.figureEdge,
     "--shadow-photo": shadow.photo,
@@ -70,8 +98,9 @@ export const themeCssVars = (fontFamily: string): Record<string, string> => {
     vars[`--${toKebabCase(key)}`] = value;
   }
 
-  for (const [key, value] of Object.entries(paletteRgb)) {
-    vars[`--${toKebabCase(key)}-rgb`] = value;
+  // design の `--bg-rgb`・`--surface-rgb` と同名。rgba() の合成用。
+  for (const key of ["bg", "surface"] as const) {
+    vars[`--${key}-rgb`] = toRgbChannels(palette[key]);
   }
 
   for (const [key, value] of Object.entries(fontWeight)) {

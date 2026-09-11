@@ -1,11 +1,11 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import {
-  DEFAULT_PROJECT,
-  isTimeline,
-  loadTimeline,
-  resolveProjectSlug,
-} from "./load.ts";
+import { isTimeline, loadTimeline, resolveProjectSlug } from "./load.ts";
+import { getSetup } from "../setup.ts";
 import { fps } from "../theme/timing.ts";
+
+// 既定の slug と timeline の読み込みは利用側が configure() で渡す (ADR-0012)。
+// テストの値は src/test/setup.ts が設定している。
+const { defaultProject } = getSetup();
 
 // loadTimeline("00000000-sample") は narration() を経由し、発話の音声
 // キャッシュ (<key>.json) を fetch する。ここでの目的 (default export が
@@ -46,12 +46,12 @@ afterEach(() => {
 });
 
 describe("resolveProjectSlug", () => {
-  it("未設定なら DEFAULT_PROJECT を返す", () => {
-    expect(resolveProjectSlug(undefined)).toBe(DEFAULT_PROJECT);
+  it("未設定なら configure() の defaultProject を返す", () => {
+    expect(resolveProjectSlug(undefined)).toBe(defaultProject);
   });
 
-  it("空文字なら DEFAULT_PROJECT を返す", () => {
-    expect(resolveProjectSlug("")).toBe(DEFAULT_PROJECT);
+  it("空文字なら configure() の defaultProject を返す", () => {
+    expect(resolveProjectSlug("")).toBe(defaultProject);
   });
 
   it("正しい形式 (YYYYMMDD-<name>) の slug はそのまま返す", () => {
@@ -170,12 +170,12 @@ describe("loadTimeline", () => {
     await expect(loadTimeline("20990101-missing")).rejects.toThrow();
   });
 
-  it("00000000-sample は resolve して fps が theme の fps になる", async () => {
+  it("configure() の loadTimeline 経由で 00000000-sample を読める", async () => {
     const timeline = await loadTimeline("00000000-sample");
     expect(timeline.fps).toBe(fps);
   });
 
-  it("空文字は DEFAULT_PROJECT に resolve して fps が theme の fps になる", async () => {
+  it("空文字は defaultProject に resolve して fps が theme の fps になる", async () => {
     const timeline = await loadTimeline("");
     expect(timeline.fps).toBe(fps);
   });

@@ -29,7 +29,7 @@ Remotion のライブラリ仕様 (API・設定・CLI) を調べるときは、�
 
 1. 2 ファイルを取得して `docs/design/upstream/` を上書きする。取得は Claude Code の `DesignSync` ツール (`get_file`) か、Claude Design の UI からの書き出し。
 2. `git diff docs/design/upstream/` を差分の一次資料にする。
-3. 差分を `docs/design/tone-and-manner.md` と `src/theme/`・`src/components/` に反映する。`src/theme/designSnapshot.test.ts` の `pending` を更新する (反映した変数は外す)。
+3. 差分を `docs/design/tone-and-manner.md` と `theme/index.ts`・`src/theme/`・`src/components/` に反映する。`theme/designSnapshot.test.ts` の `pending` を更新する (反映した変数は外す)。
 4. コミットは `docs: Claude Design YYYY-MM-DD 版を取り込む` で始め、反映は同じ PR に含めてよい。
 
 優先順位の規則は次の通り。

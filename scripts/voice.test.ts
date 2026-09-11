@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { DEFAULT_PROJECT } from "../src/project/load.ts";
+import { getSetup } from "../src/setup.ts";
 import { createRunQueue, readVoicevoxUrl, resolveSlugArg } from "./voice.ts";
 
 describe("resolveSlugArg", () => {
@@ -15,8 +15,8 @@ describe("resolveSlugArg", () => {
     );
   });
 
-  it("引数も env も無ければ既定 (DEFAULT_PROJECT) になる", () => {
-    expect(resolveSlugArg([], {})).toBe(DEFAULT_PROJECT);
+  it("引数も env も無ければ configure() の defaultProject になる", () => {
+    expect(resolveSlugArg([], {})).toBe(getSetup().defaultProject);
   });
 });
 
