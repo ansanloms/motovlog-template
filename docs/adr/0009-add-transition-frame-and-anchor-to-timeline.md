@@ -1,7 +1,7 @@
 ---
 status: accepted
 date: 2026-09-08T11:54:37Z
-refs: [6]
+refs: [6, 12]
 tags: [remotion, timeline, effects]
 ---
 

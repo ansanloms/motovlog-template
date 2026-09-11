@@ -32,9 +32,9 @@ tags: [design, tone-and-manner]
 - 速度・地名・時刻の常時表示をしない (文書「やらないこと」節)。
 - トークン名は design の `:root` と同名にする。
 - 見た目の上流は Claude Design のプロジェクトとし、その画面サンプルと deck の 2 ファイルをスナップショットとして `docs/design/upstream/` に置く。上流の内容はこのスナップショット経由で取り込み、値は画面サンプルから、原則は deck から取る。両者が食い違うときは画面サンプルを採る。
-- 上流を取り込むときはスナップショットの 2 ファイルを上書きする。差分の一次資料は `git diff docs/design/upstream/` とし、`docs/design/tone-and-manner.md`・`src/theme/`・`src/components/` へ反映する。
+- 上流を取り込むときはスナップショットの 2 ファイルを上書きする。差分の一次資料は `git diff docs/design/upstream/` とし、`docs/design/tone-and-manner.md`・利用側の `theme/index.ts`・`src/theme/`・`src/components/` へ反映する。
 - スナップショットの画面サンプルの `:root` と `themeCssVars()` が生成する CSS 変数との drift は `theme/designSnapshot.test.ts` で検出する。反映できない変数は同テストの `pending` に理由を添えて残し、反映したらそこから外す。
-- T&M を変えるときは文書・`src/theme/` (tokens.ts と timing.ts)・本 ADR を更新する。
+- T&M を変えるときは文書・利用側の `theme/index.ts` (パレット)・`src/theme/` (tokens.ts と timing.ts)・本 ADR を更新する。
 
 ## Consequences
 
@@ -45,7 +45,7 @@ tags: [design, tone-and-manner]
 
 ### 代償
 
-- T&M の変更は文書・`src/theme/`・本 ADR に及ぶ。
+- T&M の変更は文書・利用側の `theme/index.ts`・`src/theme/`・本 ADR に及ぶ。
 - 上流を取り込むたびにスナップショットの上書きと `pending` の更新が要る。スナップショットが古いままだと drift の検出は上流の現在の値を見ない。
 
 ### 禁止事項

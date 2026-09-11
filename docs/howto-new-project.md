@@ -22,10 +22,10 @@ cp projects/00000000-sample/timeline.ts projects/20260813-jododaira/timeline.ts
 ### 2. ドラレコ原本を変換済み素材に変換する
 
 ```
-npm run convert -- 20260813-jododaira /mnt/c/path/to/DASHCAM_20260816_133345.MP4
+npm run convert -- 20260813-jododaira /mnt/c/path/to/DASHCAM_20260813_133345.MP4
 ```
 
-- 出力は `public/projects/20260813-jododaira/DASHCAM_20260816_133345.mp4` (原本の basename + `.mp4`)。既にあればスキップする。
+- 出力は `public/projects/20260813-jododaira/DASHCAM_20260813_133345.mp4` (原本の basename + `.mp4`)。既にあればスキップする。
 - フレームレートは `src/theme/timing.ts` の `fps` に固定されており、指定オプションは無い。composition の fps と常に一致する。
 - 原本 1 本 (約 43 分・8GB) で NVENC なら約 9 分、出力は約 5GB。NVENC が使えない環境では libx264 で約 10 倍かかる。
 - `npm run` はリポジトリルートを cwd にするので原本は絶対パスで渡す。
@@ -34,7 +34,7 @@ npm run convert -- 20260813-jododaira /mnt/c/path/to/DASHCAM_20260816_133345.MP4
 
 時間はすべて秒。サンプルからコピーした内容を、少なくとも次のように直す。
 
-- layer 0 (走行映像): `cut(video({ src: ... }), { duration: ... })`。`src` は変換済み素材のパス (`staticFile("projects/20260813-jododaira/DASHCAM_20260816_133345.mp4")`)。区間を絞るなら `video()` の `trimBefore` (秒) を使う。走行音を絞るなら `volume` に一定値 (例: `video({ src: ..., volume: 0.5 })`) または折れ線 (例: `volume: [{ at: 0, volume: 1 }, { at: 2, volume: 0.3 }]`) を渡す。
+- layer 0 (走行映像): `cut(video({ src: ... }), { duration: ... })`。`src` は変換済み素材のパス (`staticFile("projects/20260813-jododaira/DASHCAM_20260813_133345.mp4")`)。区間を絞るなら `video()` の `trimBefore` (秒) を使う。走行音を絞るなら `volume` に一定値 (例: `video({ src: ..., volume: 0.5 })`) または折れ線 (例: `volume: [{ at: 0, volume: 1 }, { at: 2, volume: 0.3 }]`) を渡す。
 - layer 1 以降 (OP・章タイトル・注釈・写真紹介等): `fade`・`cut` と要素ファクトリ (`chapterTitle`・`annotation`・`photoShowcase`) や src/compositions の `thumbnail()` を組み合わせる。位置は省略 (直前の item の終端に連結)・`after: n` (直前の終端から n 秒後)・`at: n` (絶対秒) のいずれかで指定する。
 - 走行映像の切り替え等は `crossfade({ duration })` を item の間に置いて遷移させる。別 layer の item の開始・終端を基準にした位置指定には `at: start(item, offset?)` / `at: end(item, offset?)` を使う。
 - 発話 (セリフ): `line()`・`narration()` で書く。書き方は README の「発話」参照。
@@ -45,19 +45,21 @@ npm run convert -- 20260813-jododaira /mnt/c/path/to/DASHCAM_20260816_133345.MP4
 
 ### 4. プレビューする
 
+`.env` に `REMOTION_PROJECT=20260813-jododaira` と `VOICEVOX_URL=<VOICEVOX ENGINE の URL>` を書く。
+
 ```
-REMOTION_PROJECT=20260813-jododaira npm run dev
+npm run dev
 ```
 
-`.env` に `REMOTION_PROJECT=20260813-jododaira` と `VOICEVOX_URL=<VOICEVOX ENGINE の URL>` を書いておけば、毎回環境変数を渡さなくてよい。`npm run dev` は timeline.ts を監視して発話の音声キャッシュを生成しつつ Studio を起こす。timeline.ts を編集したら Studio 上で再読み込みし、反映されているか確認する。
+`npm run dev` は timeline.ts を監視して発話の音声キャッシュを生成しつつ Studio を起こす。timeline.ts を編集したら Studio 上で再読み込みし、反映されているか確認する。project を切り替えるときは `.env` を書き換える。理由: Remotion CLI は `.env` の値をシェルの環境変数より優先するため、`REMOTION_PROJECT=<slug> npm run dev` の形では Studio が `.env` の project を読み、シェルの環境変数が効く watcher とずれる (README の「発話」節)。
 
 ### 5. レンダリングする
 
 ```
-REMOTION_PROJECT=20260813-jododaira npm run render -- out/20260813-jododaira.mp4
+npm run render -- out/20260813-jododaira.mp4
 ```
 
-先に音声キャッシュを生成してからレンダリングする。`out/` はコミットされない。
+render する project は手順 4 で書いた `.env` の `REMOTION_PROJECT` が決める。先に音声キャッシュを生成してからレンダリングする。`out/` はコミットされない。
 
 ### 6. 公開したらタグを打つ
 
