@@ -30,7 +30,7 @@ timeline に走行日・走行時間を書く必要が出た (ED の走行デー
 
 - 日付・日時・経過時間は Temporal で表す (`ZonedDateTime`・`Duration` 等)。
 - `Date` は使わず、ESLint の `no-restricted-globals` で止める。
-- ポリフィルは `temporal-polyfill` をバンドルの入口・vitest の setup・`scripts/convert-movie.ts` でグローバルに入れる。
+- ポリフィルは `temporal-polyfill` をバンドルの入口・vitest の setup・Node のスクリプト (`scripts/convert-movie.ts`・`scripts/voice.ts`) でグローバルに入れる。型は `src/temporal.d.ts` で `temporal-polyfill/types/global` を参照する。
 - Composition の props は slug のみで Temporal の値を含まない ([ADR-0006](./0006-write-timeline-as-effects-dsl.md))。timeline.ts からコンポーネントへは Temporal のインスタンスをそのまま渡す。Temporal の値を Composition の props に載せる必要が生じたときは、読み込み時に ISO 文字列へ変換する関数を別途置く。
 - 表示のタイムゾーンは値自身のゾーンとする。
 

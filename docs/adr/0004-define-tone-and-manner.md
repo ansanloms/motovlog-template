@@ -25,12 +25,15 @@ tags: [design, tone-and-manner]
 ## Decision
 
 - 見た目と出し方の値の詳細は `docs/design/tone-and-manner.md` を正とする。
-- 書体は Noto Sans JP のみで weight は 400・500・600 とする (文書「タイポグラフィ」節)。
+- 書体は Noto Sans JP のみで weight は 400・500・600・700 とする。Bold の 700 は映像中の字幕と章タイトルに使う (文書「タイポグラフィ」節、`src/fonts.ts`・`src/theme/tokens.ts` の `fontWeight`)。
 - 字幕は 44px、`--ink-video` (#F2F4EF)、影なし、縁取りと箱を使わず下部の暗がりの上に置く (文書「タイポグラフィ」節)。
 - 暗がりは発話の区間から導出し、手置きしない (導出の方法はこの ADR では決めない) (文書「字幕の出し方」節)。
-- 上部 1/3 に常設情報を置かない (文書「画面配置」節)。
+- 上部 1/3 に常設情報を置かない。例外は写真紹介と右上の注釈とする (文書「画面配置」節)。
 - 速度・地名・時刻の常時表示をしない (文書「やらないこと」節)。
 - トークン名は design の `:root` と同名にする。
+- 見た目の上流は Claude Design のプロジェクトとし、その画面サンプルと deck の 2 ファイルをスナップショットとして `docs/design/upstream/` に置く。上流の内容はこのスナップショット経由で取り込み、値は画面サンプルから、原則は deck から取る。両者が食い違うときは画面サンプルを採る。
+- 上流を取り込むときはスナップショットの 2 ファイルを上書きする。差分の一次資料は `git diff docs/design/upstream/` とし、`docs/design/tone-and-manner.md`・`src/theme/`・`src/components/` へ反映する。
+- スナップショットの画面サンプルの `:root` と `themeCssVars()` が生成する CSS 変数との drift は `src/theme/designSnapshot.test.ts` で検出する。反映できない変数は同テストの `pending` に理由を添えて残し、反映したらそこから外す。
 - T&M を変えるときは文書・`src/theme/` (tokens.ts と timing.ts)・本 ADR を更新する。
 
 ## Consequences
@@ -38,10 +41,12 @@ tags: [design, tone-and-manner]
 ### 利点
 
 - 見た目の判断を毎回しなくてよい。
+- 上流の変更がスナップショットの差分として読め、CSS 変数の drift はテストで検出できる。
 
 ### 代償
 
 - T&M の変更は上記 3 箇所に及ぶ。
+- 上流を取り込むたびにスナップショットの上書きと `pending` の更新が要る。スナップショットが古いままだと drift の検出は上流の現在の値を見ない。
 
 ### 禁止事項
 

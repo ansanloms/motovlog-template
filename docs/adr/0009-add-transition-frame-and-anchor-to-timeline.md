@@ -9,12 +9,12 @@ tags: [remotion, timeline, effects]
 
 ## Context
 
-- [ADR-0006](./0006-write-timeline-as-effects-dsl.md) で `timeline({ fps }, layers)` の DSL を定めた。第一階層は layer の配列 (後ろが上)、layer 内は時間順で重ならず、位置は省略・`after`・`at` のいずれかで指定する。演出は `fade` と `cut` の 2 つ。
+- [ADR-0006](./0006-write-timeline-as-effects-dsl.md) で `timeline(layers, options?)` の DSL を定めた。`layers` は layer の配列 (後ろが上)、layer 内は時間順で重ならず、位置は省略・`after`・`at` のいずれかで指定する。演出は `fade` と `cut` の 2 つ。
 - この形でサンプルの timeline を書くと、次の 3 つが書けなかった。
   - 走行映像 A から B へのクロスフェード。B を別 layer に上げて `fade` で重ねる形になり、境目の演出が同じ layer の item と item の間に置けない。
   - layer 0 の走行映像と layer 1 の写真をまとめて黒へフェードアウトする演出。それぞれの opacity を独立に下げると写真が半透明になり下の映像が透けて見え、「合成した絵を薄くする」とは別の絵になる。CSS では親要素の `opacity` が子を合成した後に乗る (CSS Color Module Level 4 §3.3)。
   - 別 layer の item を基準にした位置指定。`after` は同じ layer の直前にしか効かず、「あの clip の終端の 2 秒前」は絶対秒を手で書くしかない。
-- `Stage` は layer ごとに `AbsoluteFill` を並べ、item ごとに `Sequence` を置く。黒地は敷いておらず、opacity 0 のときに何が見えるかは Remotion の既定に依存している。
+- `Stage` は layer を `Fragment` で積み、item ごとに `Sequence` を置いてその内側を `AbsoluteFill` で包む。黒地は敷いておらず、opacity 0 のときに何が見えるかは Remotion の既定に依存している。
 - `@remotion/transitions` の `TransitionSeries` は自身の子しか取れない ([ADR-0006](./0006-write-timeline-as-effects-dsl.md) に記載)。
 
 ## Decision Drivers
@@ -74,7 +74,7 @@ tags: [remotion, timeline, effects]
 - `frame()` は印 (`FrameMarker`) を返し、`fade(frame(), { ... })` で使う。
 - `cut(frame(), ...)` は throw する。
 - layer 0 の `frame()` は throw する。
-- `Stage` は layer を下から積む。
+- `Stage` は layer を下から `Fragment` で積み、layer 自体には要素を作らない。item は `Sequence` に置き、その内側を `AbsoluteFill` (fade は不透明度を当てたもの) で包む。
 - layer に `frame()` の item があれば、それより下の layer の合成結果を `AbsoluteFill` で包み、その opacity を `frame()` の item の `fadeOpacity` にする (現在フレームが item の区間外なら 1)。その layer の `frame()` 以外の item は包んだ結果の上に兄弟として積む。
 - `frame()` の無い layer は包まない。
 - `frame()` の item の区間外では効果が消える (opacity は 1 に戻る)。フェードアウトで終わる動画は `frame()` の item の終端を動画の終端に合わせて書く。
