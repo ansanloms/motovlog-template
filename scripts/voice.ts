@@ -23,6 +23,7 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 import { resolveProjectSlug } from "../src/project/load.ts";
 import { configure } from "../src/setup.ts";
 import type { Theme } from "../src/setup.ts";
+import { VOICE_KEYS } from "../src/voice/cache.ts";
 import { extractLines } from "./voice/extract.ts";
 import { generateMissing } from "./voice/generate.ts";
 import type { GenerateDeps } from "./voice/generate.ts";
@@ -60,12 +61,24 @@ export const configureFromConsumer = async (root: string): Promise<void> => {
     defaultProject?: string;
   };
 
-  if (
-    typeof theme?.palette?.bg !== "string" ||
-    typeof theme?.narrator?.speaker !== "number"
-  ) {
+  if (theme === undefined) {
+    throw new Error(`${configPath} が theme を export していません`);
+  }
+
+  if (typeof theme.palette?.bg !== "string") {
+    throw new Error(`${configPath} の theme.palette に色が揃っていません`);
+  }
+
+  // narrator は VOICE_KEYS が全項目必須。欠けたまま通すと resolveVoice() が
+  // undefined を埋め、VOICEVOX が黙って ENGINE の既定値で合成するため、
+  // 間違った音声がエラー無しで生成される。ここで止める。
+  const missing = VOICE_KEYS.filter(
+    (key) => typeof theme.narrator?.[key] !== "number",
+  );
+
+  if (missing.length > 0) {
     throw new Error(
-      `${configPath} が theme (palette・narrator) を export していません`,
+      `${configPath} の theme.narrator に数値の項目が足りません: ${missing.join("・")}`,
     );
   }
 

@@ -145,26 +145,28 @@ export default [
         {
           patterns: [
             {
-              // 利用側の入口の制限 (ADR-0012)。characters/<name>.ts だけは
-              // 入口の src/compositions/index.ts に代えて実体の
-              // src/compositions/character.ts を import してよい。入口は
-              // figure()・line() 経由で src/components と CSS Modules を辿り、
-              // 素の Node から import できなくなるため (ADR-0011)。
-              // gitignore 構文。"**/src/**" は src の下のディレクトリごと
-              // 除外するため、"!**/src/*/" で中間ディレクトリを戻してから
-              // でないと下の否定が効かない。
+              // characters/<name>.ts が lib から import してよいのは
+              // src/compositions/character.ts だけ (ADR-0011・ADR-0012)。
+              // 5 入口 (src/index.ts・src/compositions/index.ts 等) と bare
+              // specifier (motovlog-template) は、figure()・line() 経由で
+              // src/components と CSS Modules を辿るため素の Node から
+              // import できなくなり、watcher (scripts/voice/extract.ts) が
+              // line().by の voice を読めなくなる。
+              //
+              // gitignore 構文。"**/src/**" は compositions ディレクトリごと
+              // 除外するため、"!**/src/compositions/" で戻し、
+              // "**/src/compositions/*" で中身を入れ直してから character.ts
+              // だけを許す。
               group: [
                 "**/src/**",
-                "!**/src/*/",
-                "!**/src/index.ts",
-                "!**/src/effects/index.ts",
-                "!**/src/components/index.tsx",
-                "!**/src/compositions/index.ts",
+                "!**/src/compositions/",
+                "**/src/compositions/*",
                 "!**/src/compositions/character.ts",
-                "!**/src/theme/index.ts",
+                "motovlog-template",
+                "motovlog-template/*",
               ],
               message:
-                "利用側は lib の 5 入口 (src/index.ts・src/effects/index.ts・src/components/index.tsx・src/compositions/index.ts・src/theme/index.ts) だけを import する。characters/<name>.ts は src/compositions/character.ts も直に import してよい (ADR-0011・ADR-0012)。",
+                "characters/<name>.ts が lib から import してよいのは src/compositions/character.ts だけ (ADR-0011・ADR-0012)。入口 (src/compositions/index.ts 等) は CSS Modules を辿るため、素の Node から読めなくなる。",
             },
             {
               group: ["remotion", "@remotion/*"],
