@@ -191,7 +191,9 @@ export const expressionAt = (
 
 /** isBlinking() が読む値 (characterTiming のうち目パチに使う分)。 */
 type BlinkTiming = {
+  /** 目パチの周期 (秒)。 */
   readonly blinkInterval: number;
+  /** 閉眼の尺 (秒)。周期の末尾側に置く。 */
   readonly blinkClosed: number;
 };
 
@@ -219,7 +221,12 @@ export const isBlinking = (
  */
 export const layerSources = (
   layers: readonly FigureLayer[],
-  state: { readonly blinking: boolean; readonly mouth: MouthKey },
+  state: {
+    /** 閉眼かどうか。目レイヤーの開閉を選ぶ。 */
+    readonly blinking: boolean;
+    /** 口の形。口レイヤーの母音を選ぶ。 */
+    readonly mouth: MouthKey;
+  },
 ): readonly string[] =>
   layers.map((layer) => {
     if (isEyesLayer(layer)) {
@@ -315,8 +322,11 @@ export const figureLayers = (
 export const figure = (
   character: Character,
   options: {
+    /** 初期の表情名。省略時は expressions の最初のキー。 */
     readonly expression?: string;
+    /** narration() の戻り値の speech。このキャラクター宛以外は figure() が無視する。 */
     readonly speech: readonly Speech[];
+    /** 枠を置く側。省略時は left (right は章の区切りのみ)。 */
     readonly side?: "left" | "right";
   },
 ): SampleNode => {

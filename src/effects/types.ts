@@ -115,9 +115,14 @@ export type ResolvedLayer = readonly ResolvedItem[];
  * Composition の props には載せない。
  */
 export type Timeline = {
+  /** フレームレート。 */
   readonly fps: number;
+  /** 動画の幅 (px)。 */
   readonly width: number;
+  /** 動画の高さ (px)。 */
   readonly height: number;
+  /** 動画の尺 (秒)。 */
   readonly durationSec: number;
+  /** 演出アイテムの layer 列 (z 順、後ろが上)。 */
   readonly layers: readonly ResolvedLayer[];
 };

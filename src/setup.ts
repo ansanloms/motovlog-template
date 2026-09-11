@@ -22,6 +22,7 @@ export type Theme = {
 
 /** configure() に渡すもの。 */
 export type Setup = {
+  /** 利用側が持つ見た目と声の値。 */
   readonly theme: Theme;
   /**
    * projects/<slug>/timeline.ts を読む関数。バンドラが静的解析できる形の

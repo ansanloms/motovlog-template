@@ -25,20 +25,33 @@ export type GenerateDeps = {
   linesDir: string;
   /** public/ の絶対パス。linePath(slug, key) の相対パスをここに前置してファイルパスを組む。 */
   publicDir: string;
+  /** VOICEVOX ENGINE の URL。 */
   voicevoxUrl: string;
+  /** ENGINE への問い合わせに使う fetch。 */
   fetchImpl: typeof fetch;
+  /** パスの存在確認。 */
   exists: (p: string) => boolean;
+  /** ディレクトリの作成。 */
   mkdir: (dir: string) => void;
+  /** ファイルの書き込み。 */
   writeFile: (p: string, data: Buffer | string) => void;
+  /** ファイルのリネーム (tmp から本番パスへの確定に使う)。 */
   rename: (from: string, to: string) => void;
+  /** 進捗ログの出力。 */
   log: (line: string) => void;
+  /** 警告ログの出力。 */
   warn: (line: string) => void;
   /** VoiceCache.generatedAt に書く値。既定は Temporal.Now.instant().toString()。 */
   now: () => string;
 };
 
 /** generateMissing() の集計結果。生成した件数と skip した件数。 */
-export type GenerateResult = { generated: number; skipped: number };
+export type GenerateResult = {
+  /** 新規に生成した件数。 */
+  generated: number;
+  /** 既存キャッシュがあり skip した件数。 */
+  skipped: number;
+};
 
 /**
  * lines を key (text と voice の hash) ごとに生成する。既に `<key>.wav` と

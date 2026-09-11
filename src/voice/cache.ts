@@ -36,18 +36,27 @@ export type VoiceOptions = Partial<Voice>;
 
 /** 口パクの母音区間 1 件。生成は scripts/voice、読み出しは src/compositions/figure.ts (口パク)。 */
 export type LipsyncEntry = {
+  /** 区間の開始秒 (発話の先頭からの相対値)。 */
   readonly start: number;
+  /** 区間の終了秒 (発話の先頭からの相対値)。 */
   readonly end: number;
+  /** 母音の識別子 (a/i/u/e/o、撥音・無音は "n"、句読点の間は "pau")。 */
   readonly vowel: string;
 };
 
 /** `<key>.json` の形。voice は省略分を埋めた後の値 (key の算出に使った値と同じ)。 */
 export type VoiceCache = {
+  /** 発話のテキスト (line() に書いた text)。 */
   readonly text: string;
+  /** 省略分を埋めた後の実効の声質 (key の算出に使った値と同じ)。 */
   readonly voice: Voice;
+  /** VOICEVOX に渡した読み (text をひらがな等に変換した値)。 */
   readonly reading: string;
+  /** 音声の実尺 (秒)。 */
   readonly duration: number;
+  /** 口パクの母音区間の列。 */
   readonly lipsync: readonly LipsyncEntry[];
+  /** 生成日時 (ISO 8601 文字列)。 */
   readonly generatedAt: string;
 };
 

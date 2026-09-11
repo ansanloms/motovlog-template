@@ -84,7 +84,12 @@ const specifierIsLibModule = (
   modules.includes(path.resolve(path.dirname(context.fileName), specifier));
 
 /** extractLines() が返す 1 件 (line() 呼び出し 1 回分)。 */
-export type ExtractedLine = { text: string; voice?: VoiceOptions };
+export type ExtractedLine = {
+  /** line() の text (リテラル)。 */
+  text: string;
+  /** line() の実効の voice (mergeVoice(by の voice, line() 自身の voice))。省略時は undefined。 */
+  voice?: VoiceOptions;
+};
 
 class ExtractLineError extends Error {}
 

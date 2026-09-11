@@ -21,10 +21,15 @@ import { figureLayers } from "./figure.ts";
  * レイヤー列を Thumbnail の character prop に渡す。
  */
 export const thumbnail = (options: {
+  /** Thumbnail に渡す走行写真の URL (staticFile 済み)。 */
   readonly photo: string;
+  /** バッジ文字列 (話数等)。 */
   readonly badge: string;
+  /** 地名。 */
   readonly title: string;
+  /** characters/<name>.ts の character() の戻り値。 */
   readonly character: Character;
+  /** 初期の表情名。省略時は expressions の最初のキー。 */
   readonly expression?: string;
 }): ReactElement =>
   createElement(Thumbnail, {

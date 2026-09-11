@@ -5,6 +5,7 @@ import { DEFAULT_HEIGHT, DEFAULT_WIDTH } from "./effects/index.ts";
 import { resolveProjectSlug } from "./project/load.ts";
 import { fps } from "./theme/index.ts";
 
+/** Remotion の入口。Motovlog composition を 1 本だけ登録する。 */
 export const RemotionRoot: React.FC = () => {
   return (
     <>
