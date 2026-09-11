@@ -4,6 +4,7 @@ import { Audio } from "./Audio.tsx";
 import { ChapterTitle } from "./ChapterTitle.tsx";
 import { Ending } from "./Ending.tsx";
 import { PhotoShowcase } from "./PhotoShowcase.tsx";
+import { Subtitle } from "./Subtitle.tsx";
 import { SubtitleBand } from "./SubtitleBand.tsx";
 import { Video } from "./Video.tsx";
 import { assertVolume } from "./volume.ts";
@@ -32,6 +33,15 @@ export const photoShowcase = (
 /** Ending の要素ファクトリ。 */
 export const ending = (props: React.ComponentProps<typeof Ending>) => (
   <Ending {...props} />
+);
+
+/**
+ * Subtitle の要素ファクトリ。声の無い字幕 (narration() に duration を明示した
+ * 項目として置く) のためのファクトリ。line() は Line が Subtitle を直接描く
+ * ためこれを使わない。
+ */
+export const subtitle = (props: React.ComponentProps<typeof Subtitle>) => (
+  <Subtitle {...props} />
 );
 
 /** SubtitleBand の要素ファクトリ。 */

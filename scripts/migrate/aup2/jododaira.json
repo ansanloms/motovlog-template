@@ -1,0 +1,23 @@
+{
+  "title": "",
+  "subtitle": "",
+  "date": {
+    "from": "2026-08-16T00:00[Asia/Tokyo]",
+    "to": "2026-08-17T00:00[Asia/Tokyo]"
+  },
+  "distance": 0,
+  "ridingTime": { "hours": 0, "minutes": 0 },
+  "routes": [],
+  "chapters": [
+    { "title": "", "subtitle": "CHAPTER 1" },
+    { "title": "", "subtitle": "CHAPTER 2" },
+    { "title": "", "subtitle": "CHAPTER 3" },
+    { "title": "", "subtitle": "CHAPTER 4" },
+    { "title": "", "subtitle": "CHAPTER 5" },
+    { "title": "", "subtitle": "CHAPTER 6" }
+  ],
+  "thumbnail": {
+    "photo": "PXL_20260815_045406555.RAW-01.jpg",
+    "badge": ""
+  }
+}
