@@ -18,7 +18,7 @@ type Props = {
   ridingTime: Temporal.Duration;
   /** 5〜7 か所 (コードでは縛らない)。 */
   routes: readonly string[];
-  /** 1 要素 = 1 行。key: value で表示。例 [{ VOICEVOX: "青山龍星" }]。 */
+  /** 1 要素 = 1 行。key: value で表示。例 [{ VOICEVOX: "<話者名>" }]。 */
   credits: ReadonlyArray<Record<string, string>>;
 };
 

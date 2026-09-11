@@ -29,3 +29,5 @@ public/assets/*/*
 public/assets/characters/*/*
 !.gitkeep
 # ここから下に、コミットする自作素材の否定パターンを追記する。
+# サンプルの立ち絵 (characters/sample.ts の placeholder)。テンプレートに同梱する自作素材。
+!public/assets/characters/sample/**
