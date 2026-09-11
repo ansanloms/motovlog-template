@@ -30,7 +30,7 @@
 // 読むため)。
 
 import { character } from "../src/compositions/character.ts";
-import { narrator } from "../src/theme/voice.ts";
+import { narrator } from "../theme/index.ts";
 
 const dir = "assets/characters/sample";
 const part = (name: string) => `${dir}/${name}.svg`;
