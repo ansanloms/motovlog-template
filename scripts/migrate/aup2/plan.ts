@@ -211,13 +211,30 @@ const baseName = (windowsPath: string): string => {
   return parts[parts.length - 1] ?? "";
 };
 
-/** `再生位置=開始,終了,再生範囲,0` の開始秒を返す。 */
-const trimBeforeOf = (filter: { params: Record<string, string> }): number => {
-  const raw = filter.params["再生位置"] ?? "";
-  const start = Number(raw.split(",")[0]);
+/**
+ * `再生位置=開始,終了,再生範囲,0` の開始秒を返す。`再生位置` が無ければ throw
+ * する。理由: 0 に落とすと元動画の頭から使う timeline.ts を黙って書き出すため、
+ * 原本と映像がずれても誰も気付かない。
+ */
+const trimBeforeOf = (
+  filter: { params: Record<string, string> },
+  objectId: number,
+): number => {
+  const raw = filter.params["再生位置"];
 
-  if (!Number.isFinite(start)) {
-    throw new Error(`aup2: 再生位置 の開始が数値ではありません: ${raw}`);
+  if (raw === undefined) {
+    throw new Error(
+      `aup2: [${objectId}] に 再生位置 がありません (元動画のどこから使うか決まりません)`,
+    );
+  }
+
+  const rawStart = raw.split(",")[0].trim();
+  const start = Number(rawStart);
+
+  if (rawStart === "" || !Number.isFinite(start)) {
+    throw new Error(
+      `aup2: [${objectId}] の 再生位置 の開始が数値ではありません: ${raw}`,
+    );
   }
 
   return start;
@@ -388,8 +405,41 @@ export const planTimeline = (
   const endFrame = videoObjects[videoObjects.length - 1].frame[1];
 
   const atOf = (frame: number): number => round3(frame / fps + shift);
-  const durationOf = (range: readonly [number, number]): number =>
-    round3((Math.min(range[1], endFrame) - range[0] + 1) / fps);
+
+  /**
+   * オブジェクトの尺 (秒)。走行映像の終端 (endFrame) より後ろへはみ出す分は
+   * 切り詰める。object を渡すと、詰めた後の尺にフェード (`フェード`・
+   * `音量フェード` の `イン` + `アウト`) が収まるかを確かめ、収まらなければ
+   * throw する。理由: 収まらないまま通すと、原本より早く閉じるフェードを黙って
+   * 書き出すか、どこで詰めたのか分からないまま下流 (fade() の
+   * `in + out > duration`、volumePlan()) が落ちる。
+   */
+  const durationOf = (
+    range: readonly [number, number],
+    object?: Aup2Object,
+  ): number => {
+    const duration = round3(
+      (Math.min(range[1], endFrame) - range[0] + 1) / fps,
+    );
+
+    if (object === undefined || range[1] <= endFrame) {
+      return duration;
+    }
+
+    for (const name of ["フェード", "音量フェード"] as const) {
+      const filter = findFilter(object, name);
+      const fadeIn = round3(numberParam(filter, "イン", 0));
+      const fadeOut = round3(numberParam(filter, "アウト", 0));
+
+      if (round3(fadeIn + fadeOut) > duration) {
+        throw new Error(
+          `aup2: [${object.id}] の終端を走行映像の終端に詰めた (frame ${range[1]} -> ${endFrame}、尺 ${duration} 秒) ため、${name} のイン (${fadeIn} 秒) + アウト (${fadeOut} 秒) が収まりません`,
+        );
+      }
+    }
+
+    return duration;
+  };
 
   /** 走行映像の終端より後ろから始まるオブジェクトを落とす。 */
   const withinTimeline = (object: Aup2Object): boolean => {
@@ -468,12 +518,12 @@ export const planTimeline = (
     const volumeFade = findFilter(object, "音量フェード");
     const crossfadeOut = crossfades.get(index + 1) ?? 0;
     const crossfadeIn = crossfades.get(index);
-    const duration = round3(durationOf(object.frame) + crossfadeOut);
+    const duration = round3(durationOf(object.frame, object) + crossfadeOut);
 
     return {
       ref: `clip${index + 1}`,
       src: baseName(file.params["ファイル"] ?? ""),
-      trimBefore: round3(trimBeforeOf(file)),
+      trimBefore: round3(trimBeforeOf(file, object.id)),
       volume: volumePlan({
         level: numberParam(play, "音量", 100),
         fadeIn: numberParam(volumeFade, "イン", 0),
@@ -528,11 +578,11 @@ export const planTimeline = (
       const file = object.filters[0];
       const play = findFilter(object, "音声再生");
       const volumeFade = findFilter(object, "音量フェード");
-      const duration = durationOf(object.frame);
+      const duration = durationOf(object.frame, object);
 
       return {
         src: `assets/bgm/${baseName(file.params["ファイル"] ?? "")}`,
-        trimBefore: round3(trimBeforeOf(file)),
+        trimBefore: round3(trimBeforeOf(file, object.id)),
         volume: volumePlan({
           level: numberParam(play, "音量", 100),
           fadeIn: numberParam(volumeFade, "イン", 0),
@@ -588,7 +638,7 @@ export const planTimeline = (
 
       return {
         at: atOf(object.frame[0]),
-        duration: durationOf(object.frame),
+        duration: durationOf(object.frame, object),
         in: round3(numberParam(fade, "イン", 0)),
         out: round3(numberParam(fade, "アウト", 0)),
         expression: expression === "" ? DEFAULT_EXPRESSION : expression,
@@ -620,7 +670,7 @@ export const planTimeline = (
     )
       .filter(withinTimeline)
       .map((object) => {
-        const duration = durationOf(object.frame);
+        const duration = durationOf(object.frame, object);
 
         if (kindOf(object) === "シーンチェンジ") {
           // 暗転は前半で黒へ落ちて後半で戻る。frame() のフェードでは
@@ -823,7 +873,7 @@ export const planTimeline = (
     ...photos.map((object) => ({
       kind: "photo" as const,
       at: atOf(object.frame[0]),
-      duration: durationOf(object.frame),
+      duration: durationOf(object.frame, object),
       photos: [
         `photos/${baseName(object.filters[0].params["ファイル"] ?? "")}`,
       ],

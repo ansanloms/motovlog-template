@@ -1,6 +1,11 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { getSetup } from "../src/setup.ts";
-import { createRunQueue, readVoicevoxUrl, resolveSlugArg } from "./voice.ts";
+import {
+  createRunQueue,
+  noLinesWarning,
+  readVoicevoxUrl,
+  resolveSlugArg,
+} from "./voice.ts";
 
 describe("resolveSlugArg", () => {
   it("引数 (先頭の非フラグ) が env より優先される", () => {
@@ -29,6 +34,20 @@ describe("readVoicevoxUrl", () => {
 
   it("未設定なら undefined を返す", () => {
     expect(readVoicevoxUrl({})).toBeUndefined();
+  });
+});
+
+describe("noLinesWarning", () => {
+  it("0 件なら lib の入口の確認を促す警告を返す", () => {
+    const warning = noLinesWarning(0);
+
+    expect(warning).toContain("発話 (line()) が 0 件でした");
+    expect(warning).toContain("src/compositions/index.ts");
+    expect(warning).toContain("motovlog-template/compositions");
+  });
+
+  it("1 件以上なら何も返さない (発話の無い project はエラーにしない)", () => {
+    expect(noLinesWarning(1)).toBeUndefined();
   });
 });
 

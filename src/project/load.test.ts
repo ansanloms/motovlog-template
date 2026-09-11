@@ -4,7 +4,7 @@ import { getSetup } from "../setup.ts";
 import { fps } from "../theme/timing.ts";
 
 // 既定の slug と timeline の読み込みは利用側が configure() で渡す (ADR-0012)。
-// テストの値は src/test/setup.ts が設定している。
+// テストの値は test/setup.ts が設定している。
 const { defaultProject } = getSetup();
 
 // loadTimeline("00000000-sample") は narration() を経由し、発話の音声
