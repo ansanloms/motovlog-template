@@ -41,7 +41,13 @@ Remotion (4.0.521) には次の事実がある。
 
 - projects/<slug>/timeline.ts は src/effects の関数の呼び出しで書き、`timeline()` の戻り値を default export する。
 - `timeline(layers, options?)` の `layers` には layer (item の配列) の配列を渡す。`options` は `width`・`height` のみを持ち、省略時は既定値 (1920×1080) を使う。fps は `timeline()` が `src/theme/timing.ts` の `fps` から読む ([ADR-0003](./0003-convert-dashcam-footage-to-h264-proxy.md))。
-- `src/effects` が公開するのは、演出関数 `timeline`・`fade`・`cut`・`crossfade`・`frame`・`start`・`end`・`sample` ([ADR-0011](./0011-draw-figure-from-character-presets-linked-by-speech.md))、描画部品 `Stage`、フレーム換算の補助 `toFrameSpan`・`fadeOpacity`、既定サイズ `DEFAULT_WIDTH`・`DEFAULT_HEIGHT` と型に限る。React 要素 (ReactNode) と秒だけを受け、src/components・src/compositions・projects を import しない (ESLint の no-restricted-imports で禁止する)。
+- `src/effects` は React 要素 (ReactNode) と秒だけを受ける。src/components・src/compositions・projects は import しない (ESLint の no-restricted-imports で禁止する)。公開するのは次に限る。
+  - 演出関数 `timeline`・`fade`・`cut`・`crossfade`・`frame`・`start`・`end`・`sample` ([ADR-0011](./0011-draw-figure-from-character-presets-linked-by-speech.md))
+  - 描画部品 `Stage`
+  - 印の判定 `isFrame`・`isSample`
+  - layer の解決 `resolveLayer`、フレーム換算の補助 `toFrameSpan`・`fadeOpacity`
+  - 既定サイズ `DEFAULT_WIDTH`・`DEFAULT_HEIGHT`
+  - 型 `Anchor`・`CutItem`・`FadeItem`・`FrameMarker`・`Item`・`Layer`・`PendingCutItem`・`ResolvedCutItem`・`ResolvedFadeItem`・`ResolvedItem`・`ResolvedLayer`・`Timeline`・`Transition`・`SampleNode`・`SampleTime`
 - src/components は src/effects を import しない。src/components が使ってよい Remotion の API は AbsoluteFill・Img・useVideoConfig と @remotion/media の要素に限り、useCurrentFrame 等のフレーム API は使わない。
 - 走行映像は src/components の Video (@remotion/media の Video、[ADR-0003](./0003-convert-dashcam-footage-to-h264-proxy.md)) で描き、fade/cut で timeline に置く。effects は clip を持たない。
 - `timeline()` は item の配列ではなく layer (item の配列) の配列を受ける。layer は z 順を表し、配列の後ろが上に重なる。
@@ -54,7 +60,7 @@ Remotion (4.0.521) には次の事実がある。
 - `timeline()` の戻り値は React 要素を含むため、Composition の props に載せない。props は slug だけとし、calculateMetadata と component の双方が timeline.ts を動的 import する。component 側は delayRender() と continueRender() で読み込みを待つ。
 - project の選択は環境変数 REMOTION_PROJECT で行い、未設定ならサンプル project を読む。
 - zod による timeline schema は持たない。形は TypeScript の型で担保し、読み込み時は default export の形 (fps・width・height・durationSec が number、layers が配列の配列で各 item の kind が fade/cut、at・duration が number、fade は in・out も number) だけを検査する。
-- timeline.ts が渡す src (走行映像・写真・立ち絵) は staticFile() 済みの URL とする。
+- timeline.ts が渡す走行映像・写真の src は staticFile() 済みの URL とする。立ち絵のレイヤー画像は public ディレクトリ相対のパスで書き、`figure()` が staticFile() を掛ける ([ADR-0011](./0011-draw-figure-from-character-presets-linked-by-speech.md))。
 - 字幕・音声・ED・立ち絵・サムネ用フレームの演出は、この ADR では決めない。
 
 ## Consequences
