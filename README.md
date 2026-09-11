@@ -36,7 +36,7 @@ lib (動画を作る機能) は次の 2 つ。
 | -------------------------------- | --------------------------- | ----------------------------------------------------------------- |
 | `motovlog-template`              | `src/index.ts`              | `configure`・`RemotionRoot`・`Motovlog` と、下の 4 つの再 export  |
 | `motovlog-template/effects`      | `src/effects/index.ts`      | `timeline`・`cut`・`fade`・`crossfade`・`frame`・`start`・`end`   |
-| `motovlog-template/components`   | `src/components/index.tsx`  | 要素ファクトリ (`video`・`audio`・`chapterTitle`・`ending` 等)    |
+| `motovlog-template/components`   | `src/components/index.tsx`  | 要素ファクトリ (`video`・`audio`・`chapter`・`ending` 等)         |
 | `motovlog-template/compositions` | `src/compositions/index.ts` | `line`・`narration`・`character`・`figure`・`thumbnail`           |
 | `motovlog-template/theme`        | `src/theme/index.ts`        | 配置と秒数のトークン (`chapterTiming`・`openingTiming`・`fps` 等) |
 
@@ -92,12 +92,12 @@ timeline 定義は `projects/<slug>/timeline.ts` が `export default` する、`
 ```ts
 import { staticFile } from "remotion";
 import { sample } from "../../characters/sample.ts";
-import { chapterTitle, video } from "../../src/components/index.tsx";
+import { chapter, video } from "../../src/components/index.tsx";
 import { thumbnail } from "../../src/compositions/index.ts";
 import { cut, fade, timeline } from "../../src/effects/index.ts";
 import {
+  chapterDurationSec,
   chapterTiming,
-  chapterTitleDurationSec,
   openingTiming,
 } from "../../src/theme/index.ts";
 
@@ -119,9 +119,9 @@ export default timeline([
       }),
       { duration: openingTiming.duration, in: openingTiming.fadeIn },
     ),
-    fade(chapterTitle({ title: "浄土平へ", subtitle: "CHAPTER 1" }), {
+    fade(chapter({ title: "浄土平へ", subtitle: "CHAPTER 1" }), {
       after: 0.2,
-      duration: chapterTitleDurationSec,
+      duration: chapterDurationSec,
       in: chapterTiming.fade,
       out: chapterTiming.fade,
     }),
@@ -149,14 +149,14 @@ layer 内の item と item の間には `crossfade({ duration })` を置ける�
 | ---------------------- | ---------------------------------------------------------------------------------------- |
 | `video(props)`         | 走行映像。`src` (staticFile() 済み URL)・`trimBefore?` (秒)・`volume?`                   |
 | `audio(props)`         | 音声。`src` (staticFile() 済み URL)・`trimBefore?` (秒)・`volume?`・`loop?`              |
-| `chapterTitle(props)`  | 章タイトル。`title`・`subtitle`                                                          |
+| `chapter(props)`       | 章タイトル。`title` (文字列、または改行として結合される文字列の配列)・`subtitle`         |
 | `annotation(props)`    | 右上の注釈。`text`                                                                       |
 | `photoShowcase(props)` | 写真紹介 (1〜2 枚)。`photos`                                                             |
 | `ending(props)`        | ED。`title`・`subtitle`・`date`・`distance`・`ridingTime`・`routes`・`credits`           |
 | `subtitle(props)`      | 声の無い字幕。`text`。`narration()` に `duration` を明示した項目として置く               |
 | `subtitleBand({})`     | 字幕下の暗がり (props は無いが引数は要る、通常は `narration()` が組むので直接は使わない) |
 
-立ち絵の `figure()` は要素ファクトリではなく `line()`・`narration()` と同じ `motovlog-template/compositions` に置く (「立ち絵」参照。effects の `sample()` を使うため)。サムネ・OP の絵の `thumbnail(props)` も同じ入口に置く (`photo`・`badge`・`title`・`character` (`character()` の戻り値)・`expression?` (省略時は `expressions` の最初のキー) を受け、`character()` の表情名の解決 (`figureLayers()`) を伴うため、ADR-0011 の禁止事項により components 単体では書けない)。
+立ち絵の `figure()` は要素ファクトリではなく `line()`・`narration()` と同じ `motovlog-template/compositions` に置く (「立ち絵」参照。effects の `sample()` を使うため)。サムネ・OP の絵の `thumbnail(props)` も同じ入口に置く (`photo`・`badge`・`title` (文字列、または改行として結合される文字列の配列)・`character` (`character()` の戻り値)・`expression?` (省略時は `expressions` の最初のキー) を受け、`character()` の表情名の解決 (`figureLayers()`) を伴うため、ADR-0011 の禁止事項により components 単体では書けない)。
 
 `volume` は一定値 (数値、0 以上 1 以下) または折れ線 (`{ at, volume }[]`、各点の `volume` も 0 以上 1 以下) で指定する。`at` は要素の再生開始 (`trimBefore` 適用後) からの秒で、点の間は線形補間する。最初の点より前は最初の点の値、最後の点より後は最後の点の値でクランプする。省略時は 1。`audio()` の `loop` と折れ線を併用しても `at` は周回をまたいだ通算秒として扱う (`loopVolumeCurveBehavior="extend"`)。
 
@@ -194,7 +194,7 @@ export default timeline([
 ]);
 ```
 
-- `line({ text, voice?, by?, expression? })` の `text` は文字列リテラル (`{漢字|よみ}` の記法で読みを添えられる)。
+- `line({ text, voice?, by?, expression? })` の `text` は文字列リテラル (`{漢字|よみ}` の記法で読みを添えられる)、またはそれらの配列 (字幕の改行として結合される。読みには影響しない)。
 - `by` は `characters/<name>.ts` の `character()` の戻り値の参照。指定すると `narration()` の `speech` にその参照が乗り、`figure()` (「立ち絵」) が自分宛の発話を選ぶのに使う。
 - `voice` の実効値は利用側の既定話者 (`theme/index.ts` の `narrator`) ← `by.voice` ← `line()` 自身の `voice` の順で上書きした値になる。差分だけを書く (例: `{ speed: 0.9 }`)。`text`・`voice`・`by` は watcher (`npm run dev`) が静的に読むため、リテラルの他は `theme/index.ts` からの import・spread・同じファイルの const・プロパティアクセスに限られる。`by` は識別子 (同じファイルの const か import) に限る (詳細は [ADR-0010](docs/adr/0010-build-narration-timeline-with-hashed-voice-cache.md), [ADR-0011](docs/adr/0011-draw-figure-from-character-presets-linked-by-speech.md))。
 - `expression` は `by` の `expressions` のキー (文字列リテラル)。指定すると、この発話の開始と同時に立ち絵の表情がそのキーに切り替わり、次に `expression` を指定する自分宛の発話まで維持する (詳細は「立ち絵」)。

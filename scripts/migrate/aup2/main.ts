@@ -12,7 +12,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import {
   bandTiming,
-  chapterTitleDurationSec,
+  chapterDurationSec,
   endingTiming,
   fps,
   openingTiming,
@@ -226,7 +226,7 @@ export const run = async (argv: readonly string[]): Promise<void> => {
       fps,
       openingDurationSec: openingTiming.duration,
       openingFadeInSec: openingTiming.fadeIn,
-      chapterTitleDurationSec,
+      chapterDurationSec,
       endingDurationSec: endingTiming.duration,
       narrationRunGapSec: bandTiming.silenceGap,
     },

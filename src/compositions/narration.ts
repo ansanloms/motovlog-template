@@ -26,6 +26,8 @@ import React from "react";
 import { getRemotionEnvironment, staticFile } from "remotion";
 import { subtitleBand } from "../components/index.tsx";
 import { Line } from "../components/Line.tsx";
+import type { TextLines } from "../components/text.ts";
+import { joinLines } from "../components/text.ts";
 import { cut, fade, isFrame, resolveLayer } from "../effects/index.ts";
 import type {
   CutItem,
@@ -45,10 +47,14 @@ import { linePath, mergeVoice, voiceKey } from "../voice/key.ts";
 import { computeBandSpans } from "./band.ts";
 import type { Character } from "./character.ts";
 
-/** line() が組み立てる要素の props。 */
+/** line() が受け取る props。 */
 type LineProps = {
-  /** 発話のテキスト (VOICEVOX の {漢字|よみ} 記法を含んでよい)。リテラルで書く。 */
-  text: string;
+  /**
+   * 発話のテキスト (VOICEVOX の {漢字|よみ} 記法を含んでよい)。リテラルで
+   * 書く。配列で書くと字幕の改行として結合する (読みには影響しない、
+   * 音声合成では改行を落とすため)。
+   */
+  text: TextLines;
   /** 声質。省略分は theme の既定話者に by.voice を重ねた値で埋める。 */
   voice?: VoiceOptions;
   /** character() の参照。figure() が自分宛の発話を選ぶのに使う (identity で結び付く)。 */
@@ -57,51 +63,57 @@ type LineProps = {
   expression?: string;
 };
 
+/** LineMarker が保持する props (text は結合済みの単一行文字列)。 */
+type ResolvedLineProps = Omit<LineProps, "text"> & { text: string };
+
 /**
  * narration() の外に置かれたら throw する内部コンポーネント。line() の
  * 戻り値の型 (ReactNode) として使うだけで、narration() は描画せず props
  * だけを読んで消費する。
  */
-const LineMarker: React.FC<LineProps> = () => {
+const LineMarker: React.FC<ResolvedLineProps> = () => {
   throw new Error(
     "line() は narration() に渡す item の node としてのみ使えます (narration() の外に置かれています)。",
   );
 };
 
 /**
- * 発話 1 本の台本を書く。text (VOICEVOX の {漢字|よみ} 記法を含んでよい) と
- * voice (省略時は theme の既定話者に by.voice を重ねた値)、by
- * (character() の参照、figure() が自分宛の発話を選ぶのに使う)、expression
- * (by の expressions のキー、指定すると figure() の表情をその場で切り替える)
- * を渡す。cut() の node に渡し、narration() にまとめて渡すこと。text・voice
- * はリテラルで書く (scripts/voice の静的解析が変数・関数呼び出しを許さない)。
- * expression は by が無い、または by.expressions に無いキーだと throw する。
- * narration.ts は .ts (拡張子は timeline.ts からの import 記法に合わせる)
- * ため React.createElement で組み立てる。
+ * 発話 1 本の台本を書く。text (VOICEVOX の {漢字|よみ} 記法を含んでよい、
+ * 配列で書くと字幕の改行として結合する) と voice (省略時は theme の既定
+ * 話者に by.voice を重ねた値)、by (character() の参照、figure() が自分宛の
+ * 発話を選ぶのに使う)、expression (by の expressions のキー、指定すると
+ * figure() の表情をその場で切り替える) を渡す。cut() の node に渡し、
+ * narration() にまとめて渡すこと。text・voice はリテラルで書く (scripts/voice
+ * の静的解析が変数・関数呼び出しを許さない)。expression は by が無い、
+ * または by.expressions に無いキーだと throw する。narration.ts は .ts
+ * (拡張子は timeline.ts からの import 記法に合わせる) ため
+ * React.createElement で組み立てる。
  */
 export const line = (props: LineProps): ReactNode => {
+  const text = joinLines(props.text);
+
   if (props.expression !== undefined) {
     if (!props.by) {
       throw new Error(
-        `line(): expression ("${props.expression}") を指定するには by (character の参照) が必要です: ${props.text}`,
+        `line(): expression ("${props.expression}") を指定するには by (character の参照) が必要です: ${text}`,
       );
     }
 
     if (!Object.hasOwn(props.by.expressions, props.expression)) {
       throw new Error(
-        `line(): by に無い表情 "${props.expression}" が指定されました: ${props.text}`,
+        `line(): by に無い表情 "${props.expression}" が指定されました: ${text}`,
       );
     }
   }
 
-  return React.createElement(LineMarker, props);
+  return React.createElement(LineMarker, { ...props, text });
 };
 
 const linePropsOf = (
   node: ReactNode | FrameMarker | SampleNode,
-): LineProps | undefined =>
+): ResolvedLineProps | undefined =>
   React.isValidElement(node) && node.type === LineMarker
-    ? (node.props as LineProps)
+    ? (node.props as ResolvedLineProps)
     : undefined;
 
 /** narration() のテスト用差し替え関数群。既定は本物の fetch と Remotion の環境判定を使う。 */

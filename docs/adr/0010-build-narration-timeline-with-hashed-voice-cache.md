@@ -47,7 +47,7 @@ tags: [voicevox, narration, timeline]
 - 生成は `npm run dev` の watcher と `npm run render` の前段が行う。watcher は `scripts/dev.ts` が `scripts/voice.ts` の監視を同プロセスで起動し、render は前段で `tsx scripts/voice.ts` を実行する。生成だけを行う npm script は公開しない。
 - watcher は `projects/<slug>/` と `characters/` の変更を監視する ([ADR-0011](./0011-draw-figure-from-character-presets-linked-by-speech.md))。
 - watcher は timeline.ts を静的に評価する。`text`・`voice` に書ける式は次に限り、それ以外 (関数呼び出し・条件式・置換ありテンプレート等) は timeline.ts 内の位置付きエラーにする。
-  - `text`: 文字列リテラルまたは置換無しテンプレートリテラル。
+  - `text`: 文字列リテラルまたは置換無しテンプレートリテラル、あるいはそれらの配列 (空配列は不可)。配列は `\n` で結合する。
   - `voice`: リテラル・オブジェクトリテラル (spread を含む)・同じファイルの top-level const・import の binding・プロパティアクセス。
 - 既定の話者と声質 8 値は theme の `narrator` に置く。
 - VOICEVOX ENGINE の URL は `.env` (`VOICEVOX_URL`) に置く。

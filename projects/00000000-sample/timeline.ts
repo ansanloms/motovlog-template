@@ -28,7 +28,7 @@ import { sampleCharacter } from "../../characters/sample.ts";
 import {
   annotation,
   audio,
-  chapterTitle,
+  chapter,
   ending,
   photoShowcase,
   video,
@@ -49,8 +49,8 @@ import {
   timeline,
 } from "../../src/effects/index.ts";
 import {
+  chapterDurationSec,
   chapterTiming,
-  chapterTitleDurationSec,
   endingTiming,
   openingTiming,
 } from "../../src/theme/index.ts";
@@ -173,7 +173,7 @@ const n = await narration([
 // 立ち絵 (layer 2) の表示区間。OP → (0.2 秒) → 章タイトルが終わるまでは
 // 消しておき (点滅を避けるため、間の 0.2 秒も出さない)、ED が始まる直前
 // (clipB の終端 − endingTiming.duration) で消す (T&M「画面配置」)。
-const figureFromSec = openingTiming.duration + 0.2 + chapterTitleDurationSec;
+const figureFromSec = openingTiming.duration + 0.2 + chapterDurationSec;
 const figureUntilSec =
   clipASec + clipBSec - crossfadeSec - endingTiming.duration;
 
@@ -205,9 +205,9 @@ export default timeline([
       { duration: openingTiming.duration },
     ),
     // 章タイトル。after は直前の item (OP) の終端からの相対秒。
-    fade(chapterTitle({ title: "浄土平へ", subtitle: "CHAPTER 1" }), {
+    fade(chapter({ title: "浄土平へ", subtitle: "CHAPTER 1" }), {
       after: 0.2,
-      duration: chapterTitleDurationSec,
+      duration: chapterDurationSec,
       in: chapterTiming.fade,
       out: chapterTiming.fade,
     }),

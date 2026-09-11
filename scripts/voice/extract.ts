@@ -7,8 +7,9 @@
 // 音声キャッシュ待ち (Studio の delayRender 相当) を伴い、watcher 自身が
 // 生成元になる構造と噛み合わない。
 //
-// text は文字列リテラルまたは置換無しテンプレートリテラルに限る
-// (narration.ts の line() の JSDoc)。voice は次の式だけを読める。
+// text は文字列リテラルまたは置換無しテンプレートリテラル、あるいはそれらの
+// 配列 (空配列は不可、`\n` で結合する) に限る (narration.ts の line() の
+// JSDoc)。voice は次の式だけを読める。
 // - リテラル (文字列・数値・真偽・null・置換無しテンプレート)
 // - オブジェクトリテラル (キーはリテラルのみ。値は再帰的に評価。
 //   spread (...expr) は評価結果のオブジェクトを展開する)
@@ -85,7 +86,7 @@ const specifierIsLibModule = (
 
 /** extractLines() が返す 1 件 (line() 呼び出し 1 回分)。 */
 export type ExtractedLine = {
-  /** line() の text (リテラル)。 */
+  /** line() の text (リテラル、配列なら結合済み)。 */
   text: string;
   /** line() の実効の voice (mergeVoice(by の voice, line() 自身の voice))。省略時は undefined。 */
   voice?: VoiceOptions;
@@ -636,17 +637,48 @@ const evaluateExpr = async (
   );
 };
 
+// 文字列リテラル・置換無しテンプレートかどうかだけを見る (配列の要素の検査に
+// 使う。要素自体を配列にはできない)。
+const isTextLiteral = (
+  node: ts.Expression,
+): node is ts.StringLiteral | ts.NoSubstitutionTemplateLiteral =>
+  ts.isStringLiteral(node) || ts.isNoSubstitutionTemplateLiteral(node);
+
+/**
+ * リテラル (文字列・置換無しテンプレート) か、それらの配列 (空配列は不可) を
+ * 読む。配列は `\n` で結合する (narration.ts の joinLines() と同じ規則)。
+ */
 const readTextLiteral = (
   sourceFile: ts.SourceFile,
   node: ts.Expression,
   label: string,
 ): string => {
-  if (ts.isStringLiteral(node) || ts.isNoSubstitutionTemplateLiteral(node)) {
+  if (isTextLiteral(node)) {
     return node.text;
   }
 
+  if (ts.isArrayLiteralExpression(node)) {
+    if (node.elements.length === 0) {
+      throw new ExtractLineError(
+        `${positionOf(sourceFile, node)}: ${label} の配列は空にできません`,
+      );
+    }
+
+    return node.elements
+      .map((el) => {
+        if (!isTextLiteral(el)) {
+          throw new ExtractLineError(
+            `${positionOf(sourceFile, el)}: ${label} の配列の要素はリテラル (文字列・置換無しテンプレート) で書いてください`,
+          );
+        }
+
+        return el.text;
+      })
+      .join("\n");
+  }
+
   throw new ExtractLineError(
-    `${positionOf(sourceFile, node)}: ${label} はリテラル (文字列・置換無しテンプレート) で書いてください`,
+    `${positionOf(sourceFile, node)}: ${label} はリテラル (文字列・置換無しテンプレート) か、それらの配列で書いてください`,
   );
 };
 
@@ -786,8 +818,8 @@ const isNarrationLineCall = (
  * src/compositions/index.ts・src/index.ts、または bare specifier の
  * motovlog-template・motovlog-template/compositions) からの import (別名を
  * 含む) に解決されるものだけを対象にする。text はリテラル (文字列・置換無し
- * テンプレート) 限定、voice は上記の評価器が読める式限定で、それ以外が
- * あれば位置情報付きのエラーを投げる。voice の import 解決のため、
+ * テンプレート) か、それらの配列限定、voice は上記の評価器が読める式限定
+ * で、それ以外があれば位置情報付きのエラーを投げる。voice の import 解決のため、
  * timeline.ts と同じディレクトリを起点に Node の動的 import() を行う。
  */
 export const extractLines = async (

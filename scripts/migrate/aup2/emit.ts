@@ -106,13 +106,13 @@ const sceneSource = (scene: ScenePlan, character: string): string => {
   }
 
   if (scene.kind === "chapter") {
-    const node = `chapterTitle({ title: ${str(scene.title)}, subtitle: ${str(
+    const node = `chapter({ title: ${str(scene.title)}, subtitle: ${str(
       scene.subtitle,
     )} })`;
 
     return `fade(${node}, { at: ${num(
       scene.at,
-    )}, duration: chapterTitleDurationSec, in: chapterTiming.fade, out: chapterTiming.fade })`;
+    )}, duration: chapterDurationSec, in: chapterTiming.fade, out: chapterTiming.fade })`;
   }
 
   if (scene.kind === "photo") {
@@ -235,7 +235,7 @@ const importsSource = (plan: TimelinePlan): string => {
 
   const components = [
     ...(plan.audios.length > 0 ? ["audio"] : []),
-    ...(hasChapter ? ["chapterTitle"] : []),
+    ...(hasChapter ? ["chapter"] : []),
     ...(hasEnding ? ["ending"] : []),
     ...(hasPhoto ? ["photoShowcase"] : []),
     ...(hasSubtitle ? ["subtitle"] : []),
@@ -261,7 +261,7 @@ const importsSource = (plan: TimelinePlan): string => {
   ];
 
   const theme = [
-    ...(hasChapter ? ["chapterTiming", "chapterTitleDurationSec"] : []),
+    ...(hasChapter ? ["chapterDurationSec", "chapterTiming"] : []),
     ...(hasEnding ? ["endingTiming"] : []),
     ...(hasOpening || plan.frames.some((item) => item.opening)
       ? ["openingTiming"]
