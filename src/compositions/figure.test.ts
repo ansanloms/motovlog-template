@@ -44,7 +44,7 @@ const mouth = {
   },
 };
 
-const ryusei: Character = character({
+const hero: Character = character({
   voice: { speaker: 13 },
   expressions: {
     normal: ["body.png", mouth],
@@ -60,8 +60,8 @@ const other: Character = character({
 // 減算による浮動小数の誤差 (例: 10 + 0.1 - 10 !== 0.1) が境界の判定
 // (start<=local など) を誤らせないようにする。
 const speech: readonly Speech[] = [
-  { at: 0, duration: 1.0, lipsync: entriesA, by: ryusei },
-  { at: 20, duration: 0.5, lipsync: entriesB, by: ryusei },
+  { at: 0, duration: 1.0, lipsync: entriesA, by: hero },
+  { at: 20, duration: 0.5, lipsync: entriesB, by: hero },
 ];
 
 describe("mouthAt", () => {
@@ -93,7 +93,7 @@ describe("mouthAt", () => {
         at: 0,
         duration: 1,
         lipsync: [{ start: 0.5, end: 0.7, vowel: "a" }],
-        by: ryusei,
+        by: hero,
       },
     ];
 
@@ -102,8 +102,8 @@ describe("mouthAt", () => {
 
   it("発話が重なる場合は at が大きい方 (後から始まった方) を使う (#3)", () => {
     const overlap: readonly Speech[] = [
-      { at: 0, duration: 2, lipsync: entriesA, by: ryusei },
-      { at: 0.5, duration: 2, lipsync: entriesB, by: ryusei },
+      { at: 0, duration: 2, lipsync: entriesA, by: hero },
+      { at: 0.5, duration: 2, lipsync: entriesB, by: hero },
     ];
 
     // absolute=0.6 はどちらの区間にも入る (0<=0.6<2 と 0.5<=0.6<2.5)。
@@ -126,7 +126,7 @@ describe("mouthAt", () => {
         at: 10.04,
         duration: 0.5,
         lipsync: [{ start: 0, end: 0.5, vowel: "pau" }],
-        by: ryusei,
+        by: hero,
       },
     ];
 
@@ -141,7 +141,7 @@ describe("expressionAt", () => {
 
   it("expression を持つ発話が始まった後はその表情", () => {
     const s: readonly Speech[] = [
-      { at: 1, duration: 1, lipsync: [], by: ryusei, expression: "sweat" },
+      { at: 1, duration: 1, lipsync: [], by: hero, expression: "sweat" },
     ];
 
     expect(expressionAt(0.5, 0, "normal", s)).toBe("normal");
@@ -151,7 +151,7 @@ describe("expressionAt", () => {
 
   it("expression を持たない発話は表情を変えない", () => {
     const s: readonly Speech[] = [
-      { at: 1, duration: 1, lipsync: [], by: ryusei },
+      { at: 1, duration: 1, lipsync: [], by: hero },
     ];
 
     expect(expressionAt(2, 0, "normal", s)).toBe("normal");
@@ -159,8 +159,8 @@ describe("expressionAt", () => {
 
   it("複数の expression 指定は最後 (at が一番遅い) が勝つ", () => {
     const s: readonly Speech[] = [
-      { at: 1, duration: 1, lipsync: [], by: ryusei, expression: "sweat" },
-      { at: 3, duration: 1, lipsync: [], by: ryusei, expression: "normal" },
+      { at: 1, duration: 1, lipsync: [], by: hero, expression: "sweat" },
+      { at: 3, duration: 1, lipsync: [], by: hero, expression: "normal" },
     ];
 
     expect(expressionAt(2, 0, "normal", s)).toBe("sweat");
@@ -169,7 +169,7 @@ describe("expressionAt", () => {
 
   it("item の開始 (itemStart) より前に始まった発話の expression は無視される (#2)", () => {
     const s: readonly Speech[] = [
-      { at: 0, duration: 1, lipsync: [], by: ryusei, expression: "sweat" },
+      { at: 0, duration: 1, lipsync: [], by: hero, expression: "sweat" },
     ];
 
     // itemStart=2: at=0 の発話は item の開始より前なので無視され initial のまま。
@@ -178,7 +178,7 @@ describe("expressionAt", () => {
 
   it("item の開始 (itemStart) 以降に始まった発話の expression は適用される (#2)", () => {
     const s: readonly Speech[] = [
-      { at: 2, duration: 1, lipsync: [], by: ryusei, expression: "sweat" },
+      { at: 2, duration: 1, lipsync: [], by: hero, expression: "sweat" },
     ];
 
     expect(expressionAt(3, 2, "normal", s)).toBe("sweat");
@@ -275,19 +275,19 @@ describe("layerSources", () => {
 
 describe("figure", () => {
   it("SampleNode (kind: sample) を返す", () => {
-    const node = figure(ryusei, { speech });
+    const node = figure(hero, { speech });
 
     expect(isSample(node)).toBe(true);
   });
 
   it("expressions に無い expression を指定すると throw する", () => {
-    expect(() => figure(ryusei, { expression: "unknown", speech })).toThrow(
+    expect(() => figure(hero, { expression: "unknown", speech })).toThrow(
       /unknown/,
     );
   });
 
   it("render() は Figure 要素を返し、layers が目パチ・口パク・表情から決まる", () => {
-    const node = figure(ryusei, { speech });
+    const node = figure(hero, { speech });
 
     // absolute=0.15 (発話 1 の a) → normal 表情、口は "a"。
     const rendered = node.render({ frame: 0, seconds: 0, absolute: 0.15 });
@@ -306,9 +306,9 @@ describe("figure", () => {
 
   it("expression 指定の発話が始まると layers が切り替わる", () => {
     const withExpression: readonly Speech[] = [
-      { at: 1, duration: 1, lipsync: [], by: ryusei, expression: "sweat" },
+      { at: 1, duration: 1, lipsync: [], by: hero, expression: "sweat" },
     ];
-    const node = figure(ryusei, { speech: withExpression });
+    const node = figure(hero, { speech: withExpression });
 
     const before = node.render({ frame: 0, seconds: 0, absolute: 0.5 });
     const after = node.render({ frame: 0, seconds: 0, absolute: 1 });
@@ -329,7 +329,7 @@ describe("figure", () => {
     const mixed: readonly Speech[] = [
       { at: 0, duration: 10, lipsync: entriesA, by: other },
     ];
-    const node = figure(ryusei, { speech: mixed });
+    const node = figure(hero, { speech: mixed });
 
     const rendered = node.render({ frame: 0, seconds: 0, absolute: 0.15 });
 
@@ -346,9 +346,9 @@ describe("figure", () => {
 
   it("item を分けると、その item の開始より前の expression 指定は無視され初期値に戻る (#2)", () => {
     const withExpression: readonly Speech[] = [
-      { at: 0, duration: 5, lipsync: [], by: ryusei, expression: "sweat" },
+      { at: 0, duration: 5, lipsync: [], by: hero, expression: "sweat" },
     ];
-    const node = figure(ryusei, { speech: withExpression });
+    const node = figure(hero, { speech: withExpression });
 
     // item 1: 絶対 0 秒に始まり、絶対 2 秒 (item 内 2 秒) まで描く。
     // itemStart = absolute - seconds = 0 なので at=0 の expression が効く。
@@ -370,7 +370,7 @@ describe("figure", () => {
   });
 
   it("expressions の prototype のキー (toString 等) を指定すると throw する (#11)", () => {
-    expect(() => figure(ryusei, { expression: "toString", speech })).toThrow(
+    expect(() => figure(hero, { expression: "toString", speech })).toThrow(
       /toString/,
     );
   });
@@ -385,9 +385,9 @@ describe("figure", () => {
     // (normal) に戻ってちらつかないことを確認する。
     const from = Math.round(3 * fps);
     const withExpression: readonly Speech[] = [
-      { at: 3, duration: 10, lipsync: [], by: ryusei, expression: "sweat" },
+      { at: 3, duration: 10, lipsync: [], by: hero, expression: "sweat" },
     ];
-    const node = figure(ryusei, { speech: withExpression });
+    const node = figure(hero, { speech: withExpression });
 
     for (let frame = 0; frame < 10 * fps; frame++) {
       const seconds = frame / fps;
@@ -413,9 +413,9 @@ describe("figure", () => {
     // item の全フレームで expression が適用されることを確認する。
     const from = Math.round(10.02 * fps);
     const withExpression: readonly Speech[] = [
-      { at: 10.02, duration: 1, lipsync: [], by: ryusei, expression: "sweat" },
+      { at: 10.02, duration: 1, lipsync: [], by: hero, expression: "sweat" },
     ];
-    const node = figure(ryusei, { speech: withExpression });
+    const node = figure(hero, { speech: withExpression });
 
     for (let frame = 0; frame < 5; frame++) {
       const seconds = frame / fps;
@@ -438,9 +438,9 @@ describe("figure", () => {
     // 前に始まった発話なので、丸めても itemStart より前のまま initial に戻る。
     const from = Math.round(10.02 * fps);
     const withExpression: readonly Speech[] = [
-      { at: 10.0, duration: 1, lipsync: [], by: ryusei, expression: "sweat" },
+      { at: 10.0, duration: 1, lipsync: [], by: hero, expression: "sweat" },
     ];
-    const node = figure(ryusei, { speech: withExpression });
+    const node = figure(hero, { speech: withExpression });
 
     const rendered = node.render({
       frame: 0,

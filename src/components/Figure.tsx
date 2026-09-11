@@ -2,7 +2,7 @@ import React from "react";
 import { Img } from "remotion";
 import styles from "./Figure.module.css";
 
-/** Figure が受け取るもの。layers はすべて同一キャンバスの PNG (staticFile() 済み)。 */
+/** Figure が受け取るもの。layers はすべて同一キャンバスの画像 (PNG・SVG、staticFile() 済み)。 */
 type Props = {
   /** 下から上の順に重ねる画像の列 (体・腕・目・口・眉・小物等)。 */
   layers: readonly string[];
