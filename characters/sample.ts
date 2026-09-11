@@ -17,6 +17,10 @@
 // いる。第三者の立ち絵素材は公開リポジトリにコミットしない
 // ([ADR-0002](../docs/adr/0002-project-directory-layout.md))。
 //
+// export 名を sample にしないのは、src/effects の DSL プリミティブ sample()
+// と同名になり、この timeline をコピーした先で両方を import すると識別子が
+// 衝突するため。
+//
 // voice はこのキャラクターの既定の声質で、line() 自身の voice がこれを
 // 上書きする (src/voice/key.ts の mergeVoice())。
 //
@@ -54,7 +58,7 @@ const brows = {
   up: part("brows-up"),
 };
 
-export const sample = character({
+export const sampleCharacter = character({
   voice: narrator,
   expressions: {
     normal: [body, mouth, eyes, brows.normal],

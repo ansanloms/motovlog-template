@@ -24,7 +24,7 @@
 // (発話の仕組み)。
 
 import { staticFile } from "remotion";
-import { sample } from "../../characters/sample.ts";
+import { sampleCharacter } from "../../characters/sample.ts";
 import {
   annotation,
   audio,
@@ -124,7 +124,7 @@ const calm = { ...narrator, speed: 0.9 };
 // 上書きした値になる (watcher と narration() の両方が同じ関数
 // (mergeVoice()) で合成するため、生成される音声キャッシュの key は一致する)。
 //
-// 1 本目: voice を省略すると by.voice (sample では theme の narrator) の
+// 1 本目: voice を省略すると by.voice (sampleCharacter では theme の narrator) の
 // ままになる。{漢字|よみ} で読みを添えられる。at は絶対秒。
 //
 // 2 本目: voice にファイル内の const (calm、theme の narrator の差分) を
@@ -144,14 +144,14 @@ const n = await narration([
   cut(
     line({
       text: "{磐梯吾妻|ばんだいあづま}スカイラインを登って、\n{浄土平|じょうどだいら}へ向かう。",
-      by: sample,
+      by: sampleCharacter,
     }),
     { at: 8 },
   ),
   cut(
     line({
       text: "今日は雲が多いけど、\n風は無くて走りやすい。",
-      by: sample,
+      by: sampleCharacter,
       voice: calm,
       expression: "sweat",
     }),
@@ -160,7 +160,7 @@ const n = await narration([
   cut(
     line({
       text: "{浄土平|じょうどだいら}の展望台に着いた。\n少し休憩していこう。",
-      by: sample,
+      by: sampleCharacter,
       expression: "teach",
     }),
     { after: 1, duration: 4 },
@@ -197,7 +197,7 @@ export default timeline([
         photo: asset("photos/photo-03.jpg"),
         badge: "#0 福島 / 磐梯吾妻スカイライン",
         title: "浄土平まで\n走ってきた",
-        character: sample,
+        character: sampleCharacter,
       }),
       { duration: openingTiming.duration },
     ),
@@ -240,9 +240,9 @@ export default timeline([
     ),
   ],
   [
-    // layer 2: 立ち絵 (ADR-0011)。sample は characters/sample.ts の
+    // layer 2: 立ち絵 (ADR-0011)。sampleCharacter は characters/sample.ts の
     // character()。figure() は n.speech (上で解決済みの narration() の
-    // 結果) のうち by が sample と同じ参照の発話だけを見て、目パチ・口パク・
+    // 結果) のうち by が sampleCharacter と同じ参照の発話だけを見て、目パチ・口パク・
     // 表情を sample() で毎フレーム選び直す。1 つ下の layer 1 (OP・章タイトル・
     // 写真紹介・ED) より上に置き、写真は立ち絵の後ろに出す
     // (T&M「写真紹介」「画面配置」)。
@@ -253,7 +253,7 @@ export default timeline([
     // (T&M「出入りのタイミング」)。cut()/fade() の duration にはまだ
     // start()/end() のようなアンカーを渡せない (ADR-0009 は at だけが
     // アンカーに対応) ため秒の数値で書く。
-    fade(figure(sample, { speech: n.speech }), {
+    fade(figure(sampleCharacter, { speech: n.speech }), {
       at: figureFromSec,
       duration: figureUntilSec - figureFromSec,
       in: 0.2,
