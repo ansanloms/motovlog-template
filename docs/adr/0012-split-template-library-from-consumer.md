@@ -18,7 +18,7 @@ tags: [layout, package, theme, boundary]
 - `src/project/load.ts` の `DEFAULT_PROJECT` (サンプルの slug) と、`projects/<slug>/timeline.ts` を読む動的 import
 - `src/index.ts` の `registerRoot()` (Remotion の入口)
 
-これらの値を読む経路はブラウザと Node の両方にある。`src/effects/Stage.tsx` と `src/theme/ThemeRoot.tsx` は `palette` を読み、`src/voice/key.ts` の `mergeVoice()` は `narrator` で声質の既定を埋める。`mergeVoice()` はブラウザ側の Studio・render と、Node 側の音声生成の watcher の両方から呼ばれる。両者が同じ値を使うことで音声キャッシュの key が一致する ([ADR-0010](./0010-build-narration-timeline-with-hashed-voice-cache.md))。
+これらの値を読む経路はブラウザと Node の両方にある。`src/effects/Stage.tsx` と `src/theme/ThemeRoot.tsx` は `palette` を読み、`src/voice/key.ts` の `resolveVoice()` は `narrator` で声質の既定を埋める。`resolveVoice()` はブラウザ側の Studio・render と、Node 側の音声生成の watcher の両方から呼ばれる。両者が同じ値を使うことで音声キャッシュの key が一致する ([ADR-0010](./0010-build-narration-timeline-with-hashed-voice-cache.md))。
 
 値の受け渡しには次の制約がある。
 
@@ -79,6 +79,7 @@ Remotion には次の仕様がある (2026-09-11 時点のドキュメント)。
 - `package.json` の `private: true` を保つ。npm レジストリには publish しない。
 - CLI の実行ファイル (`bin`) は作らない。スクリプトは `tsx scripts/<name>.ts` で実行する。
 - このリポジトリ内の利用側ファイル (`app/`・`theme/`・`projects/`・`characters/`) は、bare specifier ではなく相対パスで lib を import する。ESLint で、これらのディレクトリから import できる `src/` 配下を上表の 5 入口のファイルに限る。
+- `characters/<name>.ts` だけは例外とし、5 入口ではなく実体の `src/compositions/character.ts` を直に import する。ESLint はこのファイルだけを許し、5 入口と bare specifier (`motovlog-template`・`motovlog-template/*`) を禁じる。理由: 入口は `figure()`・`line()` 伝いに `src/components` と CSS Modules を辿るため `characters/<name>.ts` を素の Node から import できなくなり、このファイルを動的 import して声質を読む音声生成の watcher が、[ADR-0011](./0011-draw-figure-from-character-presets-linked-by-speech.md) の前提「`characters/<name>.ts` は Node で import できる純粋な値のモジュール」を使えなくなる。
 - 外部のリポジトリから `motovlog-template` を依存として使う経路は、この決定では公開面の形だけを定める。node_modules 配下の TypeScript と CSS Modules がバンドルされるか、`Config.overrideBundlerConfig()` が要るかの検証は含めない。外部リポジトリからの依存の検証は別途行う。
 
 ### 利用側の値を lib に渡す仕組み
@@ -130,7 +131,8 @@ Remotion には次の仕様がある (2026-09-11 時点のドキュメント)。
 ### 禁止事項
 
 - lib (`src/`・`scripts/`) が `app/`・`theme/`・`projects/`・`characters/` を静的に import すること。実行時の cwd から `app/config.ts` を動的に読む Node スクリプトの起点だけが例外で、これは Decision に書いた 1 か所に限る。
-- 利用側 (`app/`・`theme/`・`projects/`・`characters/`) が、`exports` の 5 入口以外の `src/` 配下のファイルを import すること。
+- 利用側 (`app/`・`theme/`・`projects/`・`characters/`) が、`exports` の 5 入口以外の `src/` 配下のファイルを import すること。`characters/<name>.ts` から `src/compositions/character.ts` を import することだけが例外で、この 1 ファイル以外には広げない。
+- `characters/<name>.ts` が 5 入口または bare specifier で lib を import すること。理由: 素の Node から読めなくなり、音声生成の watcher が声質を読めなくなる。
 - lib に既定のパレット・既定の話者の値を持つこと。lib が持てるのは型と、`palette` から導出する値に限る。
 - lib に `projects/` や `characters/` への import (静的・動的を問わない) を書くこと。
 - `app/config.ts` から Remotion を import すること。
@@ -140,7 +142,7 @@ Remotion には次の仕様がある (2026-09-11 時点のドキュメント)。
 
 | 前提                                                                                     | 状態   | 確認方法 / 結果                                                                        |
 | ---------------------------------------------------------------------------------------- | ------ | -------------------------------------------------------------------------------------- |
-| `Config.setEntryPoint("./app/index.ts")` で Studio と render の両方が利用側の入口を読む  | 未検証 | `npx remotion compositions` と `npx remotion render` を引数無しで実行して確認する      |
+| `Config.setEntryPoint("./app/index.ts")` で入口が `app/index.ts` になる                  | 検証済 | `npx remotion render Motovlog` を引数無しで実行して確認 (2026-09-11)                   |
 | node_modules 配下の TypeScript と CSS Modules を Remotion の既定のバンドラ設定が処理する | 未検証 | 外部リポジトリから依存として読み込み、Studio と render が通るかを確認する              |
 | パッケージ自己参照 (自リポジトリ内から `motovlog-template` を import) を解決できる       | 未検証 | 利用側ファイルの import を bare specifier に変えて Studio と render が通るかを確認する |
 | 配置 (layout) と秒数 (timing) のトークンは lib に固定したままで利用側の要求を満たす      | 未検証 | 2 本目以降の project を作る際に、これらを利用側で変えたい場面が出るかを確認する        |
