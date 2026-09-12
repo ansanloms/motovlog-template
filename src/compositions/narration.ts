@@ -6,8 +6,9 @@
 // TextLines を参照)。字幕には displayText(text)、合成には
 // readingText(reading ?? text) を使う (reading は省略すると text をそのまま
 // 合成に使う)。text・reading の
-// {漢字|よみ} 記法はどちらか片側が空・| が無い・| が 2 つ以上だと throw する
-// (assertReadingNotation())。voice はリテラルの他、利用側の theme の
+// {漢字|よみ} 記法はどちらか片側が空・| が無い・入れ子や非対称の括弧
+// (閉じ忘れ・開き忘れ) だと throw する (assertReadingNotation())。voice は
+// リテラルの他、利用側の theme の
 // narrator の参照・spread・同じファイルの const・プロパティアクセスが書ける
 // (scripts/voice/extract.ts が読める式に限る。watcher が timeline.ts を
 // 静的解析して wav・キャッシュを作るため)。voice に null を渡すと声無し

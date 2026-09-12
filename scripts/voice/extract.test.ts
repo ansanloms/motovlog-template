@@ -215,6 +215,15 @@ describe("extractLines", () => {
     });
   });
 
+  it("正常系: reading が文字列リテラルの配列なら改行で結合する", async () => {
+    const source = `${LINE_IMPORT}\nline({ text: "a", reading: ["a", "b"] });`;
+
+    await expect(extractLines(source, FILE)).resolves.toEqual({
+      lines: [{ text: "a", reading: "a\nb" }],
+      silent: 0,
+    });
+  });
+
   it("reading が変数参照 (非リテラル) なら位置付きエラーになる", async () => {
     const source = `${LINE_IMPORT}\nconst r = "a"; line({ text: "x", reading: r });`;
 
@@ -295,9 +304,10 @@ describe("extractLines", () => {
   it("正常系: text が文字列リテラルの配列なら改行で結合する", async () => {
     const source = `${LINE_IMPORT}\nline({ text: ["こんにちは", "今日も晴れ"] });`;
 
-    await expect(extractLines(source, FILE)).resolves.toEqual([
-      { text: "こんにちは\n今日も晴れ" },
-    ]);
+    await expect(extractLines(source, FILE)).resolves.toEqual({
+      lines: [{ text: "こんにちは\n今日も晴れ" }],
+      silent: 0,
+    });
   });
 
   it("text が配列で要素に非リテラルを含むと位置付きエラーになる", async () => {
