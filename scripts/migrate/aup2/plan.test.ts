@@ -141,7 +141,7 @@ const config = (overrides: Partial<MigrateConfig> = {}): MigrateConfig => ({
     fps: 30,
     openingDurationSec: 4.8,
     openingFadeInSec: 0.4,
-    chapterTitleDurationSec: 2.4,
+    chapterDurationSec: 2.4,
     endingDurationSec: 12,
     narrationRunGapSec: 5,
   },

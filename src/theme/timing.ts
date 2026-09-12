@@ -32,5 +32,4 @@ export const openingTiming = { duration: 4.8, fadeIn: 0.4 } as const; // 黒か�
 export const endingTiming = { duration: 12 } as const; // カットイン、フェードなし
 
 /** 章タイトルの表示尺 (フェードイン + 保持 + フェードアウト)。 */
-export const chapterTitleDurationSec =
-  chapterTiming.fade * 2 + chapterTiming.hold;
+export const chapterDurationSec = chapterTiming.fade * 2 + chapterTiming.hold;

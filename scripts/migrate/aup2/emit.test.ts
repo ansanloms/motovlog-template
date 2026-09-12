@@ -105,7 +105,7 @@ describe("emitTimeline", () => {
       `import { hero } from "../../characters/hero.ts";`,
     );
     expect(source).toContain(
-      `import { audio, chapterTitle, ending, photoShowcase, subtitle, video } from "../../src/components/index.tsx";`,
+      `import { audio, chapter, ending, photoShowcase, subtitle, video } from "../../src/components/index.tsx";`,
     );
     expect(source).toContain(
       `import { figure, line, narration, thumbnail } from "../../src/compositions/index.ts";`,
@@ -114,7 +114,7 @@ describe("emitTimeline", () => {
       `import { crossfade, cut, end, fade, frame, timeline } from "../../src/effects/index.ts";`,
     );
     expect(source).toContain(
-      `import { chapterTiming, chapterTitleDurationSec, endingTiming, openingTiming } from "../../src/theme/index.ts";`,
+      `import { chapterDurationSec, chapterTiming, endingTiming, openingTiming } from "../../src/theme/index.ts";`,
     );
     // 5 入口より下を直に見ない (ADR-0012)。
     expect(source).not.toContain("src/compositions/figure.ts");
@@ -143,7 +143,7 @@ describe("emitTimeline", () => {
   it("OP・章タイトル・ED を theme の秒数で書く", () => {
     expect(source).toContain("duration: openingTiming.duration");
     expect(source).toContain(
-      "duration: chapterTitleDurationSec, in: chapterTiming.fade, out: chapterTiming.fade",
+      "duration: chapterDurationSec, in: chapterTiming.fade, out: chapterTiming.fade",
     );
     expect(source).toContain(
       "{ at: end(clip2, -endingTiming.duration), duration: endingTiming.duration }",

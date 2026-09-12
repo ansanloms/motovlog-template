@@ -411,6 +411,28 @@ describe("narration", () => {
     expect(props.src.endsWith(".wav")).toBe(true);
   });
 
+  it("line() の text を配列で書くと改行で結合した文字列と同じ key の音声キャッシュを読む", async () => {
+    const fetchCache = await fetchCacheFor({ "a\nb": 1 });
+
+    const {
+      layers: [, speechLayer],
+    } = await narration(
+      [cut(line({ text: ["a", "b"] }), { at: 0 })],
+      { slug: "sample" },
+      { fetchCache, isStudio: () => false },
+    );
+
+    const node = (speechLayer[0] as CutItem).node;
+
+    if (!React.isValidElement(node)) {
+      throw new Error("unreachable");
+    }
+
+    const props = node.props as { text: string };
+
+    expect(props.text).toBe("a\nb");
+  });
+
   it("speech は line() item ごとに、渡した順で at・duration (字幕ではなく実尺)・lipsync を持つ", async () => {
     const fetchCache = await fetchCacheFor({
       A: { duration: 2, lipsync: [{ start: 0, end: 1, vowel: "a" }] },

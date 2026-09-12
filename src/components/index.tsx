@@ -1,24 +1,30 @@
 import React from "react";
 import { Annotation } from "./Annotation.tsx";
 import { Audio } from "./Audio.tsx";
-import { ChapterTitle } from "./ChapterTitle.tsx";
+import { Chapter } from "./Chapter.tsx";
 import { Ending } from "./Ending.tsx";
 import { PhotoShowcase } from "./PhotoShowcase.tsx";
 import { Subtitle } from "./Subtitle.tsx";
 import { SubtitleBand } from "./SubtitleBand.tsx";
+import type { TextLines } from "./text.ts";
+import { joinLines } from "./text.ts";
 import { Video } from "./Video.tsx";
 import { assertVolume } from "./volume.ts";
 
 // timeline.ts から各コンポーネントを関数呼び出しで並べられるようにする要素
 // ファクトリ。props の型は各コンポーネントの `ComponentProps` をそのまま
 // 使うので、component 側 (このファイル以外) は無変更で済む (例:
-// `chapterTitle`)。thumbnail() は表情名の解決を伴うため
+// `annotation`)。`chapter` は title を TextLines で受けて joinLines() で
+// 結合してから渡す。thumbnail() は表情名の解決を伴うため
 // src/compositions/thumbnail.ts に置く (ADR-0011)。
 
-/** ChapterTitle の要素ファクトリ。 */
-export const chapterTitle = (
-  props: React.ComponentProps<typeof ChapterTitle>,
-) => <ChapterTitle {...props} />;
+/** Chapter の要素ファクトリ。title は文字列の配列でも書け、改行で結合する。 */
+export const chapter = ({
+  title,
+  ...props
+}: Omit<React.ComponentProps<typeof Chapter>, "title"> & {
+  title: TextLines;
+}) => <Chapter {...props} title={joinLines(title)} />;
 
 /** Annotation の要素ファクトリ。 */
 export const annotation = (props: React.ComponentProps<typeof Annotation>) => (

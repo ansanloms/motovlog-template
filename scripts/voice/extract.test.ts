@@ -219,6 +219,30 @@ describe("extractLines", () => {
     ]);
   });
 
+  it("正常系: text が文字列リテラルの配列なら改行で結合する", async () => {
+    const source = `${LINE_IMPORT}\nline({ text: ["こんにちは", "今日も晴れ"] });`;
+
+    await expect(extractLines(source, FILE)).resolves.toEqual([
+      { text: "こんにちは\n今日も晴れ" },
+    ]);
+  });
+
+  it("text が配列で要素に非リテラルを含むと位置付きエラーになる", async () => {
+    const source = `${LINE_IMPORT}\nconst t = "a"; line({ text: ["こんにちは", t] });`;
+
+    await expect(extractLines(source, FILE)).rejects.toThrow(
+      /timeline\.ts:2:\d+.*リテラル/,
+    );
+  });
+
+  it("text が空配列なら位置付きエラーになる", async () => {
+    const source = `${LINE_IMPORT}\nline({ text: [] });`;
+
+    await expect(extractLines(source, FILE)).rejects.toThrow(
+      /timeline\.ts:2:\d+.*空にできません/,
+    );
+  });
+
   it("line() の同じプロパティが重複していれば位置付きエラーになる", async () => {
     const source = `${LINE_IMPORT}\nline({ text: "a", text: "b" });`;
 

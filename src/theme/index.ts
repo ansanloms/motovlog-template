@@ -14,8 +14,8 @@ export {
 export type { Palette } from "./tokens.ts";
 export {
   bandTiming,
+  chapterDurationSec,
   chapterTiming,
-  chapterTitleDurationSec,
   characterTiming,
   endingTiming,
   fps,

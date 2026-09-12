@@ -40,4 +40,5 @@
   font-weight: var(--w-bold);
   color: var(--ink-video);
   letter-spacing: var(--chapter-title-letter-spacing);
+  white-space: pre-line;
 }

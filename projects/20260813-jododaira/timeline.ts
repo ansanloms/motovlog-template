@@ -6,7 +6,7 @@ import { staticFile } from "remotion";
 import { ryusei } from "../../characters/ryusei.ts";
 import {
   audio,
-  chapterTitle,
+  chapter,
   ending,
   photoShowcase,
   subtitle,
@@ -27,8 +27,8 @@ import {
   timeline,
 } from "../../src/effects/index.ts";
 import {
+  chapterDurationSec,
   chapterTiming,
-  chapterTitleDurationSec,
   endingTiming,
   openingTiming,
 } from "../../src/theme/index.ts";
@@ -257,9 +257,9 @@ export default timeline([
       }),
       { at: 0, duration: openingTiming.duration },
     ),
-    fade(chapterTitle({ title: "", subtitle: "CHAPTER 1" }), {
+    fade(chapter({ title: "", subtitle: "CHAPTER 1" }), {
       at: 5.567,
-      duration: chapterTitleDurationSec,
+      duration: chapterDurationSec,
       in: chapterTiming.fade,
       out: chapterTiming.fade,
     }),
@@ -269,15 +269,15 @@ export default timeline([
       }),
       { at: 19.967, duration: 3.133 },
     ),
-    fade(chapterTitle({ title: "", subtitle: "CHAPTER 2" }), {
+    fade(chapter({ title: "", subtitle: "CHAPTER 2" }), {
       at: 58.9,
-      duration: chapterTitleDurationSec,
+      duration: chapterDurationSec,
       in: chapterTiming.fade,
       out: chapterTiming.fade,
     }),
-    fade(chapterTitle({ title: "", subtitle: "CHAPTER 3" }), {
+    fade(chapter({ title: "", subtitle: "CHAPTER 3" }), {
       at: 87.9,
-      duration: chapterTitleDurationSec,
+      duration: chapterDurationSec,
       in: chapterTiming.fade,
       out: chapterTiming.fade,
     }),
@@ -305,21 +305,21 @@ export default timeline([
       }),
       { at: 152.867, duration: 1.733 },
     ),
-    fade(chapterTitle({ title: "", subtitle: "CHAPTER 4" }), {
+    fade(chapter({ title: "", subtitle: "CHAPTER 4" }), {
       at: 207.133,
-      duration: chapterTitleDurationSec,
+      duration: chapterDurationSec,
       in: chapterTiming.fade,
       out: chapterTiming.fade,
     }),
-    fade(chapterTitle({ title: "", subtitle: "CHAPTER 5" }), {
+    fade(chapter({ title: "", subtitle: "CHAPTER 5" }), {
       at: 254.333,
-      duration: chapterTitleDurationSec,
+      duration: chapterDurationSec,
       in: chapterTiming.fade,
       out: chapterTiming.fade,
     }),
-    fade(chapterTitle({ title: "", subtitle: "CHAPTER 6" }), {
+    fade(chapter({ title: "", subtitle: "CHAPTER 6" }), {
       at: 304.1,
-      duration: chapterTitleDurationSec,
+      duration: chapterDurationSec,
       in: chapterTiming.fade,
       out: chapterTiming.fade,
     }),

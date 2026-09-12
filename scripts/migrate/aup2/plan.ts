@@ -174,7 +174,7 @@ export type MigrateTiming = {
   /** OP の黒からの立ち上がり。 */
   readonly openingFadeInSec: number;
   /** 章タイトルの表示尺。 */
-  readonly chapterTitleDurationSec: number;
+  readonly chapterDurationSec: number;
   /** ED の尺。 */
   readonly endingDurationSec: number;
   /**
@@ -863,7 +863,7 @@ export const planTimeline = (
         at: round3(
           Math.max(
             chapterFloor,
-            atOf(band.frame[0]) - config.timing.chapterTitleDurationSec,
+            atOf(band.frame[0]) - config.timing.chapterDurationSec,
           ),
         ),
         title: chapter.title,
@@ -903,7 +903,7 @@ export const planTimeline = (
       case "opening":
         return config.timing.openingDurationSec;
       case "chapter":
-        return config.timing.chapterTitleDurationSec;
+        return config.timing.chapterDurationSec;
       case "ending":
         return config.timing.endingDurationSec;
       default:
