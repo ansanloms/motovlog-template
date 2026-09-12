@@ -13,7 +13,8 @@
     "./effects": "./src/effects/index.ts",
     "./components": "./src/components/index.tsx",
     "./compositions": "./src/compositions/index.ts",
-    "./theme": "./src/theme/index.ts"
+    "./theme": "./src/theme/index.ts",
+    "./compositions/character": "./src/compositions/character.ts"
   },
   "files": [
     "src",
@@ -21,6 +22,11 @@
     "!**/*.test.*",
     "!scripts/migrate"
   ],
+  "bin": {
+    "motovlog-voice": "scripts/bin/voice.mjs",
+    "motovlog-dev": "scripts/bin/dev.mjs",
+    "motovlog-convert": "scripts/bin/convert.mjs"
+  },
   "dependencies": {
     "temporal-polyfill": "1.0.4",
     "tsx": "4.23.13"

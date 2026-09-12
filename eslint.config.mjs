@@ -55,6 +55,15 @@ const SRC_DEPTHS = [1, 2, 3].map((depth) => {
 export default [
   ...config,
   {
+    // bin ラッパー (プレーンな .mjs、ADR-0012) は tseslint.configs.eslintRecommended
+    // の no-undef 除外 (**/*.ts 等の TypeScript ファイルだけが対象) に乗らない
+    // ため、使っている Node のグローバルをここで宣言する。
+    files: ["scripts/bin/**/*.mjs"],
+    languageOptions: {
+      globals: { process: "readonly", URL: "readonly" },
+    },
+  },
+  {
     rules: {
       "no-restricted-globals": [
         "error",

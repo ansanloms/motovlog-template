@@ -167,6 +167,25 @@ describe("extractLines", () => {
     });
   });
 
+  it("bare specifier (motovlog-template/compositions/character) から import した character() を同じファイルの const で呼ぶ", async () => {
+    const timelinePath = setupProject(
+      `
+        import { character } from "motovlog-template/compositions/character";
+        const hero = character({
+          voice: { speaker: 13 },
+          expressions: { normal: [] },
+        });
+        line({ text: "a", by: hero });
+      `,
+    );
+    const source = fs.readFileSync(timelinePath, "utf-8");
+
+    await expect(extractLines(source, timelinePath)).resolves.toEqual({
+      lines: [{ text: "a", voice: { speaker: 13 } }],
+      silent: 0,
+    });
+  });
+
   it("正常系: text だけの呼び出しを読む", async () => {
     const source = `${LINE_IMPORT}\nline({ text: "こんにちは" });`;
 

@@ -77,9 +77,9 @@ Remotion には次の仕様がある (2026-09-11 時点のドキュメント)。
 
 - `remotion`・`@remotion/*`・`react`・`react-dom` を `peerDependencies` に置き、同じ範囲を `devDependencies` にも置く。
 - `package.json` の `private: true` を保つ。npm レジストリには publish しない。
-- CLI の実行ファイル (`bin`) は作らない。スクリプトは `tsx scripts/<name>.ts` で実行する。
+- `package.json` の `bin` に `motovlog-voice`・`motovlog-dev`・`motovlog-convert` を置く。実体は `scripts/bin/*.mjs` の薄いラッパーで、`tsx` の CLI (`tsx/cli`) を子プロセスとして起動し、`scripts/voice.ts`・`scripts/dev.ts`・`scripts/convert-movie.ts` を利用側の cwd のまま実行する。理由: 外部リポジトリの利用側は `tsx` を lib のスクリプト実行用に直接叩けないため (`tsx scripts/voice.ts` は lib のリポジトリ内でしか成立しない)、`npx motovlog-voice` 等で同じスクリプトを起動できるようにする。
 - このリポジトリ内の利用側ファイル (`app/`・`theme/`・`projects/`・`characters/`) は、bare specifier ではなく相対パスで lib を import する。ESLint で、これらのディレクトリから import できる `src/` 配下を上表の 5 入口のファイルに限る。
-- `characters/<name>.ts` だけは例外とし、5 入口ではなく実体の `src/compositions/character.ts` を直に import する。ESLint はこのファイルだけを許し、5 入口と bare specifier (`motovlog-template`・`motovlog-template/*`) を禁じる。理由: 入口は `figure()`・`line()` 伝いに `src/components` と CSS Modules を辿るため `characters/<name>.ts` を素の Node から import できなくなり、このファイルを動的 import して声質を読む音声生成の watcher が、[ADR-0011](./0011-draw-figure-from-character-presets-linked-by-speech.md) の前提「`characters/<name>.ts` は Node で import できる純粋な値のモジュール」を使えなくなる。
+- `characters/<name>.ts` だけは例外とし、5 入口ではなく実体の `src/compositions/character.ts` を直に import する。このリポジトリ内の利用側は相対パスで、外部のリポジトリからは `motovlog-template/compositions/character` (`exports` の `./compositions/character`、実体は同じ `src/compositions/character.ts`) で import する。ESLint はこのリポジトリ内の `characters/<name>.ts` だけを許し、5 入口と bare specifier (`motovlog-template`・`motovlog-template/*`) を禁じる。理由: 入口は `figure()`・`line()` 伝いに `src/components` と CSS Modules を辿るため `characters/<name>.ts` を素の Node から import できなくなり、このファイルを動的 import して声質を読む音声生成の watcher が、[ADR-0011](./0011-draw-figure-from-character-presets-linked-by-speech.md) の前提「`characters/<name>.ts` は Node で import できる純粋な値のモジュール」を使えなくなる。
 - 外部のリポジトリから `motovlog-template` を依存として使う経路は、この決定では公開面の形だけを定める。node_modules 配下の TypeScript と CSS Modules がバンドルされるか、`Config.overrideBundlerConfig()` が要るかの検証は含めない。外部リポジトリからの依存の検証は別途行う。
 
 ### 利用側の値を lib に渡す仕組み
@@ -143,7 +143,7 @@ Remotion には次の仕様がある (2026-09-11 時点のドキュメント)。
 | 前提                                                                                     | 状態   | 確認方法 / 結果                                                                        |
 | ---------------------------------------------------------------------------------------- | ------ | -------------------------------------------------------------------------------------- |
 | `Config.setEntryPoint("./app/index.ts")` で入口が `app/index.ts` になる                  | 検証済 | `npx remotion render Motovlog` を引数無しで実行して確認 (2026-09-11)                   |
-| node_modules 配下の TypeScript と CSS Modules を Remotion の既定のバンドラ設定が処理する | 未検証 | 外部リポジトリから依存として読み込み、Studio と render が通るかを確認する              |
+| node_modules 配下の TypeScript と CSS Modules を Remotion の既定のバンドラ設定が処理する | 検証済 | `npm pack` の tarball を外部想定のディレクトリに `npm install` し、`overrideBundlerConfig()` 無しで `remotion compositions`・`remotion render` が通ることを確認 (2026-09-12)              |
 | パッケージ自己参照 (自リポジトリ内から `motovlog-template` を import) を解決できる       | 未検証 | 利用側ファイルの import を bare specifier に変えて Studio と render が通るかを確認する |
 | 配置 (layout) と秒数 (timing) のトークンは lib に固定したままで利用側の要求を満たす      | 未検証 | 2 本目以降の project を作る際に、これらを利用側で変えたい場面が出るかを確認する        |
 
