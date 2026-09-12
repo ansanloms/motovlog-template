@@ -13,6 +13,7 @@ import type {
   FigurePlan,
   FramePlan,
   NarrationPlan,
+  PhotoElementPlan,
   ScenePlan,
   TimelinePlan,
   VideoPlan,
@@ -92,6 +93,28 @@ const videoSource = (video: VideoPlan): string => {
   })};`;
 };
 
+/**
+ * 写真紹介の枠に置く 1 要素を書く。写真は asset() をそのまま渡し、動画は
+ * `{ video, trimBefore, volume }` にする (trimBefore 0・volume 0 は省略)。
+ */
+const photoElementSource = (element: PhotoElementPlan): string => {
+  if (typeof element === "string") {
+    return `asset(${str(element)})`;
+  }
+
+  const fields = [
+    `video: asset(${str(element.video)})`,
+    ...(element.trimBefore !== 0
+      ? [`trimBefore: ${num(element.trimBefore)}`]
+      : []),
+    ...(element.volume !== 0
+      ? [`volume: ${volumeSource(element.volume)}`]
+      : []),
+  ];
+
+  return `{ ${fields.join(", ")} }`;
+};
+
 /** OP・章タイトル・写真紹介・ED を書く。 */
 const sceneSource = (scene: ScenePlan, character: string): string => {
   if (scene.kind === "opening") {
@@ -116,9 +139,7 @@ const sceneSource = (scene: ScenePlan, character: string): string => {
   }
 
   if (scene.kind === "photo") {
-    const photos = scene.photos
-      .map((photo) => `asset(${str(photo)})`)
-      .join(", ");
+    const photos = scene.photos.map(photoElementSource).join(", ");
 
     return placed(`photoShowcase({ photos: [${photos}] })`, {
       at: num(scene.at),

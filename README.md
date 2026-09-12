@@ -151,7 +151,7 @@ layer 内の item と item の間には `crossfade({ duration })` を置ける�
 | `audio(props)`         | 音声。`src` (staticFile() 済み URL)・`trimBefore?` (秒)・`volume?`・`loop?`              |
 | `chapter(props)`       | 章タイトル。`title` (文字列、または改行として結合される文字列の配列)・`subtitle`         |
 | `annotation(props)`    | 右上の注釈。`text`                                                                       |
-| `photoShowcase(props)` | 写真紹介 (1〜2 枚)。`photos`                                                             |
+| `photoShowcase(props)` | 写真紹介 (1〜2 枚)。`photos` (要素は写真の URL、または短い動画 `{ video, trimBefore?, volume? }`。動画の `volume` は既定 0 (無音)。動画は `npm run convert` で `public/projects/<slug>/` に置いた変換済み素材を指す (写真の `photos/` ではない)) |
 | `ending(props)`        | ED。`title`・`subtitle`・`date`・`distance`・`ridingTime`・`routes`・`credits`           |
 | `subtitleBand({})`     | 字幕下の暗がり (props は無いが引数は要る、通常は `narration()` が組むので直接は使わない) |
 

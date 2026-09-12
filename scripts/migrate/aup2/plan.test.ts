@@ -255,6 +255,26 @@ describe("planTimeline", () => {
     expect(videos[0].at + videos[0].duration - 1).toBeCloseTo(videos[1].at, 6);
   });
 
+  it("走行映像の原本の拡張子を落として .mp4 にする", () => {
+    // frame は他の最小 fixture (同じ開始フレームの テキスト が複数ある
+    // テスト等) と同じ 0..899 (30 秒) にする。短すぎると ED の開始
+    // (走行映像の終端 - endingDurationSec) が OP の終端より前に来て
+    // assertOrdered が throw するため。
+    const aup2 = parseAup2(
+      [
+        "[1]",
+        "layer=1",
+        "frame=0,899",
+        "[1.0]",
+        "effect.name=動画ファイル",
+        "再生位置=0.000,30.000,再生範囲,0",
+        "ファイル=C:\\movie\\assets\\movies\\X.MOV",
+      ].join("\r\n"),
+    );
+
+    expect(planTimeline(aup2, config()).videos[0].src).toBe("X.mp4");
+  });
+
   it("BGM を写す", () => {
     expect(plan().audios).toEqual([
       {
@@ -298,6 +318,78 @@ describe("planTimeline", () => {
       anchor: "clip2",
       ending: { distance: 12.5, credits: [{ VOICEVOX: "話者" }] },
     });
+  });
+
+  it("写真紹介の枠に置かれた動画は skip せず動画要素にする (拡張子は .mp4 に、音量は音量フェードで折れ線にする)", () => {
+    // FIXTURE の写真紹介の layer (layer=4) に 動画ファイル を 1 つ足す。
+    // 原本の拡張子は .MOV (走行映像と同じく変換後の .mp4 に写る)。
+    const aup2 = parseAup2(
+      [
+        FIXTURE,
+        "[13]",
+        "layer=4",
+        "frame=200,239",
+        "[13.0]",
+        "effect.name=動画ファイル",
+        "再生位置=3.000,10.000,再生範囲,0",
+        "ファイル=C:\\movie\\assets\\movies\\V1.MOV",
+        "[13.1]",
+        "effect.name=映像再生",
+        "音量=40.00",
+        "[13.2]",
+        "effect.name=音量フェード",
+        "イン=0.20",
+        "アウト=0.20",
+      ].join("\r\n"),
+    );
+    const result = planTimeline(aup2, config());
+
+    const photoScenes = result.scenes.filter((scene) => scene.kind === "photo");
+
+    expect(photoScenes).toContainEqual({
+      kind: "photo",
+      at: 11.467,
+      duration: 1.333,
+      photos: [
+        {
+          video: "V1.mp4",
+          trimBefore: 3,
+          volume: [
+            { at: 0, volume: 0 },
+            { at: 0.2, volume: 0.4 },
+            { at: 1.133, volume: 0.4 },
+            { at: 1.333, volume: 0 },
+          ],
+        },
+      ],
+    });
+    expect(result.skipped).not.toContainEqual(
+      expect.objectContaining({ id: 13 }),
+    );
+  });
+
+  it("写真紹介の枠の動画は 映像再生 が無ければ音量 100% (走行映像・BGM と同じ既定)", () => {
+    const aup2 = parseAup2(
+      [
+        FIXTURE,
+        "[13]",
+        "layer=4",
+        "frame=200,239",
+        "[13.0]",
+        "effect.name=動画ファイル",
+        "再生位置=3.000,10.000,再生範囲,0",
+        "ファイル=C:\\movie\\assets\\movies\\V1.mp4",
+      ].join("\r\n"),
+    );
+    const result = planTimeline(aup2, config());
+
+    const photoScenes = result.scenes.filter((scene) => scene.kind === "photo");
+
+    expect(photoScenes).toContainEqual(
+      expect.objectContaining({
+        photos: [{ video: "V1.mp4", trimBefore: 3, volume: 1 }],
+      }),
+    );
   });
 
   it("立ち絵の左右と表情を写し、未割り当ては normal にして警告する", () => {

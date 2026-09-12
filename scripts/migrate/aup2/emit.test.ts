@@ -123,6 +123,72 @@ describe("emitTimeline", () => {
     expect(source).not.toContain("src/theme/timing.ts");
   });
 
+  it("写真紹介の動画要素を書く (trimBefore 0・volume 0 は省略)", () => {
+    const source2 = emitTimeline(
+      plan({
+        scenes: [
+          {
+            kind: "photo",
+            at: 12.8,
+            duration: 2,
+            photos: [
+              "photos/P1.jpg",
+              { video: "V1.mp4", trimBefore: 3, volume: 0.4 },
+            ],
+          },
+        ],
+      }),
+    );
+
+    expect(source2).toContain(
+      `photoShowcase({ photos: [asset("photos/P1.jpg"), { video: asset("V1.mp4"), trimBefore: 3, volume: 0.4 }] })`,
+    );
+
+    const source3 = emitTimeline(
+      plan({
+        scenes: [
+          {
+            kind: "photo",
+            at: 12.8,
+            duration: 2,
+            photos: [{ video: "V1.mp4", trimBefore: 0, volume: 0 }],
+          },
+        ],
+      }),
+    );
+
+    expect(source3).toContain(
+      `photoShowcase({ photos: [{ video: asset("V1.mp4") }] })`,
+    );
+
+    // 走行映像・BGM と同じく、volume は折れ線 (VolumePlan) でも書ける。
+    const source4 = emitTimeline(
+      plan({
+        scenes: [
+          {
+            kind: "photo",
+            at: 12.8,
+            duration: 2,
+            photos: [
+              {
+                video: "V1.mp4",
+                trimBefore: 0,
+                volume: [
+                  { at: 0, volume: 0 },
+                  { at: 0.2, volume: 0.4 },
+                ],
+              },
+            ],
+          },
+        ],
+      }),
+    );
+
+    expect(source4).toContain(
+      `photoShowcase({ photos: [{ video: asset("V1.mp4"), volume: [{ at: 0, volume: 0 }, { at: 0.2, volume: 0.4 }] }] })`,
+    );
+  });
+
   it("slug から asset() を組み立てる", () => {
     expect(source).toContain(
       "const asset = (path: string) => staticFile(`projects/20260101-sample/${path}`);",
