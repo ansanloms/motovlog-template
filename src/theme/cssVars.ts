@@ -89,7 +89,6 @@ export const themeCssVars = (
     "--scrim-bottom": scrim.bottom,
     "--subtitle-line-height": `${subtitleLayout.lineHeight}`,
     "--subtitle-bottom-offset": `${subtitleLayout.bottomOffset}px`,
-    "--subtitle-max-width": `${subtitleLayout.maxWidth}px`,
     "--thumb-scrim": thumbScrim(palette),
     "--shadow-figure": shadow.figure,
     "--shadow-figure-edge": shadow.figureEdge,

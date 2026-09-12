@@ -13,5 +13,4 @@
   text-align: center;
   white-space: pre-wrap;
   overflow-wrap: anywhere;
-  max-width: var(--subtitle-max-width);
 }
