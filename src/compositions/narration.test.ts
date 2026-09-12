@@ -433,6 +433,27 @@ describe("narration", () => {
     expect(props.text).toBe("a\nb");
   });
 
+  it("line() の reading を配列で書くと改行で結合した文字列と同じ key の音声キャッシュを読む", async () => {
+    const key = await voiceKey({ text: "T2", reading: "a\nb" });
+    const fetchCache = (async (input: RequestInfo | URL) => {
+      const url = String(input);
+
+      if (url.includes(key)) {
+        return new Response(JSON.stringify(fakeCache(1)), { status: 200 });
+      }
+
+      return new Response("not found", { status: 404 });
+    }) as typeof fetch;
+
+    const { speech } = await narration(
+      [cut(line({ text: "T2", reading: ["a", "b"] }), { at: 0 })],
+      { slug: "sample" },
+      { fetchCache, isStudio: () => false },
+    );
+
+    expect(speech[0].duration).toBe(1);
+  });
+
   it("speech は line() item ごとに、渡した順で at・duration (字幕ではなく実尺)・lipsync を持つ", async () => {
     const fetchCache = await fetchCacheFor({
       A: { duration: 2, lipsync: [{ start: 0, end: 1, vowel: "a" }] },
