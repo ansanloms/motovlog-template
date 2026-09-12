@@ -75,9 +75,9 @@ Remotion は各フレームを個別に描くため、CSS アニメーション�
   - 目・口の切り替えをしない表情は、目・口も静止画で書く。
 - すべてのレイヤー画像は同一キャンバスの画像 (PNG・SVG) とし、`figure()` は座標計算をしない。SVG は幅と高さを持つ形で書き出す。理由: 枠内の拡縮は CSS の `height` と `width: auto` で行うため、画像に本来の縦横比が要る。素材の切り出し (PSD からの書き出し等) はテンプレートの外で行う。
 - キャラクターの定義は `characters/<name>.ts` に置き、画像は `public/assets/characters/<name>/` に置く。定義は project をまたいで使い回し、画像は第三者の素材なら [ADR-0002](./0002-project-directory-layout.md) の規則どおりコミットしない。
-- `line()` に `by` と `expression` を足す。発話の声質は theme の `narrator` を `by` の `voice` で上書きし、さらに `line()` の `voice` で上書きした値とする。音声キャッシュの key は text とこの実効の声質だけから作り、`by` と `expression` は含めない。
-  - `by` は `character()` が返す値の参照とする。
-  - `expression` は表情名とする。
+- `line()` に `by` を足す。発話の声質は theme の `narrator` を `by` の `voice` で上書きし、さらに `line()` の `voice` で上書きした値とする。音声キャッシュの key は text とこの実効の声質だけから作り、`by` (`character` の参照・`expression` とも) は含めない。
+  - `by` は `character()` が返す値の参照 (表情は現在の表情を維持)、または `{ character, expression? }` の形 (`character` がその参照、`expression` が表情名) のどちらかとする。
+  - `thumbnail()` も同じ形の `by` を受ける (表情の既定は `expressions` の最初のキー)。
 - `narration()` は `{ layers: [暗がり layer, 発話 layer], speech }` を返す。`speech` は `line()` の item ごとに `{ at (音声の絶対開始秒), duration (音声が実際に鳴る秒数), lipsync, by?, expression? }` を持つ。
 - `speech` の `duration` は `min(キャッシュの実尺, 字幕の尺)` とする。理由: `duration` を明示して字幕を実尺より短く切ると音声も `Sequence` で切れるため、キャッシュの実尺のままだと発話の後も口パクが続く。
 - `figure()` は `speech` のうち `by` が自分のキャラクター (`figure()` の第 1 引数) と同一のものだけを使う。口の形は絶対秒から発話を探し、発話の開始からの秒で口パクデータの区間を引く。口の形の決め方は次のとおり。
@@ -88,7 +88,7 @@ Remotion は各フレームを個別に描くため、CSS アニメーション�
 - 表情は次の順で決める。item の `expression` (省略時は `expressions` の最初の表情) を初期値とし、item の開始以降かつ絶対秒までに始まった自分宛の発話のうち `expression` を持つ最後のものがあればその表情にする。表情は次の指定まで維持し、item を分ければその item の初期値に戻る。
 - 目パチは theme の `characterTiming` (周期と閉眼の秒数) に従い、絶対秒で位相を決める。item を分割しても位相は変わらない。
 - 発話と無関係な表情の切り替え、章タイトル中の非表示、左右の移動は、書き手が立ち絵 layer の item を分けて書く (左右は item ごとの `side` で指定する)。
-- 音声生成の watcher は `line()` の `by` を、同じファイルの top-level const の `character()` 呼び出し、または import の binding として解決し、その `voice` プロパティを [ADR-0010](./0010-build-narration-timeline-with-hashed-voice-cache.md) の `voice` と同じ規則で評価する。`character()` 呼び出しの引数からは `voice` だけを読み、`expressions` は評価しない。`expression` は文字列リテラルに限り、値は読み飛ばす。
+- 音声生成の watcher は `line()` の `by` を、識別子ならその値、`{ character, expression? }` の形のオブジェクトリテラルなら `character` プロパティ (識別子限定) を、それぞれ同じファイルの top-level const の `character()` 呼び出し、または import の binding として解決し、その `voice` プロパティを [ADR-0010](./0010-build-narration-timeline-with-hashed-voice-cache.md) の `voice` と同じ規則で評価する。`character()` 呼び出しの引数からは `voice` だけを読み、`expressions` は評価しない。オブジェクトリテラルの `expression` は文字列リテラルに限り、値は読み飛ばす。`line()` 直下に `expression` を書くことはできない (`by` の中に書く)。
 - `characters/<name>.ts` は Node で import できる純粋な値のモジュールとし、remotion や CSS を import しない。
 
 ## Consequences

@@ -521,7 +521,9 @@ describe("narration", () => {
 
     const { speech } = await narration(
       [
-        cut(line({ text: "A", by: c, expression: "smile" }), { at: 0 }),
+        cut(line({ text: "A", by: { character: c, expression: "smile" } }), {
+          at: 0,
+        }),
         cut(line({ text: "B" }), { after: 0 }),
       ],
       { slug: "sample" },
@@ -592,26 +594,37 @@ describe("narration", () => {
     );
   });
 
-  it("line() は by 無しで expression を指定すると即 throw する", () => {
-    expect(() => line({ text: "A", expression: "x" })).toThrow(
-      /expression \("x"\) を指定するには by \(character の参照\) が必要です/,
-    );
+  it("line() 直下に expression を渡すと即 throw する (by の中に書けというメッセージ、JS からの誤用対策)", () => {
+    expect(() =>
+      line({ text: "A", expression: "x" } as unknown as Parameters<
+        typeof line
+      >[0]),
+    ).toThrow(/expression は by の中に書いてください/);
   });
 
   it("line() は by.expressions に無い expression を指定すると即 throw する", () => {
     const c = character({ expressions: { normal: ["a.png"] } });
 
-    expect(() => line({ text: "A", by: c, expression: "nope" })).toThrow(
-      /by に無い表情 "nope" が指定されました/,
-    );
+    expect(() =>
+      line({ text: "A", by: { character: c, expression: "nope" } }),
+    ).toThrow(/by に無い表情 "nope" が指定されました/);
   });
 
   it("line() は by.expressions の prototype のキー (toString 等) を指定すると即 throw する (#11)", () => {
     const c = character({ expressions: { normal: ["a.png"] } });
 
-    expect(() => line({ text: "A", by: c, expression: "toString" })).toThrow(
-      /by に無い表情 "toString" が指定されました/,
-    );
+    expect(() =>
+      line({ text: "A", by: { character: c, expression: "toString" } }),
+    ).toThrow(/by に無い表情 "toString" が指定されました/);
+  });
+
+  it("line() は by: null を未指定扱いにせず resolveBy() のエラーを throw する", () => {
+    expect(() =>
+      line({
+        text: "A",
+        by: null as unknown as Parameters<typeof line>[0]["by"],
+      }),
+    ).toThrow(/by は character\(\) の戻り値か/);
   });
 
   it("line() 以外の item (annotation だけの cut()) は speech に含まれない", async () => {

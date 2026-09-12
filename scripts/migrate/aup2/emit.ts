@@ -97,7 +97,7 @@ const sceneSource = (scene: ScenePlan, character: string): string => {
   if (scene.kind === "opening") {
     const node = `thumbnail({ photo: asset(${str(scene.photo)}), badge: ${str(
       scene.badge,
-    )}, title: ${str(scene.title)}, character: ${character} })`;
+    )}, title: ${str(scene.title)}, by: ${character} })`;
 
     return placed(node, {
       at: num(scene.at),
@@ -209,15 +209,12 @@ const narrationSource = (item: NarrationPlan, character: string): string => {
     )} })`;
   }
 
-  const fields = [
-    `text: ${str(item.text)}`,
-    `by: ${character}`,
-    ...(item.expression !== undefined
-      ? [`expression: ${str(item.expression)}`]
-      : []),
-  ];
+  const by =
+    item.expression !== undefined
+      ? `{ character: ${character}, expression: ${str(item.expression)} }`
+      : character;
 
-  return `cut(line({ ${fields.join(", ")} }), { ${placement} })`;
+  return `cut(line({ text: ${str(item.text)}, by: ${by} }), { ${placement} })`;
 };
 
 /**

@@ -1,6 +1,6 @@
 // timeline.ts が発話 (セリフ) を書くための DSL (ADR-0010, ADR-0006, ADR-0011)。
 //
-// 書き手は line({ text, reading?, voice?, by?, expression? }) を cut() の
+// 書き手は line({ text, reading?, voice?, by? }) を cut() の
 // node に渡して narration() にまとめて渡す。text・reading はリテラルで書く
 // こと (配列で書くと字幕・合成それぞれの改行として結合する、text と
 // TextLines を参照)。字幕には displayText(text)、合成には
@@ -13,12 +13,14 @@
 // (scripts/voice/extract.ts が読める式に限る。watcher が timeline.ts を
 // 静的解析して wav・キャッシュを作るため)。voice に null を渡すと声無し
 // (wav・lipsync を作らない、cut()/fade() の duration が必須) になる。by は
-// character() が返す Character の参照で、figure() が自分宛の発話を選ぶのに
-// 使う (identity で結び付く)。声質の実効値は利用側の theme の narrator ← by.voice ←
-// line() の voice の順で上書きした値 (src/voice/key.ts の mergeVoice())。
-// 音声キャッシュの key は text と (reading があれば) reading とこの実効の
-// 声質だけから作り、by・expression は含めない。expression は by の
-// expressions のキーで、指定した表情に切り替える (省略時は現在の表情を
+// character() が返す Character の参照 (表情は既定) か、
+// `{ character, expression? }` の形 (character.ts の ByRef) で、figure() が
+// 自分宛の発話を選ぶのに使う (character の identity で結び付く)。声質の
+// 実効値は利用側の theme の narrator ← by.voice ← line() の voice の順で
+// 上書きした値 (src/voice/key.ts の mergeVoice())。音声キャッシュの key は
+// text と (reading があれば) reading とこの実効の声質だけから作り、
+// by・expression は含めない。expression は by.expressions のキーで、
+// 指定した表情に切り替える (省略時は現在の表情を
 // 維持する)。
 //
 // narration() は各発話の音声キャッシュ (public/projects/<slug>/lines/
@@ -56,7 +58,8 @@ import type { LipsyncEntry, VoiceCache, VoiceOptions } from "../voice/cache.ts";
 import { linePath, mergeVoice, voiceKey } from "../voice/key.ts";
 import { assertReadingNotation } from "../voice/reading.ts";
 import { computeBandSpans } from "./band.ts";
-import type { Character } from "./character.ts";
+import { resolveBy } from "./character.ts";
+import type { ByRef, Character } from "./character.ts";
 
 /** line() が受け取る props。 */
 type LineProps = {
@@ -78,16 +81,21 @@ type LineProps = {
    * の duration が必須で、字幕の尺は duration と同じになる。
    */
   voice?: VoiceOptions | null;
-  /** character() の参照。figure() が自分宛の発話を選ぶのに使う (identity で結び付く)。 */
-  by?: Character;
-  /** by の expressions のキー。指定するとその場で表情を切り替える (省略時は現在の表情を維持)。 */
-  expression?: string;
+  /** character() の参照 (表情は既定) か `{ character, expression? }` の形。figure() が自分宛の発話を選ぶのに使う (character の identity で結び付く)。 */
+  by?: ByRef;
 };
 
-/** LineMarker が保持する props (text・reading は結合済みの単一行文字列)。 */
-type ResolvedLineProps = Omit<LineProps, "text" | "reading"> & {
+/**
+ * LineMarker が実際に保持する props (line() が text・reading を結合済みの
+ * 文字列にし、by を正規化した後の形)。内部の消費側 (Speech.by・
+ * Speech.expression、figure() の identity 比較 `s.by === character`) は
+ * この形で読む。
+ */
+type NormalizedLineProps = Omit<LineProps, "by" | "text" | "reading"> & {
   text: string;
   reading?: string;
+  by?: Character;
+  expression?: string;
 };
 
 /**
@@ -95,7 +103,7 @@ type ResolvedLineProps = Omit<LineProps, "text" | "reading"> & {
  * 戻り値の型 (ReactNode) として使うだけで、narration() は描画せず props
  * だけを読んで消費する。
  */
-const LineMarker: React.FC<ResolvedLineProps> = () => {
+const LineMarker: React.FC<NormalizedLineProps> = () => {
   throw new Error(
     "line() は narration() に渡す item の node としてのみ使えます (narration() の外に置かれています)。",
   );
@@ -106,20 +114,28 @@ const LineMarker: React.FC<ResolvedLineProps> = () => {
  * 配列で書くと字幕の改行として結合する) と reading (合成に渡す文、text と
  * 同じく配列可、省略時は text をそのまま使う)、voice (省略時は theme の
  * 既定話者に by.voice を重ねた値、null で声無し)、by (character() の参照、
- * figure() が自分宛の発話を選ぶのに使う)、expression (by の expressions の
- * キー、指定すると figure() の表情をその場で切り替える) を渡す。cut() の
- * node に渡し、narration() にまとめて渡すこと。text・reading・voice は
- * リテラルで書く (scripts/voice の静的解析が変数・関数呼び出しを許さない)。
- * text・reading の {漢字|よみ} 記法が壊れている (片側が空・| が無い・入れ子や
- * 非対称の括弧) と throw する (配列の場合は結合した文字列に対して検査する)。
- * reading を空文字にすると throw する (声無しは voice: null で書く)。
- * voice: null と reading を同時に指定すると throw する (声無しの行に
- * reading は無意味なため)。expression は by が無い、または by.expressions
- * に無いキーだと throw する。narration.ts は .ts (拡張子は timeline.ts
+ * 表情は既定、か `{ character, expression? }` の形。figure() が自分宛の
+ * 発話を選ぶのに使う) を渡す。cut() の node に渡し、narration() にまとめて
+ * 渡すこと。text・reading・voice はリテラルで書く (scripts/voice の
+ * 静的解析が変数・関数呼び出しを許さない)。text・reading の {漢字|よみ}
+ * 記法が壊れている (片側が空・| が無い・入れ子や非対称の括弧) と throw する
+ * (配列の場合は結合した文字列に対して検査する)。reading を空文字にすると
+ * throw する (声無しは voice: null で書く)。voice: null と reading を
+ * 同時に指定すると throw する (声無しの行に reading は無意味なため)。
+ * expression は by.expressions に無いキーだと throw する。line() 直下に
+ * expression を渡した場合は「by の中に書いてください」と throw する (型では
+ * 弾けない JS からの誤用のため)。narration.ts は .ts (拡張子は timeline.ts
  * からの import 記法に合わせる) ため React.createElement で組み立てる。
  */
 export const line = (props: LineProps): ReactNode => {
   const text = joinLines(props.text);
+
+  if ("expression" in props) {
+    throw new Error(
+      `line(): expression は by の中に書いてください (by: { character, expression }): ${text}`,
+    );
+  }
+
   assertReadingNotation(text);
 
   const reading =
@@ -141,28 +157,30 @@ export const line = (props: LineProps): ReactNode => {
     );
   }
 
-  if (props.expression !== undefined) {
-    if (!props.by) {
-      throw new Error(
-        `line(): expression ("${props.expression}") を指定するには by (character の参照) が必要です: ${text}`,
-      );
-    }
+  const resolved = props.by === undefined ? undefined : resolveBy(props.by);
 
-    if (!Object.hasOwn(props.by.expressions, props.expression)) {
+  if (resolved?.expression !== undefined) {
+    if (!Object.hasOwn(resolved.character.expressions, resolved.expression)) {
       throw new Error(
-        `line(): by に無い表情 "${props.expression}" が指定されました: ${text}`,
+        `line(): by に無い表情 "${resolved.expression}" が指定されました: ${text}`,
       );
     }
   }
 
-  return React.createElement(LineMarker, { ...props, text, reading });
+  return React.createElement(LineMarker, {
+    text,
+    reading,
+    voice: props.voice,
+    by: resolved?.character,
+    expression: resolved?.expression,
+  });
 };
 
 const linePropsOf = (
   node: ReactNode | FrameMarker | SampleNode,
-): ResolvedLineProps | undefined =>
+): NormalizedLineProps | undefined =>
   React.isValidElement(node) && node.type === LineMarker
-    ? (node.props as ResolvedLineProps)
+    ? (node.props as NormalizedLineProps)
     : undefined;
 
 /** narration() のテスト用差し替え関数群。既定は本物の fetch と Remotion の環境判定を使う。 */
