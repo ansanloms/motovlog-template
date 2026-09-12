@@ -16,21 +16,33 @@ export const USAGE = "usage: npm run convert -- <slug> <入力ファイル>...";
  * convert-movie.ts の CLI 引数を解釈する。先頭を slug、以降を inputs とする。
  * `--help`・`-h` があれば null を返す (呼び出し側が usage を出す)。それ以外の
  * `--` で始まる引数は不明なオプションとして拒否する。
+ *
+ * 素の `--` (オプション終端) があれば、それより前だけを上記のオプション判定
+ * (`--help`・`-h`・不明なオプション) の対象にし、それより後はすべて位置引数
+ * (slug・inputs) として読む。`npm run convert -- <slug> <入力ファイル>...` は
+ * npm が `--` 自体を落として渡すため影響しないが、`npx motovlog-convert --
+ * <slug> <入力ファイル>...` は npx が `--` を落とさずそのまま渡すため、これを
+ * 読み飛ばせないと `<slug>` の前に `--` が残って不明なオプション扱いになる。
  */
 export const parseConvertArgs = (
   args: readonly string[],
 ): { slug: string; inputs: string[] } | null => {
-  if (args.some((arg) => arg === "--help" || arg === "-h")) {
+  const separatorIndex = args.indexOf("--");
+  const flags = separatorIndex === -1 ? args : args.slice(0, separatorIndex);
+  const positional =
+    separatorIndex === -1 ? args : args.slice(separatorIndex + 1);
+
+  if (flags.some((arg) => arg === "--help" || arg === "-h")) {
     return null;
   }
 
-  const bad = args.find((a) => a.startsWith("--"));
+  const bad = flags.find((a) => a.startsWith("--"));
 
   if (bad) {
     throw new Error(`不明なオプションです: ${bad}`);
   }
 
-  const [slug, ...inputs] = args;
+  const [slug, ...inputs] = positional;
 
   if (!slug || inputs.length === 0) {
     throw new Error(USAGE);
