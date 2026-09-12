@@ -9,6 +9,7 @@
 // (shift)。章タイトルも原本には無く、下部の帯 (図形) 6 本が章の区切りを
 // 暗示しているため、各帯の開始に終わりが合うように章タイトルを置く。
 
+import { outputName } from "../../convert/plan.ts";
 import type { Aup2, Aup2Object } from "./parse.ts";
 import { findFilter, numberParam } from "./parse.ts";
 
@@ -54,6 +55,16 @@ export type EndingPlan = {
   readonly credits: readonly Readonly<Record<string, string>>[];
 };
 
+/** 写真紹介の枠に置く 1 要素 (写真の URL、または短い動画)。 */
+export type PhotoElementPlan =
+  | string
+  | {
+      /** public/projects/<slug>/ からの相対パス。 */
+      readonly video: string;
+      readonly trimBefore: number;
+      readonly volume: VolumePlan;
+    };
+
 /** OP・章タイトル・写真紹介・ED を 1 本の layer に並べたもの。 */
 export type ScenePlan =
   | {
@@ -74,8 +85,7 @@ export type ScenePlan =
       readonly kind: "photo";
       readonly at: number;
       readonly duration: number;
-      /** public/projects/<slug>/ からの相対パス。 */
-      readonly photos: readonly string[];
+      readonly photos: readonly PhotoElementPlan[];
     }
   | {
       readonly kind: "ending";
@@ -210,6 +220,15 @@ const baseName = (windowsPath: string): string => {
 
   return parts[parts.length - 1] ?? "";
 };
+
+/**
+ * 動画ファイルの Windows パスを、変換後の出力名 (拡張子を落として .mp4 を
+ * 付けたもの) にする。拡張子を落とす規則は scripts/convert/plan.ts の
+ * outputName() と同じものを再利用する (basename だけを渡すため、
+ * path.basename() が POSIX 実装でも区切り文字の扱いは問題にならない)。
+ */
+const videoFileName = (windowsPath: string): string =>
+  `${outputName(baseName(windowsPath))}.mp4`;
 
 /**
  * `再生位置=開始,終了,再生範囲,0` の開始秒を返す。`再生位置` が無ければ throw
@@ -369,7 +388,9 @@ const assertOrdered = (
  * - 走行映像の切れ目に掛かる `シーンチェンジ` (クロスフェード) → crossfade。
  *   直前の映像の尺を遷移の尺だけ延ばし、直後の映像の絶対開始を動かさない。
  * - layer 2 の `音声ファイル` → BGM。
- * - `画像ファイル` (走行映像の layer を除く) → 写真紹介 1 枚ずつ。
+ * - `画像ファイル`・`動画ファイル` (走行映像の layer を除く) → 写真紹介
+ *   1 要素ずつ。動画は `再生位置` の開始秒を trimBefore、`映像再生` の
+ *   `音量` を volume (既定 0) にする。
  * - `PSDファイル@PSDToolKit` → 立ち絵。`標準描画` の X の符号で左右を決め、
  *   `レイヤー` 文字列を config.expressions で表情名に引く。
  * - `フレームバッファ`・`シーンチェンジ` (暗転) → frame() のフェード。
@@ -522,7 +543,7 @@ export const planTimeline = (
 
     return {
       ref: `clip${index + 1}`,
-      src: baseName(file.params["ファイル"] ?? ""),
+      src: videoFileName(file.params["ファイル"] ?? ""),
       trimBefore: round3(trimBeforeOf(file, object.id)),
       volume: volumePlan({
         level: numberParam(play, "音量", 100),
@@ -594,22 +615,41 @@ export const planTimeline = (
       };
     });
 
-  // 写真紹介 (走行映像の layer 以外の 画像ファイル)。
-  const photos = pick(
+  // 写真紹介 (走行映像の layer 以外の 画像ファイル・動画ファイル)。
+  const photoElements = pick(
     objects,
-    (o) => kindOf(o) === "画像ファイル" && o.layer !== videoLayer,
+    (o) =>
+      (kindOf(o) === "画像ファイル" || kindOf(o) === "動画ファイル") &&
+      o.layer !== videoLayer,
   ).filter(withinTimeline);
 
-  // 写真紹介の layer に置かれた動画は写真紹介として扱えないため写さない。
-  for (const object of objects) {
-    if (kindOf(object) === "動画ファイル" && object.layer !== videoLayer) {
-      skipped.push({
-        id: object.id,
-        layer: object.layer,
-        reason: "写真紹介の枠に置かれた動画 (photoShowcase は写真だけを受ける)",
-      });
+  /** 写真紹介の枠に置かれた 1 要素を写真の URL か動画要素にする。 */
+  const photoElementOf = (object: Aup2Object): PhotoElementPlan => {
+    const file = object.filters[0];
+
+    if (kindOf(object) !== "動画ファイル") {
+      return `photos/${baseName(file.params["ファイル"] ?? "")}`;
     }
 
+    // 動画は走行映像と同じく scripts/convert-movie.ts で
+    // public/projects/<slug>/ 直下に置く運用のため、photos/ を付けない。
+    const play = findFilter(object, "映像再生");
+    const volumeFade = findFilter(object, "音量フェード");
+    const duration = durationOf(object.frame, object);
+
+    return {
+      video: videoFileName(file.params["ファイル"] ?? ""),
+      trimBefore: round3(trimBeforeOf(file, object.id)),
+      volume: volumePlan({
+        level: numberParam(play, "音量", 100),
+        fadeIn: numberParam(volumeFade, "イン", 0),
+        fadeOut: numberParam(volumeFade, "アウト", 0),
+        duration,
+      }),
+    };
+  };
+
+  for (const object of objects) {
     if (kindOf(object) === "画像ファイル" && object.layer === videoLayer) {
       skipped.push({
         id: object.id,
@@ -870,13 +910,11 @@ export const planTimeline = (
         subtitle: chapter.subtitle,
       };
     }),
-    ...photos.map((object) => ({
+    ...photoElements.map((object) => ({
       kind: "photo" as const,
       at: atOf(object.frame[0]),
       duration: durationOf(object.frame, object),
-      photos: [
-        `photos/${baseName(object.filters[0].params["ファイル"] ?? "")}`,
-      ],
+      photos: [photoElementOf(object)],
     })),
     {
       kind: "ending",

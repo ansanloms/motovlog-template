@@ -30,10 +30,18 @@ export const annotation = (props: React.ComponentProps<typeof Annotation>) => (
   <Annotation {...props} />
 );
 
-/** PhotoShowcase の要素ファクトリ。 */
+/** PhotoShowcase の要素ファクトリ。動画要素の不正な volume はここで throw する。 */
 export const photoShowcase = (
   props: React.ComponentProps<typeof PhotoShowcase>,
-) => <PhotoShowcase {...props} />;
+) => {
+  props.photos.forEach((photo) => {
+    if (typeof photo !== "string") {
+      assertVolume(photo.volume ?? 0);
+    }
+  });
+
+  return <PhotoShowcase {...props} />;
+};
 
 /** Ending の要素ファクトリ。 */
 export const ending = (props: React.ComponentProps<typeof Ending>) => (
