@@ -565,6 +565,12 @@ describe("narration", () => {
     ).rejects.toThrow(/発話の音声キャッシュが見つかりません/);
   });
 
+  it("line() は voice: null と reading を同時に指定すると即 throw する", () => {
+    expect(() => line({ text: "A", voice: null, reading: "エー" })).toThrow(
+      /声無しの行 \(voice: null\) に reading は書けません/,
+    );
+  });
+
   it("line() は by 無しで expression を指定すると即 throw する", () => {
     expect(() => line({ text: "A", expression: "x" })).toThrow(
       /expression \("x"\) を指定するには by \(character の参照\) が必要です/,

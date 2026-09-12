@@ -1,25 +1,34 @@
 // timeline.ts が発話 (セリフ) を書くための DSL (ADR-0010, ADR-0006, ADR-0011)。
 //
-// 書き手は line({ text, voice?, by?, expression? }) を cut() の node に渡して
-// narration() にまとめて渡す。text はリテラルで書くこと。voice はリテラルの
-// 他、利用側の theme の narrator の参照・spread・同じファイルの const・プロパティ
-// アクセスが書ける (scripts/voice/extract.ts が読める式に限る。watcher が
-// timeline.ts を静的解析して wav・キャッシュを作るため)。by は
+// 書き手は line({ text, reading?, voice?, by?, expression? }) を cut() の
+// node に渡して narration() にまとめて渡す。text・reading はリテラルで書く
+// こと (配列で書くと字幕・合成それぞれの改行として結合する、text と
+// TextLines を参照)。字幕には displayText(text)、合成には
+// readingText(reading ?? text) を使う (reading は省略すると text をそのまま
+// 合成に使う)。text・reading の
+// {漢字|よみ} 記法はどちらか片側が空・| が無い・| が 2 つ以上だと throw する
+// (assertReadingNotation())。voice はリテラルの他、利用側の theme の
+// narrator の参照・spread・同じファイルの const・プロパティアクセスが書ける
+// (scripts/voice/extract.ts が読める式に限る。watcher が timeline.ts を
+// 静的解析して wav・キャッシュを作るため)。voice に null を渡すと声無し
+// (wav・lipsync を作らない、cut()/fade() の duration が必須) になる。by は
 // character() が返す Character の参照で、figure() が自分宛の発話を選ぶのに
 // 使う (identity で結び付く)。声質の実効値は利用側の theme の narrator ← by.voice ←
 // line() の voice の順で上書きした値 (src/voice/key.ts の mergeVoice())。
-// 音声キャッシュの key は text とこの実効の声質だけから作り、by・expression は
-// 含めない。expression は by の expressions のキーで、指定した表情に
-// 切り替える (省略時は現在の表情を維持する)。
+// 音声キャッシュの key は text と (reading があれば) reading とこの実効の
+// 声質だけから作り、by・expression は含めない。expression は by の
+// expressions のキーで、指定した表情に切り替える (省略時は現在の表情を
+// 維持する)。
 //
 // narration() は各発話の音声キャッシュ (public/projects/<slug>/lines/
 // <key>.json、key.ts の voiceKey()) から実尺を読み、
 // { layers: [暗がり layer, 発話 layer], speech } を返す。speech は
 // line() item ごとに { at, duration, lipsync, by?, expression? } を持ち、
-// figure() (#39) の目パチ・口パク・表情の判定に使う。キャッシュが無いときは
-// Studio では書き上がるまで待ち、render と Node (Studio でも rendering
-// でもない環境) では即エラーにする (npm run dev の watcher か npm run
-// render の前段が生成する)。
+// figure() (#39) の目パチ・口パク・表情の判定に使う (声無しの item は
+// lipsync: [] で、表情の切り替えだけ効く)。キャッシュが無いときは Studio
+// では書き上がるまで待ち、render と Node (Studio でも rendering でもない
+// 環境) では即エラーにする (npm run dev の watcher か npm run render の
+// 前段が生成する)。
 
 import type { ReactNode } from "react";
 import React from "react";
@@ -44,6 +53,7 @@ import { bandTiming, subtitleTiming } from "../theme/index.ts";
 import { isVoiceCache } from "../voice/cache.ts";
 import type { LipsyncEntry, VoiceCache, VoiceOptions } from "../voice/cache.ts";
 import { linePath, mergeVoice, voiceKey } from "../voice/key.ts";
+import { assertReadingNotation } from "../voice/reading.ts";
 import { computeBandSpans } from "./band.ts";
 import type { Character } from "./character.ts";
 
@@ -55,16 +65,29 @@ type LineProps = {
    * 音声合成では改行を落とすため)。
    */
   text: TextLines;
-  /** 声質。省略分は theme の既定話者に by.voice を重ねた値で埋める。 */
-  voice?: VoiceOptions;
+  /**
+   * 合成に渡す文 (VOICEVOX の {漢字|よみ} 記法を含んでよい)。リテラルで書く。
+   * text と同じく配列で書くと結合する。省略時は text をそのまま合成に使う
+   * (readingText(text))。空文字は throw する (声無しは voice: null で書く)。
+   */
+  reading?: TextLines;
+  /**
+   * 声質。省略分は theme の既定話者に by.voice を重ねた値で埋める。null を
+   * 渡すと声無し (wav・lipsync を作らない)。声無しの item は cut()/fade()
+   * の duration が必須で、字幕の尺は duration と同じになる。
+   */
+  voice?: VoiceOptions | null;
   /** character() の参照。figure() が自分宛の発話を選ぶのに使う (identity で結び付く)。 */
   by?: Character;
   /** by の expressions のキー。指定するとその場で表情を切り替える (省略時は現在の表情を維持)。 */
   expression?: string;
 };
 
-/** LineMarker が保持する props (text は結合済みの単一行文字列)。 */
-type ResolvedLineProps = Omit<LineProps, "text"> & { text: string };
+/** LineMarker が保持する props (text・reading は結合済みの単一行文字列)。 */
+type ResolvedLineProps = Omit<LineProps, "text" | "reading"> & {
+  text: string;
+  reading?: string;
+};
 
 /**
  * narration() の外に置かれたら throw する内部コンポーネント。line() の
@@ -79,18 +102,43 @@ const LineMarker: React.FC<ResolvedLineProps> = () => {
 
 /**
  * 発話 1 本の台本を書く。text (VOICEVOX の {漢字|よみ} 記法を含んでよい、
- * 配列で書くと字幕の改行として結合する) と voice (省略時は theme の既定
- * 話者に by.voice を重ねた値)、by (character() の参照、figure() が自分宛の
- * 発話を選ぶのに使う)、expression (by の expressions のキー、指定すると
- * figure() の表情をその場で切り替える) を渡す。cut() の node に渡し、
- * narration() にまとめて渡すこと。text・voice はリテラルで書く (scripts/voice
- * の静的解析が変数・関数呼び出しを許さない)。expression は by が無い、
- * または by.expressions に無いキーだと throw する。narration.ts は .ts
- * (拡張子は timeline.ts からの import 記法に合わせる) ため
- * React.createElement で組み立てる。
+ * 配列で書くと字幕の改行として結合する) と reading (合成に渡す文、text と
+ * 同じく配列可、省略時は text をそのまま使う)、voice (省略時は theme の
+ * 既定話者に by.voice を重ねた値、null で声無し)、by (character() の参照、
+ * figure() が自分宛の発話を選ぶのに使う)、expression (by の expressions の
+ * キー、指定すると figure() の表情をその場で切り替える) を渡す。cut() の
+ * node に渡し、narration() にまとめて渡すこと。text・reading・voice は
+ * リテラルで書く (scripts/voice の静的解析が変数・関数呼び出しを許さない)。
+ * text・reading の {漢字|よみ} 記法が壊れている (片側が空・| が無い・入れ子や
+ * 非対称の括弧) と throw する (配列の場合は結合した文字列に対して検査する)。
+ * reading を空文字にすると throw する (声無しは voice: null で書く)。
+ * voice: null と reading を同時に指定すると throw する (声無しの行に
+ * reading は無意味なため)。expression は by が無い、または by.expressions
+ * に無いキーだと throw する。narration.ts は .ts (拡張子は timeline.ts
+ * からの import 記法に合わせる) ため React.createElement で組み立てる。
  */
 export const line = (props: LineProps): ReactNode => {
   const text = joinLines(props.text);
+  assertReadingNotation(text);
+
+  const reading =
+    props.reading !== undefined ? joinLines(props.reading) : undefined;
+
+  if (reading === "") {
+    throw new Error(
+      `line(): reading を空文字にはできません (声無しは voice: null で書いてください): ${text}`,
+    );
+  }
+
+  if (reading !== undefined) {
+    assertReadingNotation(reading);
+  }
+
+  if (props.voice === null && reading !== undefined) {
+    throw new Error(
+      `line(): 声無しの行 (voice: null) に reading は書けません: ${text}`,
+    );
+  }
 
   if (props.expression !== undefined) {
     if (!props.by) {
@@ -106,7 +154,7 @@ export const line = (props: LineProps): ReactNode => {
     }
   }
 
-  return React.createElement(LineMarker, { ...props, text });
+  return React.createElement(LineMarker, { ...props, text, reading });
 };
 
 const linePropsOf = (
@@ -240,26 +288,75 @@ export type Narration = {
   readonly speech: readonly Speech[];
 };
 
+/** narration() の音声を伴わない item (line() 以外、または voice: null の line()) の実尺セット。 */
+type NoAudioDurations = {
+  key: undefined;
+  cacheDuration: number;
+  positionDuration: number;
+  lipsync: undefined;
+};
+
+/**
+ * 音声を伴わない item (line() 以外、または voice: null の line()) の
+ * duration 駆動の実尺セットを作る。duration が無ければ buildErrorMessage()
+ * の返り値で throw する。resolvedItems$ の map (narration() 内) で、
+ * 非 line() 項目と声無しの line() の両方から使い、「音声なし・duration
+ * 必須」の扱いを重複させない。
+ */
+const resolveNoAudioDurations = (
+  item: NarrationItem,
+  buildErrorMessage: () => string,
+): NoAudioDurations => {
+  if (item.duration === undefined) {
+    throw new Error(buildErrorMessage());
+  }
+
+  return {
+    key: undefined,
+    cacheDuration: item.duration,
+    positionDuration: item.duration,
+    lipsync: undefined,
+  };
+};
+
+/**
+ * 音声を伴わない item の暗がりの区間 (bandInputs に積む 1 件) を作る。
+ * 音声が無いため、字幕の尺 (= positionDuration) の間だけ暗がりが出る
+ * (speechEnd・captionEnd は同じ値になる)。narration() の forEach で、
+ * 非 line() 項目と声無しの line() の両方から使う。
+ */
+const noAudioBandInput = (
+  at: number,
+  positionDuration: number,
+): { start: number; speechEnd: number; captionEnd: number } => {
+  const end = at + positionDuration;
+
+  return { start: at, speechEnd: end, captionEnd: end };
+};
+
 /**
  * 発話の列から Narration ({ layers: [暗がり layer, 発話 layer], speech }) を
  * 組み立てる。node が line() の戻り値 (LineMarker コンポーネント) の item は
- * 音声キャッシュから実尺を取り、それ以外の item は duration が必須
+ * 音声キャッシュから実尺を取り (voice: null なら音声キャッシュを読まず
+ * duration が必須、無ければ throw)、それ以外の item は duration が必須
  * (無ければ throw)。位置 (at/after/省略) は実尺を埋めた仮 layer を
  * resolveLayer() で解決して求める。line() item に duration が明示されて
  * いれば、位置決め・字幕の尺の両方にその値をそのまま使い、tail もクランプも
- * 掛けない (書き手が明示した値を実尺で上書きしない)。明示が無い line()
- * item の字幕の尺は min(実尺 + subtitleTiming.tail, 次の item の開始 −
- * 自分の開始) にクランプする (最後の item は前者のまま)。line() 以外の
- * item は kind・node・duration (fade なら in/out も) を保ったまま、at を
- * 解決済みの開始秒に置き換えて発話 layer にそのまま残す。暗がり
+ * 掛けない (書き手が明示した値を実尺で上書きしない、voice: null は常にこの
+ * 扱い)。明示が無い line() item の字幕の尺は min(実尺 + subtitleTiming.tail,
+ * 次の item の開始 − 自分の開始) にクランプする (最後の item は前者のまま)。
+ * line() 以外の item は kind・node・duration (fade なら in/out も) を保った
+ * まま、at を解決済みの開始秒に置き換えて発話 layer にそのまま残す。暗がり
  * (computeBandSpans() への入力) は line() item なら字幕が消えるまで
- * (captionEnd) 出る。音声 (speechEnd) が字幕より先に終わっていても、暗がり
- * は字幕の消灯までは維持される (duration を明示して字幕を長く出した場合も
- * 同じ)。戻り値の `speech` は line() item ごと (渡した順) に、音声の絶対
- * 開始秒 (at)・音声が実際に鳴る秒数 (duration、cache.duration と字幕の尺
- * (captionDuration) の小さい方。duration を明示して字幕を実尺より短く
- * 切ったときに、実尺のまま口パクが無音で続くのを防ぐ、#3)・口パクの母音
- * 区間 (lipsync、cache.lipsync)・by (指定時)・expression (指定時) を持つ
+ * (captionEnd) 出る (voice: null は duration の間だけ)。音声 (speechEnd) が
+ * 字幕より先に終わっていても、暗がりは字幕の消灯までは維持される (duration
+ * を明示して字幕を長く出した場合も同じ)。戻り値の `speech` は line() item
+ * ごと (渡した順) に、音声の絶対開始秒 (at)・音声が実際に鳴る秒数
+ * (duration、cache.duration と字幕の尺 (captionDuration) の小さい方。
+ * duration を明示して字幕を実尺より短く切ったときに、実尺のまま口パクが
+ * 無音で続くのを防ぐ、#3。voice: null は duration そのもの)・口パクの母音
+ * 区間 (lipsync、cache.lipsync。voice: null は空配列)・by (指定時)・
+ * expression (指定時) を持つ
  * (#39 の立ち絵の目パチ・口パク・表情の切り替えに使う)。
  */
 export const narration = async (
@@ -290,8 +387,19 @@ export const narration = async (
     const speech = linePropsOf(item.node);
 
     if (speech) {
+      if (speech.voice === null) {
+        // 声無しの line(): wav・lipsync を作らず、字幕の尺 = duration
+        // (明示必須)。
+        return resolveNoAudioDurations(
+          item,
+          () =>
+            `narration: item ${index} は voice: null (声無し) なので duration が要ります`,
+        );
+      }
+
       const key = await voiceKey({
         text: speech.text,
+        reading: speech.reading,
         voice: mergeVoice(speech.by?.voice, speech.voice),
       });
       const url = staticFile(`${linePath(slug, key)}.json`);
@@ -307,18 +415,11 @@ export const narration = async (
       };
     }
 
-    if (item.duration === undefined) {
-      throw new Error(
+    return resolveNoAudioDurations(
+      item,
+      () =>
         `narration: item ${index} は line() (発話) ではなく、duration も指定されていません`,
-      );
-    }
-
-    return {
-      key: undefined,
-      cacheDuration: item.duration,
-      positionDuration: item.duration,
-      lipsync: undefined,
-    };
+    );
   });
 
   const durations = await Promise.all(resolvedItems$);
@@ -352,12 +453,11 @@ export const narration = async (
     const { key, cacheDuration, positionDuration, lipsync } = durations[index];
     const original = items[index];
 
-    if (!speech || key === undefined) {
-      // line() 以外は音声が無く、暗がりも発話 layer と同じ区間 (at 〜
-      // at + positionDuration) だけ出る。
-      const end = resolved.at + positionDuration;
-
-      bandInputs.push({ start: resolved.at, speechEnd: end, captionEnd: end });
+    if (!speech) {
+      // line() 以外は音声が無く、発話 layer には元の node をそのまま残す。
+      // 暗がりは line() 以外・声無しの line() で共通の区間 (at 〜
+      // at + positionDuration) だけ出る (noAudioBandInput())。
+      bandInputs.push(noAudioBandInput(resolved.at, positionDuration));
 
       speechLayer.push(
         original.kind === "fade"
@@ -375,6 +475,31 @@ export const narration = async (
               duration: positionDuration,
               at: resolved.at,
             },
+      );
+
+      return;
+    }
+
+    if (key === undefined) {
+      // 声無しの line() (voice: null)。line() 以外の item と同じ区間の
+      // 暗がり (noAudioBandInput()) を出し、speech には lipsync: [] で
+      // 載せて表情の切り替えだけ効かせる。ここ以降 key は string に絞られる
+      // (音声ありの line() だけが resolvedItems$ で key を求めるため)。
+      bandInputs.push(noAudioBandInput(resolved.at, positionDuration));
+
+      speechEntries.push({
+        at: resolved.at,
+        duration: positionDuration,
+        lipsync: [],
+        by: speech.by,
+        expression: speech.expression,
+      });
+
+      speechLayer.push(
+        cut(React.createElement(Line, { text: speech.text }), {
+          at: resolved.at,
+          duration: positionDuration,
+        }),
       );
 
       return;

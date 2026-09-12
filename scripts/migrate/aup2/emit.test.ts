@@ -105,7 +105,7 @@ describe("emitTimeline", () => {
       `import { hero } from "../../characters/hero.ts";`,
     );
     expect(source).toContain(
-      `import { audio, chapter, ending, photoShowcase, subtitle, video } from "../../src/components/index.tsx";`,
+      `import { audio, chapter, ending, photoShowcase, video } from "../../src/components/index.tsx";`,
     );
     expect(source).toContain(
       `import { figure, line, narration, thumbnail } from "../../src/compositions/index.ts";`,
@@ -167,7 +167,7 @@ describe("emitTimeline", () => {
       `cut(line({ text: "こんにちは", by: hero, expression: "normal" }), { at: 7.8 })`,
     );
     expect(source).toContain(
-      `cut(subtitle({ text: "(声の無い字幕)" }), { after: 1, duration: 1 })`,
+      `cut(line({ text: "(声の無い字幕)", voice: null }), { after: 1, duration: 1 })`,
     );
   });
 

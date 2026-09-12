@@ -204,7 +204,7 @@ const narrationSource = (item: NarrationPlan, character: string): string => {
   const placement = narrationPlacement(item);
 
   if (item.kind === "subtitle") {
-    return `cut(subtitle({ text: ${str(item.text)} }), { ${placement}, duration: ${num(
+    return `cut(line({ text: ${str(item.text)}, voice: null }), { ${placement}, duration: ${num(
       item.duration,
     )} })`;
   }
@@ -230,15 +230,17 @@ const importsSource = (plan: TimelinePlan): string => {
   const hasChapter = plan.scenes.some((scene) => scene.kind === "chapter");
   const hasPhoto = plan.scenes.some((scene) => scene.kind === "photo");
   const hasEnding = plan.scenes.some((scene) => scene.kind === "ending");
-  const hasSubtitle = plan.narration.some((item) => item.kind === "subtitle");
-  const hasLine = plan.narration.some((item) => item.kind === "line");
+  // 声の無い字幕 (kind: "subtitle") も line({ voice: null }) で書くため、
+  // line の import は line・subtitle どちらかの kind があれば要る。
+  const hasLine = plan.narration.some(
+    (item) => item.kind === "line" || item.kind === "subtitle",
+  );
 
   const components = [
     ...(plan.audios.length > 0 ? ["audio"] : []),
     ...(hasChapter ? ["chapter"] : []),
     ...(hasEnding ? ["ending"] : []),
     ...(hasPhoto ? ["photoShowcase"] : []),
-    ...(hasSubtitle ? ["subtitle"] : []),
     ...(plan.videos.length > 0 ? ["video"] : []),
   ];
 

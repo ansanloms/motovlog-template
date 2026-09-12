@@ -37,16 +37,24 @@ export const mergeVoice = (
 
 /**
  * text と voice (省略分は既定値で埋めてから) を JSON にし、SHA-256 の hex を
- * 返す。key の順序を固定するため、object は必ず text → voice の順で組む。
+ * 返す。key の順序を固定するため、object は必ず text → (reading →) voice の
+ * 順で組む。reading は指定時だけ JSON に含める。理由: 既存の (reading の無い)
+ * 行の key を変えないため。
  */
 export const voiceKey = async (params: {
   /** 発話のテキスト。 */
   text: string;
+  /** 合成に渡す文 (省略時は text をそのまま使う)。指定時だけ key に含める。 */
+  reading?: string;
   /** 声質。省略分は既定値 (theme の narrator) で埋める。 */
   voice?: VoiceOptions;
 }): Promise<string> => {
-  const { text, voice } = params;
-  const json = JSON.stringify({ text, voice: resolveVoice(voice) });
+  const { text, reading, voice } = params;
+  const json = JSON.stringify({
+    text,
+    ...(reading !== undefined ? { reading } : {}),
+    voice: resolveVoice(voice),
+  });
   const digest = await crypto.subtle.digest(
     "SHA-256",
     new TextEncoder().encode(json),

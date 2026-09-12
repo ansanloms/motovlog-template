@@ -1,15 +1,17 @@
 // projects/<slug>/timeline.ts を TypeScript の compiler API で静的解析し、
-// line({ text, voice?, by?, expression? }) 呼び出しの text と実効の voice を
-// 集める (ADR-0010, ADR-0011)。
+// line({ text, reading?, voice?, by?, expression? }) 呼び出しの text・reading
+// と実効の voice を集める (ADR-0010, ADR-0011)。
 //
 // watcher (scripts/voice.ts --watch) が timeline.ts の変更ごとに実行時
 // import せずこれを使う理由: 実行時 import は narration() の
 // 音声キャッシュ待ち (Studio の delayRender 相当) を伴い、watcher 自身が
 // 生成元になる構造と噛み合わない。
 //
-// text は文字列リテラルまたは置換無しテンプレートリテラル、あるいはそれらの
-// 配列 (空配列は不可、`\n` で結合する) に限る (narration.ts の line() の
-// JSDoc)。voice は次の式だけを読める。
+// text・reading は文字列リテラルまたは置換無しテンプレートリテラル、あるいは
+// それらの配列 (空配列は不可、`\n` で結合する) に限る (narration.ts の
+// line() の JSDoc)。どちらも結合した文字列が {漢字|よみ} 記法が壊れて
+// いれば (assertReadingNotation()) 位置付きで throw する。voice は次の式
+// だけを読める。
 // - リテラル (文字列・数値・真偽・null・置換無しテンプレート)
 // - オブジェクトリテラル (キーはリテラルのみ。値は再帰的に評価。
 //   spread (...expr) は評価結果のオブジェクトを展開する)
@@ -17,7 +19,10 @@
 //   import は timeline.ts からの相対パスを Node の動的 import() で読む)
 // - プロパティアクセス (a.b)
 // それ以外 (関数呼び出し・条件式・置換ありテンプレート・計算式等) は
-// timeline.ts 内の位置 (行:列) 付きで throw する。
+// timeline.ts 内の位置 (行:列) 付きで throw する。voice が null リテラルに
+// 評価されれば声無し (wav・lipsync を作らない) として、その行を
+// extractLines() の lines から除外し、件数を silent に集計する (reading と
+// voice: null を同時に指定すると位置付きで throw する)。
 //
 // by は識別子に限る。次のいずれかに解決し、その voice プロパティ (無ければ
 // undefined) だけを読む (expressions は評価しない)。
@@ -38,6 +43,7 @@ import * as ts from "typescript";
 import { VOICE_KEYS } from "../../src/voice/cache.ts";
 import type { VoiceOptions } from "../../src/voice/cache.ts";
 import { mergeVoice } from "../../src/voice/key.ts";
+import { assertReadingNotation } from "../../src/voice/reading.ts";
 
 const LIB_DIR = path.resolve(
   path.dirname(fileURLToPath(import.meta.url)),
@@ -88,6 +94,8 @@ const specifierIsLibModule = (
 export type ExtractedLine = {
   /** line() の text (リテラル、配列なら結合済み)。 */
   text: string;
+  /** line() の reading (リテラル、配列なら結合済み)。省略時は undefined (合成には text をそのまま使う)。 */
+  reading?: string;
   /** line() の実効の voice (mergeVoice(by の voice, line() 自身の voice))。省略時は undefined。 */
   voice?: VoiceOptions;
 };
@@ -682,11 +690,30 @@ const readTextLiteral = (
   );
 };
 
+/** assertReadingNotation() の throw を位置情報付きの ExtractLineError に包み直す。 */
+const assertReadingNotationAt = (
+  sourceFile: ts.SourceFile,
+  node: ts.Node,
+  text: string,
+): void => {
+  try {
+    assertReadingNotation(text);
+  } catch (error) {
+    throw new ExtractLineError(
+      `${positionOf(sourceFile, node)}: ${error instanceof Error ? error.message : String(error)}`,
+    );
+  }
+};
+
+/**
+ * line() 呼び出し 1 回分を読む。voice に null リテラルが来た (声無し) 場合は
+ * undefined を返し、呼び出し側 (extractLines()) が抽出結果から除外する。
+ */
 const readLineCall = async (
   sourceFile: ts.SourceFile,
   call: ts.CallExpression,
   context: EvalContext,
-): Promise<ExtractedLine> => {
+): Promise<ExtractedLine | undefined> => {
   const [arg, ...rest] = call.arguments;
 
   if (!arg || rest.length > 0 || !ts.isObjectLiteralExpression(arg)) {
@@ -697,7 +724,9 @@ const readLineCall = async (
 
   const seen = new Set<string>();
   let text: string | undefined;
-  let voice: VoiceOptions | undefined;
+  let reading: string | undefined;
+  let readingNode: ts.Expression | undefined;
+  let voice: VoiceOptions | null | undefined;
   let by: ts.Identifier | undefined;
 
   for (const prop of arg.properties) {
@@ -719,6 +748,21 @@ const readLineCall = async (
 
     if (key === "text") {
       text = readTextLiteral(sourceFile, prop.initializer, "line().text");
+      assertReadingNotationAt(sourceFile, prop.initializer, text);
+      continue;
+    }
+
+    if (key === "reading") {
+      reading = readTextLiteral(sourceFile, prop.initializer, "line().reading");
+      readingNode = prop.initializer;
+
+      if (reading === "") {
+        throw new ExtractLineError(
+          `${positionOf(sourceFile, prop.initializer)}: line().reading を空文字にはできません (声無しは voice: null で書いてください)`,
+        );
+      }
+
+      assertReadingNotationAt(sourceFile, prop.initializer, reading);
       continue;
     }
 
@@ -729,7 +773,8 @@ const readLineCall = async (
         "line().voice",
       );
 
-      voice = validateVoice(value, "line().voice", prop);
+      voice =
+        value === null ? null : validateVoice(value, "line().voice", prop);
       continue;
     }
 
@@ -761,10 +806,25 @@ const readLineCall = async (
     );
   }
 
+  if (voice === null && readingNode !== undefined) {
+    throw new ExtractLineError(
+      `${positionOf(sourceFile, readingNode)}: 声無しの行 (voice: null) に reading は書けません`,
+    );
+  }
+
+  if (voice === null) {
+    // 声無し: wav・lipsync を作らないため抽出結果から除外する。
+    return undefined;
+  }
+
   const byVoice = by ? await resolveByVoice(by, context) : undefined;
   const mergedVoice = mergeVoice(byVoice, voice);
 
-  return mergedVoice === undefined ? { text } : { text, voice: mergedVoice };
+  return {
+    text,
+    ...(reading !== undefined ? { reading } : {}),
+    ...(mergedVoice !== undefined ? { voice: mergedVoice } : {}),
+  };
 };
 
 // specifier が line() を export する lib のモジュールを指すかどうかを見る。
@@ -812,6 +872,14 @@ const isNarrationLineCall = (
   return false;
 };
 
+/** extractLines() の戻り値。 */
+export type ExtractResult = {
+  /** 声のある line() 呼び出し (声無し = voice: null を除く)。 */
+  lines: ExtractedLine[];
+  /** voice: null で除外した (声無しの) line() 呼び出しの件数。 */
+  silent: number;
+};
+
 /**
  * timeline.ts のソースを解析し、line({...}) 呼び出しの text・voice をすべて
  * 集める。line() は lib の入口 (src/compositions/narration.ts・
@@ -821,11 +889,14 @@ const isNarrationLineCall = (
  * テンプレート) か、それらの配列限定、voice は上記の評価器が読める式限定
  * で、それ以外があれば位置情報付きのエラーを投げる。voice の import 解決のため、
  * timeline.ts と同じディレクトリを起点に Node の動的 import() を行う。
+ * voice: null (声無し) の呼び出しは lines から除外し、件数を silent に
+ * 集計する (呼び出し側が「発話が 0 件」を lines.length だけで判定して
+ * 誤警告しないため)。
  */
 export const extractLines = async (
   sourceText: string,
   fileName: string,
-): Promise<ExtractedLine[]> => {
+): Promise<ExtractResult> => {
   const sourceFile = ts.createSourceFile(
     fileName,
     sourceText,
@@ -849,10 +920,18 @@ export const extractLines = async (
   visit(sourceFile);
 
   const lines: ExtractedLine[] = [];
+  let silent = 0;
 
   for (const call of calls) {
-    lines.push(await readLineCall(sourceFile, call, context));
+    const line = await readLineCall(sourceFile, call, context);
+
+    if (line === undefined) {
+      silent++;
+      continue;
+    }
+
+    lines.push(line);
   }
 
-  return lines;
+  return { lines, silent };
 };

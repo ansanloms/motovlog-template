@@ -161,18 +161,23 @@ export const createRunQueue = (
  * 抽出した発話が 0 件のときに出す警告文 (1 件以上なら undefined)。発話の無い
  * project は正当なのでエラーにはしない。ただし timeline.ts の import が lib の
  * 入口を指していないときも 0 件になる (extract.ts は入口から入った line() だけを
- * 拾う) ため、黙って 0 件で終えずに確認を促す。
+ * 拾う) ため、黙って 0 件で終えずに確認を促す。判定は voice: null (声無し) で
+ * 除外される前の呼び出し数 (lineCount + silentCount) で行う。声無しの行だけの
+ * project を、import の指し先を誤ったときと同じ扱いで警告しないため。
  */
-export const noLinesWarning = (lineCount: number): string | undefined =>
-  lineCount === 0
+export const noLinesWarning = (
+  lineCount: number,
+  silentCount: number,
+): string | undefined =>
+  lineCount + silentCount === 0
     ? "warn: 発話 (line()) が 0 件でした。timeline.ts の import が lib の入口 (src/compositions/index.ts か motovlog-template/compositions) を指しているか確認してください"
     : undefined;
 
 const runOnce = async (slug: string, voicevoxUrl: string): Promise<void> => {
   const timelinePath = path.join(consumerRoot, "projects", slug, "timeline.ts");
   const source = fs.readFileSync(timelinePath, "utf-8");
-  const lines = await extractLines(source, timelinePath);
-  const warning = noLinesWarning(lines.length);
+  const { lines, silent } = await extractLines(source, timelinePath);
+  const warning = noLinesWarning(lines.length, silent);
 
   if (warning !== undefined) {
     process.stderr.write(`${warning}\n`);

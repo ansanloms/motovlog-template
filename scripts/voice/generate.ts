@@ -1,8 +1,9 @@
-// extractLines() が集めた line (text・voice) ごとに、音声キャッシュ
+// extractLines() が集めた line (text・reading・voice) ごとに、音声キャッシュ
 // (public/projects/<slug>/lines/<key>.{wav,json}) を生成する (ADR-0010)。
-// 同じ key (text と voice の hash) の wav・json が両方あれば再生成しない。
-// fs・fetch は実際の I/O を injects しないテストができるよう deps 経由で
-// 渡す (scripts/convert のやり方に合わせる)。
+// 合成には reading (省略時は text) を使う。同じ key (text・reading・voice の
+// hash) の wav・json が両方あれば再生成しない。fs・fetch は実際の I/O を
+// injects しないテストができるよう deps 経由で渡す (scripts/convert の
+// やり方に合わせる)。
 
 import path from "node:path";
 import type { VoiceCache } from "../../src/voice/cache.ts";
@@ -74,9 +75,9 @@ export const generateMissing = async (
   let skipped = 0;
   const checkedSpeakers = new Set<number>();
 
-  for (const { text, voice } of lines) {
+  for (const { text, reading: readingProp, voice } of lines) {
     const resolvedVoice = resolveVoice(voice);
-    const key = await voiceKey({ text, voice });
+    const key = await voiceKey({ text, reading: readingProp, voice });
     const relPath = linePath(slug, key);
     const wavPath = path.join(publicDir, `${relPath}.wav`);
     const jsonPath = path.join(publicDir, `${relPath}.json`);
@@ -92,7 +93,7 @@ export const generateMissing = async (
       checkedSpeakers.add(resolvedVoice.speaker);
     }
 
-    const reading = readingText(text);
+    const reading = readingText(readingProp ?? text);
     const query = applyVoice(
       await fetchAudioQuery(
         fetchImpl,
