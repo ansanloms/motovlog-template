@@ -145,15 +145,15 @@ layer 内の item と item の間には `crossfade({ duration })` を置ける�
 
 要素は `motovlog-template/components` が公開する要素ファクトリで組み立てる。各ファクトリは対応するコンポーネントと同じ props を受け、フレーム依存の値は持たない。
 
-| ファクトリ             | 内容                                                                                     |
-| ---------------------- | ---------------------------------------------------------------------------------------- |
-| `video(props)`         | 走行映像。`src` (staticFile() 済み URL)・`trimBefore?` (秒)・`volume?`                   |
-| `audio(props)`         | 音声。`src` (staticFile() 済み URL)・`trimBefore?` (秒)・`volume?`・`loop?`              |
-| `chapter(props)`       | 章タイトル。`title` (文字列、または改行として結合される文字列の配列)・`subtitle`         |
-| `annotation(props)`    | 右上の注釈。`text`                                                                       |
-| `photoShowcase(props)` | 写真紹介 (1〜2 枚)。`photos`                                                             |
-| `ending(props)`        | ED。`title`・`subtitle`・`date`・`distance`・`ridingTime`・`routes`・`credits`           |
-| `subtitleBand({})`     | 字幕下の暗がり (props は無いが引数は要る、通常は `narration()` が組むので直接は使わない) |
+| ファクトリ             | 内容                                                                                                                                                                                                                                  |
+| ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `video(props)`         | 走行映像。`src` (staticFile() 済み URL)・`trimBefore?` (秒)・`volume?`                                                                                                                                                                |
+| `audio(props)`         | 音声。`src` (staticFile() 済み URL)・`trimBefore?` (秒)・`volume?`・`loop?`                                                                                                                                                           |
+| `chapter(props)`       | 章タイトル。`title` (文字列、または改行として結合される文字列の配列)・`subtitle`                                                                                                                                                      |
+| `annotation(props)`    | 右上の注釈。`text`                                                                                                                                                                                                                    |
+| `photoShowcase(props)` | 写真紹介 (1〜2 枚)。`photos` (要素は写真の URL、または短い動画 `{ video, trimBefore? }`。動画は音を出さない (常に無音)。動画は `npm run convert` で `public/projects/<slug>/` に置いた変換済み素材を指す (写真の `photos/` ではない)) |
+| `ending(props)`        | ED。`title`・`subtitle`・`date`・`distance`・`ridingTime`・`routes`・`credits`                                                                                                                                                        |
+| `subtitleBand({})`     | 字幕下の暗がり (props は無いが引数は要る、通常は `narration()` が組むので直接は使わない)                                                                                                                                              |
 
 立ち絵の `figure()` は要素ファクトリではなく `line()`・`narration()` と同じ `motovlog-template/compositions` に置く (「立ち絵」参照。effects の `sample()` を使うため)。サムネ・OP の絵の `thumbnail(props)` も同じ入口に置く (`photo`・`badge`・`title` (文字列、または改行として結合される文字列の配列)・`by` (`character()` の戻り値、表情は `expressions` の最初のキー、か `{ character, expression? }` の形で表情を明示する) を受け、`character()` の表情名の解決 (`figureLayers()`) を伴うため、ADR-0011 の禁止事項により components 単体では書けない)。
 
