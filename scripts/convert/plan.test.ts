@@ -74,6 +74,22 @@ describe("parseConvertArgs", () => {
   it("--help は他の引数の検証より先に効く", () => {
     expect(parseConvertArgs(["--xyz", "--help"])).toBeNull();
   });
+
+  it("素の -- (オプション終端) は読み飛ばし、以降を位置引数として読む (npx motovlog-convert -- <slug> <入力ファイル>...)", () => {
+    expect(parseConvertArgs(["--", "20260817-jododaira", "a.mp4"])).toEqual({
+      slug: "20260817-jododaira",
+      inputs: ["a.mp4"],
+    });
+  });
+
+  it("-- の後の --foo は不明なオプションではなく位置引数 (inputs) として読む", () => {
+    expect(
+      parseConvertArgs(["--", "20260817-jododaira", "--foo", "a.mp4"]),
+    ).toEqual({
+      slug: "20260817-jododaira",
+      inputs: ["--foo", "a.mp4"],
+    });
+  });
 });
 
 describe("gopFromFps", () => {

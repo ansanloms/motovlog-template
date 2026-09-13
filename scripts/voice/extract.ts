@@ -56,10 +56,17 @@ const LIB_DIR = path.resolve(
 
 // lib を bare specifier で参照する利用側 (外部リポジトリ) の import 元
 // (package.json の exports、ADR-0012)。同じリポジトリ内の利用側は相対 import
-// で下の絶対パスに解決される。
-const LIB_PACKAGE_SPECIFIERS = [
+// で下の絶対パスに解決される。line() 用と character() 用で分けており、
+// character() 用だけが "./compositions/character" (characters/<name>.ts が
+// 外部から character.ts を直に import するための入口) を持つ。
+const NARRATION_PACKAGE_SPECIFIERS = [
   "motovlog-template",
   "motovlog-template/compositions",
+];
+
+const CHARACTER_PACKAGE_SPECIFIERS = [
+  ...NARRATION_PACKAGE_SPECIFIERS,
+  "motovlog-template/compositions/character",
 ];
 
 // line() を export する lib のモジュール (実体と、そこへ再 export する入口)
@@ -83,15 +90,17 @@ const CHARACTER_MODULES = [
 
 /**
  * import の specifier が lib の入口を指すかどうかを見る。bare specifier
- * (外部リポジトリからの依存) は文字列一致、相対 specifier は timeline.ts の
- * ディレクトリを起点に解決した絶対パスで突き合わせる。
+ * (外部リポジトリからの依存) は packageSpecifiers との文字列一致、相対
+ * specifier は timeline.ts のディレクトリを起点に解決した絶対パスで
+ * modules と突き合わせる。
  */
 const specifierIsLibModule = (
   context: EvalContext,
   specifier: string,
+  packageSpecifiers: readonly string[],
   modules: readonly string[],
 ): boolean =>
-  LIB_PACKAGE_SPECIFIERS.includes(specifier) ||
+  packageSpecifiers.includes(specifier) ||
   modules.includes(path.resolve(path.dirname(context.fileName), specifier));
 
 /** extractLines() が返す 1 件 (line() 呼び出し 1 回分)。 */
@@ -317,7 +326,13 @@ const unwrapExpr = (node: ts.Expression): ts.Expression => {
 const specifierIsCharacterModule = (
   context: EvalContext,
   specifier: string,
-): boolean => specifierIsLibModule(context, specifier, CHARACTER_MODULES);
+): boolean =>
+  specifierIsLibModule(
+    context,
+    specifier,
+    CHARACTER_PACKAGE_SPECIFIERS,
+    CHARACTER_MODULES,
+  );
 
 /**
  * call の callee が character.ts の character (import の別名・namespace
@@ -923,7 +938,13 @@ const readLineCall = async (
 const specifierIsNarrationModule = (
   context: EvalContext,
   specifier: string,
-): boolean => specifierIsLibModule(context, specifier, NARRATION_MODULES);
+): boolean =>
+  specifierIsLibModule(
+    context,
+    specifier,
+    NARRATION_PACKAGE_SPECIFIERS,
+    NARRATION_MODULES,
+  );
 
 // call の callee が narration.ts の line (import の別名を含む) を指す import
 // の binding に解決されるかどうかを見る。ローカルの const/関数宣言の

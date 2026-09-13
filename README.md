@@ -40,7 +40,57 @@ lib (動画を作る機能) は次の 2 つ。
 | `motovlog-template/compositions` | `src/compositions/index.ts` | `line`・`narration`・`character`・`figure`・`thumbnail`           |
 | `motovlog-template/theme`        | `src/theme/index.ts`        | 配置と秒数のトークン (`chapterTiming`・`openingTiming`・`fps` 等) |
 
-このリポジトリの中の利用側ファイルは、同じ 5 つの入口を相対パス (`../../src/effects/index.ts` 等) で import する。外部のリポジトリから `motovlog-template` を依存として使う手順は未検証 ([ADR-0012](docs/adr/0012-split-template-library-from-consumer.md) の Assumptions)。
+このリポジトリの中の利用側ファイルは、同じ 5 つの入口を相対パス (`../../src/effects/index.ts` 等) で import する。外部のリポジトリから依存として使う手順は「外部のリポジトリから使う」にある。
+
+## 外部のリポジトリから使う
+
+`motovlog-template` は npm レジストリには publish しない (`private: true`)。外部のリポジトリからは GitHub 参照で依存に入れる ([ADR-0012](docs/adr/0012-split-template-library-from-consumer.md))。
+
+```sh
+npm install github:ansanloms/motovlog-template
+```
+
+`peerDependencies` (`remotion`・`@remotion/cli`・`@remotion/google-fonts`・`@remotion/media`・`react`・`react-dom`) は利用側の `dependencies` に同じバージョンで入れる。加えて `tsx`・`typescript`・`@types/react`・`@types/node`・`@types/web` を `devDependencies` に入れる (`tsx` は lib の実行時 `dependencies` にも入っているが、利用側の TypeScript の解決には別途要る)。
+
+利用側に次のファイルを作る (実物は同梱のサンプル project、`app/`・`theme/index.ts` を参照)。
+
+| ファイル                       | 内容                                                                        |
+| ------------------------------ | --------------------------------------------------------------------------- |
+| `app/index.ts`                 | Temporal polyfill の読み込み・`configure()` の呼び出し・`registerRoot()`    |
+| `app/config.ts`                | `theme` の re-export と `defaultProject`。Remotion を import しない          |
+| `theme/index.ts`                | `palette`・`narrator` の値と `theme: Theme`                                 |
+| `projects/<slug>/timeline.ts`  | 動画の定義 (「新しい動画を作る」参照)                                       |
+| `characters/<name>.ts`         | キャラクターの定義 (「立ち絵」参照)                                         |
+| `remotion.config.ts`           | `Config.setEntryPoint("./app/index.ts")`                                    |
+| `.env`                         | `REMOTION_PROJECT`・`VOICEVOX_URL` (「新しい動画を作る」参照)               |
+| `public/`                      | 素材 (「ディレクトリ構成」参照)                                             |
+| `types/temporal.d.ts`          | `/// <reference types="temporal-polyfill/types/global" />` (下記参照)       |
+
+TypeScript 5.9 には Temporal の型が無いため、`temporal-polyfill/global` が実行時にグローバルへ入れる `Temporal` の型を参照する 1 行だけの `.d.ts` を利用側にも置く (`tsconfig.json` の既定の include に入る場所であれば、パスは上記でなくてよい)。lib の同等のファイル (`src/temporal.d.ts`) は `node_modules` 内にあり、tsc の既定の include には入らないため、利用側で別途持つ必要がある。
+
+import は、このリポジトリ内の相対パスの代わりに bare specifier (5 入口 + `characters/<name>.ts` 用の 1 つ) を使う。
+
+| このリポジトリ内の相対パス                    | 外部からの import         |
+| ---------------------------------------------- | -------------------------- |
+| `../../src/index.ts`                           | `motovlog-template`        |
+| `../../src/effects/index.ts`                   | `motovlog-template/effects` |
+| `../../src/components/index.tsx`               | `motovlog-template/components` |
+| `../../src/compositions/index.ts`              | `motovlog-template/compositions` |
+| `../../src/theme/index.ts`                     | `motovlog-template/theme`  |
+| `../../src/compositions/character.ts` (`characters/<name>.ts` 限定) | `motovlog-template/compositions/character` |
+
+`characters/<name>.ts` だけは 5 入口ではなく `motovlog-template/compositions/character` を直に import する (`character()` の実体、`package.json` の `exports` の `./compositions/character`)。理由は [ADR-0012](docs/adr/0012-split-template-library-from-consumer.md) の禁止事項と同じで、5 入口は `figure()`・`line()` 伝いに CSS Modules を辿るため、素の Node から import する音声生成の watcher がこのファイルを読めなくなる。
+
+依存として入った `motovlog-template` は `tsx scripts/<name>.ts` を直接叩けないため、次のコマンドを `bin` として使う。
+
+| コマンド                              | 相当する lib 内の呼び出し           |
+| ------------------------------------- | ------------------------------------ |
+| `npx motovlog-dev`                    | `npm run dev` (`tsx scripts/dev.ts`) |
+| `npx motovlog-voice [slug]`           | `tsx scripts/voice.ts`               |
+| `npx motovlog-convert <slug> <入力ファイル>...` | `tsx scripts/convert-movie.ts` |
+| `npx remotion render Motovlog`        | `npm run render` の後半 (先に `npx motovlog-voice` で音声キャッシュを生成する) |
+
+`REMOTION_PROJECT` の優先順位 (Remotion CLI は `.env` の値をシェルの環境変数より優先する) は「新しい動画を作る」の注記のとおり、外部のリポジトリでも変わらない。
 
 ## 新しい動画を作る
 
