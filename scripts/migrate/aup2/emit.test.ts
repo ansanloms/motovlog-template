@@ -123,6 +123,42 @@ describe("emitTimeline", () => {
     expect(source).not.toContain("src/theme/timing.ts");
   });
 
+  it("写真紹介の動画要素を書く (trimBefore 0 は省略、volume は書かない)", () => {
+    const source2 = emitTimeline(
+      plan({
+        scenes: [
+          {
+            kind: "photo",
+            at: 12.8,
+            duration: 2,
+            photos: ["photos/P1.jpg", { video: "V1.mp4", trimBefore: 3 }],
+          },
+        ],
+      }),
+    );
+
+    expect(source2).toContain(
+      `photoShowcase({ photos: [asset("photos/P1.jpg"), { video: asset("V1.mp4"), trimBefore: 3 }] })`,
+    );
+
+    const source3 = emitTimeline(
+      plan({
+        scenes: [
+          {
+            kind: "photo",
+            at: 12.8,
+            duration: 2,
+            photos: [{ video: "V1.mp4", trimBefore: 0 }],
+          },
+        ],
+      }),
+    );
+
+    expect(source3).toContain(
+      `photoShowcase({ photos: [{ video: asset("V1.mp4") }] })`,
+    );
+  });
+
   it("slug から asset() を組み立てる", () => {
     expect(source).toContain(
       "const asset = (path: string) => staticFile(`projects/20260101-sample/${path}`);",
