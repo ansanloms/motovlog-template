@@ -41,6 +41,7 @@
 // narration.ts と同じ関数を使い、静的解析側と実行時側で結果を一致させる)。
 
 import fs from "node:fs";
+import { createRequire } from "node:module";
 import path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import * as ts from "typescript";
@@ -54,54 +55,79 @@ const LIB_DIR = path.resolve(
   "../../src",
 );
 
-// lib を bare specifier で参照する利用側 (外部リポジトリ) の import 元
-// (package.json の exports、ADR-0012)。同じリポジトリ内の利用側は相対 import
-// で下の絶対パスに解決される。line() 用と character() 用で分けており、
-// character() 用だけが "./compositions/character" (characters/<name>.ts が
-// 外部から character.ts を直に import するための入口) を持つ。
-const NARRATION_PACKAGE_SPECIFIERS = [
-  "motovlog-template",
-  "motovlog-template/compositions",
-];
-
-const CHARACTER_PACKAGE_SPECIFIERS = [
-  ...NARRATION_PACKAGE_SPECIFIERS,
-  "motovlog-template/compositions/character",
-];
+// realpath で正規化した絶対パスの集合を作る (specifierIsLibModule() が
+// import の解決先と突き合わせる側)。symlink 経由の依存 (npm link・monorepo
+// 等) でも実体のパスで一致させるため realpath を通す。
+const realpathAll = (paths: readonly string[]): ReadonlySet<string> =>
+  new Set(paths.map((p) => fs.realpathSync(p)));
 
 // line() を export する lib のモジュール (実体と、そこへ再 export する入口)
-// の絶対パス。findLineCalls() は import がこのいずれかに解決されるものだけを
-// 発話の呼び出しと見なす (単なる識別子名 "line" の一致では、import の別名や
-// 無関係な同名のローカル関数を誤検出するため)。
-const NARRATION_MODULES = [
+// の絶対パス (realpath 済み)。isNarrationLineCall() は import がこのいずれかに
+// 解決されるものだけを発話の呼び出しと見なす (単なる識別子名 "line" の一致
+// では、import の別名や無関係な同名のローカル関数を誤検出するため)。
+const NARRATION_MODULE_REALPATHS = realpathAll([
   path.join(LIB_DIR, "compositions/narration.ts"),
   path.join(LIB_DIR, "compositions/index.ts"),
   path.join(LIB_DIR, "index.ts"),
-];
+]);
 
-// character() を export する lib のモジュールの絶対パス。isCharacterCall() は
-// import がこのいずれかに解決されるものだけを character() の呼び出しと見なす
-// (isNarrationLineCall() と同じ理由)。
-const CHARACTER_MODULES = [
+// character() を export する lib のモジュールの絶対パス (realpath 済み)。
+// isCharacterCall() は import がこのいずれかに解決されるものだけを
+// character() の呼び出しと見なす (isNarrationLineCall() と同じ理由)。
+const CHARACTER_MODULE_REALPATHS = realpathAll([
   path.join(LIB_DIR, "compositions/character.ts"),
   path.join(LIB_DIR, "compositions/index.ts"),
   path.join(LIB_DIR, "index.ts"),
-];
+]);
+
+// bare specifier (外部リポジトリからの依存) を Node の解決 (node_modules →
+// package.json の exports) で実ファイルの絶対パスへ解決する。require.resolve()
+// は対象が .ts でもパスを返すだけで読み込みは起きない。解決できなければ
+// (依存が無い・存在しない subpath 等) undefined を返す。
+const resolveBareSpecifier = (
+  fileName: string,
+  specifier: string,
+): string | undefined => {
+  try {
+    return createRequire(pathToFileURL(fileName)).resolve(specifier);
+  } catch {
+    return undefined;
+  }
+};
 
 /**
- * import の specifier が lib の入口を指すかどうかを見る。bare specifier
- * (外部リポジトリからの依存) は packageSpecifiers との文字列一致、相対
- * specifier は timeline.ts のディレクトリを起点に解決した絶対パスで
- * modules と突き合わせる。
+ * import の specifier が lib のファイル (moduleRealpaths) に解決されるか
+ * どうかを見る。package 名 (motovlog-template 等) との文字列一致ではなく
+ * 解決先のファイルで判定する。npm alias・fork・改名した依存でも、実体が
+ * lib のファイルであれば判定が壊れないようにするため。
+ *
+ * 相対 specifier (./・../) は timeline.ts のディレクトリを起点に
+ * path.resolve() で、bare specifier は resolveBareSpecifier() (Node の
+ * 解決) で絶対パスに解決する。どちらの結果も realpath で正規化してから
+ * moduleRealpaths と突き合わせる (symlink 経由でも実体のパスで一致させる)。
+ * 解決できない・解決先が存在しない場合は lib ではないと見なす。
  */
 const specifierIsLibModule = (
   context: EvalContext,
   specifier: string,
-  packageSpecifiers: readonly string[],
-  modules: readonly string[],
-): boolean =>
-  packageSpecifiers.includes(specifier) ||
-  modules.includes(path.resolve(path.dirname(context.fileName), specifier));
+  moduleRealpaths: ReadonlySet<string>,
+): boolean => {
+  const isRelative = specifier.startsWith("./") || specifier.startsWith("../");
+
+  const resolved = isRelative
+    ? path.resolve(path.dirname(context.fileName), specifier)
+    : resolveBareSpecifier(context.fileName, specifier);
+
+  if (resolved === undefined) {
+    return false;
+  }
+
+  try {
+    return moduleRealpaths.has(fs.realpathSync(resolved));
+  } catch {
+    return false;
+  }
+};
 
 /** extractLines() が返す 1 件 (line() 呼び出し 1 回分)。 */
 export type ExtractedLine = {
@@ -327,12 +353,7 @@ const specifierIsCharacterModule = (
   context: EvalContext,
   specifier: string,
 ): boolean =>
-  specifierIsLibModule(
-    context,
-    specifier,
-    CHARACTER_PACKAGE_SPECIFIERS,
-    CHARACTER_MODULES,
-  );
+  specifierIsLibModule(context, specifier, CHARACTER_MODULE_REALPATHS);
 
 /**
  * call の callee が character.ts の character (import の別名・namespace
@@ -939,12 +960,7 @@ const specifierIsNarrationModule = (
   context: EvalContext,
   specifier: string,
 ): boolean =>
-  specifierIsLibModule(
-    context,
-    specifier,
-    NARRATION_PACKAGE_SPECIFIERS,
-    NARRATION_MODULES,
-  );
+  specifierIsLibModule(context, specifier, NARRATION_MODULE_REALPATHS);
 
 // call の callee が narration.ts の line (import の別名を含む) を指す import
 // の binding に解決されるかどうかを見る。ローカルの const/関数宣言の
@@ -996,9 +1012,9 @@ export type ExtractResult = {
 /**
  * timeline.ts のソースを解析し、line({...}) 呼び出しの text・voice をすべて
  * 集める。line() は lib の入口 (src/compositions/narration.ts・
- * src/compositions/index.ts・src/index.ts、または bare specifier の
- * motovlog-template・motovlog-template/compositions) からの import (別名を
- * 含む) に解決されるものだけを対象にする。text はリテラル (文字列・置換無し
+ * src/compositions/index.ts・src/index.ts。相対 import でも、それらに解決
+ * される bare specifier (外部リポジトリからの依存) でもよい) からの import
+ * (別名を含む) に解決されるものだけを対象にする。text はリテラル (文字列・置換無し
  * テンプレート) か、それらの配列限定、voice は上記の評価器が読める式限定
  * で、それ以外があれば位置情報付きのエラーを投げる。voice の import 解決のため、
  * timeline.ts と同じディレクトリを起点に Node の動的 import() を行う。

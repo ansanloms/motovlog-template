@@ -1,4 +1,5 @@
 import { config } from "@remotion/eslint-config-flat";
+import pkg from "./package.json" with { type: "json" };
 
 /**
  * lib (src/) が利用側 (app/・theme/・projects/・characters/) を静的に import
@@ -226,8 +227,8 @@ export default [
                 "!**/src/compositions/",
                 "**/src/compositions/*",
                 "!**/src/compositions/character.ts",
-                "motovlog-template",
-                "motovlog-template/*",
+                pkg.name,
+                `${pkg.name}/*`,
               ],
               message:
                 "characters/<name>.ts が lib から import してよいのは src/compositions/character.ts だけ (ADR-0011・ADR-0012)。入口 (src/compositions/index.ts 等) は CSS Modules を辿るため、素の Node から読めなくなる。",
