@@ -60,7 +60,7 @@
   "scripts": {
     "dev": "tsx scripts/dev.ts",
     "build": "remotion bundle",
-    "upgrade": "remotion upgrade",
+    "upgrade": "scripts/remotion-upgrade.sh",
     "lint": "eslint app theme src test scripts projects characters vitest.config.mts && tsc && prettier --check app theme src test scripts projects characters eslint.config.mjs vitest.config.mts remotion.config.ts",
     "fix": "eslint --fix app theme src test scripts projects characters vitest.config.mts && prettier --write app theme src test scripts projects characters eslint.config.mjs vitest.config.mts remotion.config.ts",
     "test": "vitest run",

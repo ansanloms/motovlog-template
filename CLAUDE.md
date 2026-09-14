@@ -2,14 +2,15 @@
 
 ## skill の導入
 
-`.claude/skills/` 配下の skill は apm (Agent Package Manager) で導入する。依存は `apm.yml` に書き、`apm install` で `.claude/skills/` へ配置する。`apm.yml`・`apm.lock.yaml`・`.claude/skills/` はコミットし、`apm_modules/` はコミットしない。
+`.claude/skills/` 配下の skill は apm (Agent Package Manager) で導入する。依存は `apm.yml` に書き、`apm install` で `.claude/skills/` へ配置する。`apm.yml`・`apm.lock.yaml`・`.claude/skills/` はコミットし、`apm_modules/` はコミットしない。`apm_modules/` は同梱 skill の `.ts` を `tsc` が拾ってしまうため、`tsconfig.json` の `exclude` で型検査から外している。
 
 - skill の追加は `apm.yml` に依存を書いて `apm install` を実行する。ref を固定していない依存 (`ansanloms/skills` 配下) の更新は `apm update` で行う。`apm install` は `apm.lock.yaml` に固定された commit を再配置するだけで、更新はしない。`.claude/skills/` 配下を直接編集しない。
 - `remotion-dev/skills` は commit SHA で固定する。固定先は、その commit の `skills/remotion-docs/SKILL.md` の `version` が、インストール済みの Remotion (`package.json` の `remotion`) と一致する commit にする。
-- Remotion をバージョンアップしたら、`remotion-dev/skills` の履歴から対応する commit を探して `apm.yml` の SHA を更新し、`apm install` を実行する。`remotion upgrade` はこの skill を更新しない。理由: 更新判定が `.agents/skills/` を対象にしており、このリポジトリの配置先 `.claude/skills/` を見ないため。
+- Remotion をバージョンアップしたら `npm run upgrade` (`scripts/remotion-upgrade.sh`) を実行する。`npx remotion upgrade --skip-skills`、optional peer のバージョン揃え、`remotion-dev/skills` の対応 commit 探索、`apm.yml` の SHA 更新、`apm install`、lint・test・build をまとめて行う。`remotion upgrade` 単体はこの skill を更新しない。理由: 更新判定が `.agents/skills/` を対象にしており、このリポジトリの配置先 `.claude/skills/` を見ないため。GitHub Actions の `Remotion upgrade` workflow (`.github/workflows/remotion-upgrade.yml`、`workflow_dispatch`。版を指定しなければ最新) も同じスクリプトを実行し、差分があれば `chore/remotion-upgrade-<版>` ブランチで PR を作る。
 - `npx skills` や `remotion skills` (npm の skills CLI) で skill を追加・更新しない。理由: apm の管理外で `.claude/skills/` を書き換え、`apm.lock.yaml` のハッシュと乖離して `apm install --frozen` が通らなくなる。同梱の `remotion-upgrade` skill は `@remotion/cli` が無い環境の代替手順として `npx skills update` を案内するが、この手順は使わない。
-- Dependabot (`.github/dependabot.yml`) は `remotion` と `@remotion/*` を `ignore` で対象外にしている。理由: Remotion の更新には上記の `apm.yml` の SHA 更新と `apm install` が伴い、Dependabot はそれを行えないため。`ignore` は security update にも効くため、Remotion の脆弱性修正も Dependabot の PR は作られない。Remotion は `npm run upgrade` と apm の手順で手動更新する。
-- Remotion 4.0.523 以降、`@remotion/studio` が optional peer (`@remotion/whisper-webgpu`・`@remotion/video-matting`) を無条件に import するため、これらを Remotion 本体と同じバージョンで `devDependencies` に置く。`npm run upgrade` のあとはこれらも同じバージョンに揃える。
+- Dependabot (`.github/dependabot.yml`) は `remotion` と `@remotion/*` を `ignore` で対象外にしている。理由: Remotion の更新には上記の `apm.yml` の SHA 更新と `apm install` が伴い、Dependabot はそれを行えないため。`ignore` は security update にも効くため、Remotion の脆弱性修正も Dependabot の PR は作られない。Remotion は `npm run upgrade` または `Remotion upgrade` workflow で更新する。
+- `Remotion upgrade` workflow は apm-cli を 0.28.0 に固定して入れている。理由: 0.29.1 以降の退行 (microsoft/apm#2888) で skill 集リポジトリの `apm install` が失敗するため。修正を含むリリースが出たら固定を外す。
+- Remotion 4.0.523 以降、`@remotion/studio` が optional peer (`@remotion/whisper-webgpu`・`@remotion/video-matting`) を無条件に import するため、これらを Remotion 本体と同じバージョンで `devDependencies` に置く。`npm run upgrade` (`scripts/remotion-upgrade.sh`) がこれらも同じバージョンに揃える。
 
 ## Remotion ドキュメントの参照
 
