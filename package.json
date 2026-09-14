@@ -46,7 +46,7 @@
     "@remotion/media": "4.0.523",
     "@remotion/video-matting": "4.0.523",
     "@remotion/whisper-webgpu": "4.0.523",
-    "@types/node": "26.4.1",
+    "@types/node": "26.5.1",
     "@types/react": "19.3.0",
     "@types/web": "0.0.355",
     "eslint": "9.19.0",
