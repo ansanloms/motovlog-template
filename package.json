@@ -54,7 +54,7 @@
     "react": "19.3.0",
     "react-dom": "19.3.0",
     "remotion": "4.0.524",
-    "typescript": "5.9.3",
+    "typescript": "7.0.2",
     "vitest": "5.0.0"
   },
   "scripts": {
