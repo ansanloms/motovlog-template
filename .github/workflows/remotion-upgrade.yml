@@ -1,0 +1,73 @@
+name: Remotion upgrade
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Remotion version (empty for latest)"
+        required: false
+        type: string
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  upgrade:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+      - run: npm ci
+      - run: pip install apm-cli==0.28.0
+      - run: apm --version
+      - run: scripts/remotion-upgrade.sh "$VERSION"
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ inputs.version }}
+      - id: diff
+        run: |
+          if [ -z "$(git status --porcelain)" ]; then
+            echo "changed=false" >>"$GITHUB_OUTPUT"
+          else
+            echo "changed=true" >>"$GITHUB_OUTPUT"
+          fi
+      - if: steps.diff.outputs.changed == 'true'
+        id: target
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          version="$(node -p "const p=require('./package.json'); p.devDependencies?.remotion ?? p.dependencies?.remotion ?? ''")"
+          echo "version=$version" >>"$GITHUB_OUTPUT"
+          branch="chore/remotion-upgrade-${version}"
+          if [ "$(gh pr list --head "$branch" --state open --json number --jq length)" = "0" ]; then
+            echo "skip=false" >>"$GITHUB_OUTPUT"
+          else
+            pr_number="$(gh pr list --head "$branch" --state open --json number --jq '.[0].number')"
+            echo "PR #$pr_number already open; skipping"
+            echo "skip=true" >>"$GITHUB_OUTPUT"
+          fi
+      - if: steps.diff.outputs.changed == 'true' && steps.target.outputs.skip == 'false'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git switch -c "chore/remotion-upgrade-${{ steps.target.outputs.version }}"
+          git add -A
+          git commit -m "build: Remotion を ${{ steps.target.outputs.version }} へ更新"
+          git push -u origin "chore/remotion-upgrade-${{ steps.target.outputs.version }}"
+      - if: steps.diff.outputs.changed == 'true' && steps.target.outputs.skip == 'false'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh pr create \
+            --base main \
+            --head "chore/remotion-upgrade-${{ steps.target.outputs.version }}" \
+            --title "build: Remotion を ${{ steps.target.outputs.version }} へ更新" \
+            --body "Remotion upgrade workflow による自動更新。\`GITHUB_TOKEN\` で作成した PR のため CI (ci.yml) は起動しない。scripts/remotion-upgrade.sh で \`npx remotion upgrade\`、optional peer の揃え、remotion-dev/skills の SHA 更新、apm install、lint、test、build を通した。"
