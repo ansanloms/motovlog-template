@@ -70,4 +70,4 @@ jobs:
             --base main \
             --head "chore/remotion-upgrade-${{ steps.target.outputs.version }}" \
             --title "build: Remotion を ${{ steps.target.outputs.version }} へ更新" \
-            --body "Remotion upgrade workflow による自動更新。\`GITHUB_TOKEN\` で作成した PR のため CI (ci.yml) は起動しない。scripts/remotion-upgrade.sh で \`npx remotion upgrade\`、optional peer の揃え、remotion-dev/skills の SHA 更新、apm install、lint、test、build を通した。"
+            --body "Remotion upgrade workflow による自動更新。scripts/remotion-upgrade.sh で \`npx remotion upgrade\`、optional peer の揃え、remotion-dev/skills の SHA 更新、apm install、lint、test、build を通した。"
