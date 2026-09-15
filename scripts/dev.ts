@@ -6,12 +6,14 @@
 // SIGINT/SIGTERM は子に伝えてから終わる。
 
 import { spawn } from "node:child_process";
+import { loadDotEnv } from "./env.ts";
 import { run as runVoiceWatch } from "./voice.ts";
 
 const main = async (): Promise<void> => {
-  // .env の読み込み (scripts/voice.ts のモジュール読み込み時の副作用) を
-  // 経てから起動するため、REMOTION_PROJECT 等は子プロセス (remotion studio)
-  // にも process.env 経由でそのまま引き継がれる。
+  // .env を明示的に読み込んでから起動するため、REMOTION_PROJECT 等は
+  // 子プロセス (remotion studio) にも process.env 経由でそのまま引き継がれる。
+  loadDotEnv();
+
   const watch = await runVoiceWatch(["--watch"]);
 
   const child = spawn("remotion", ["studio", ...process.argv.slice(2)], {

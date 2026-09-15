@@ -32,7 +32,7 @@ tags: [remotion, ffmpeg, studio]
 - convert (`npm run convert`) は、各入力の変換済み素材 `<basename>.mp4` に加えて、そこから Studio 用プロキシ `<basename>.preview.mp4` を生成する。
 - プロキシは変換済み素材 (本体) を入力にして生成する。原本 (HEVC) を直接の入力にしない。
 - プロキシのエンコード設定は次のとおりとする。
-  - 解像度は 540p (`scale=-2:540`)。
+  - 解像度は既定 540p (`scale=-2:540`)。環境変数 `PREVIEW_HEIGHT` (`.env`、2 以上の偶数) で変えられる。
   - GOP 長は本体と同じ値。
   - 映像は nvenc `-cq 30`、libx264 `-crf 30`。
   - 音声は再エンコードせずコピー。
