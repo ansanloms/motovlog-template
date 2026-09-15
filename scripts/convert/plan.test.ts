@@ -4,9 +4,12 @@ import {
   ConvertAbortedError,
   encodeArgs,
   gopFromFps,
+  isPreviewInput,
   nvencEnv,
   outputName,
   parseConvertArgs,
+  previewArgs,
+  previewName,
   probeArgs,
   PROJECT_SLUG_PATTERN,
   runConvert,
@@ -246,6 +249,88 @@ describe("encodeArgs", () => {
   });
 });
 
+describe("previewName", () => {
+  it("拡張子を除いた名前に .preview を足す", () => {
+    expect(previewName("c")).toBe("c.preview");
+  });
+});
+
+describe("isPreviewInput", () => {
+  it(".preview.mp4 で終わるパスは true", () => {
+    expect(isPreviewInput("a.preview.mp4")).toBe(true);
+    expect(isPreviewInput("/out/dir/a.preview.mp4")).toBe(true);
+  });
+
+  it(".preview.mp4 で終わらないパスは false", () => {
+    expect(isPreviewInput("a.mp4")).toBe(false);
+    expect(isPreviewInput("a.preview.mov")).toBe(false);
+  });
+});
+
+describe("previewArgs", () => {
+  it("nvenc の ffmpeg 引数を返す", () => {
+    expect(
+      previewArgs({
+        encoder: "nvenc",
+        input: "in.mp4",
+        output: "out.mp4",
+        gop: 30,
+      }),
+    ).toEqual([
+      "-y",
+      "-i",
+      "in.mp4",
+      "-vf",
+      "scale=-2:540",
+      "-c:v",
+      "h264_nvenc",
+      "-pix_fmt",
+      "yuv420p",
+      "-preset",
+      "p4",
+      "-cq",
+      "30",
+      "-g",
+      "30",
+      "-c:a",
+      "copy",
+      "-movflags",
+      "+faststart",
+      "out.mp4",
+    ]);
+  });
+
+  it("libx264 の ffmpeg 引数を返す", () => {
+    expect(
+      previewArgs({
+        encoder: "libx264",
+        input: "in.mp4",
+        output: "out.mp4",
+        gop: 30,
+      }),
+    ).toEqual([
+      "-y",
+      "-i",
+      "in.mp4",
+      "-vf",
+      "scale=-2:540",
+      "-c:v",
+      "libx264",
+      "-preset",
+      "veryfast",
+      "-crf",
+      "30",
+      "-g",
+      "30",
+      "-c:a",
+      "copy",
+      "-movflags",
+      "+faststart",
+      "out.mp4",
+    ]);
+  });
+});
+
 describe("runConvert", () => {
   type Call = { args: string[]; env: NodeJS.ProcessEnv };
 
@@ -286,7 +371,7 @@ describe("runConvert", () => {
     return { deps, calls, renames, unlinks, logs, warns };
   };
 
-  it("(a) probe 成功・2 本とも nvenc 成功なら nvenc で done する", async () => {
+  it("(a) probe 成功・2 本とも nvenc 成功なら nvenc で done し、プロキシも作る", async () => {
     const { deps, calls, renames, logs, warns } = makeDeps(() => 0);
 
     await runConvert(
@@ -297,21 +382,26 @@ describe("runConvert", () => {
     const doneLogs = logs.filter((line) => line.startsWith("done:"));
     expect(doneLogs).toEqual([
       "done: /out/a.mp4 (nvenc)",
+      "done: /out/a.preview.mp4 (nvenc, preview)",
       "done: /out/b.mp4 (nvenc)",
+      "done: /out/b.preview.mp4 (nvenc, preview)",
     ]);
     expect(renames).toEqual([
       { from: "/out/.tmp.a.mp4", to: "/out/a.mp4" },
+      { from: "/out/.tmp.a.preview.mp4", to: "/out/a.preview.mp4" },
       { from: "/out/.tmp.b.mp4", to: "/out/b.mp4" },
+      { from: "/out/.tmp.b.preview.mp4", to: "/out/b.preview.mp4" },
     ]);
     expect(warns).toEqual([]);
-    // probe + 2 本の nvenc encode = 3 回。
-    expect(calls).toHaveLength(3);
+    // probe + (本体 + プロキシ) x 2 本 = 5 回。
+    expect(calls).toHaveLength(5);
   });
 
   it("(b) 1 本目の nvenc が失敗したら libx264 で再試行し、以降は libx264 で統一する", async () => {
     const { deps, calls, logs, warns } = makeDeps((call, index) => {
-      // 0: probe, 1: a.mp4 nvenc (失敗), 2: a.mp4 libx264 再試行 (成功),
-      // 3: b.mkv libx264 (成功、encoder がラッチされているので最初から libx264)。
+      // 0: probe, 1: a.mp4 本体 nvenc (失敗), 2: a.mp4 本体 libx264 再試行
+      // (成功)、3: a.mp4 プロキシ libx264 (成功、以降 libx264 に統一済み)、
+      // 4: b.mkv 本体 libx264 (成功)、5: b.mkv プロキシ libx264 (成功)。
       if (index === 1) {
         return 1;
       }
@@ -325,7 +415,9 @@ describe("runConvert", () => {
 
     expect(logs.filter((line) => line.startsWith("done:"))).toEqual([
       "done: /out/a.mp4 (libx264)",
+      "done: /out/a.preview.mp4 (libx264, preview)",
       "done: /out/b.mp4 (libx264)",
+      "done: /out/b.preview.mp4 (libx264, preview)",
     ]);
     expect(warns).toEqual([
       "warn: nvenc に失敗したため libx264 で再試行します: a.mp4",
@@ -349,7 +441,9 @@ describe("runConvert", () => {
 
     expect(logs.filter((line) => line.startsWith("done:"))).toEqual([
       "done: /out/a.mp4 (libx264)",
+      "done: /out/a.preview.mp4 (libx264, preview)",
       "done: /out/b.mp4 (libx264)",
+      "done: /out/b.preview.mp4 (libx264, preview)",
     ]);
     expect(warns).toEqual(["warn: nvenc が使えないため libx264 で変換します"]);
     // probe 自体は h264_nvenc で打つので 1 回だけ含まれる。encode 側には含まれない。
@@ -358,7 +452,7 @@ describe("runConvert", () => {
     ).toHaveLength(1);
   });
 
-  it("(d) 出力が既に存在する入力は skip し、ffmpeg を呼ばない", async () => {
+  it("(d) 本体の出力が既に存在する入力は本体の ffmpeg を呼ばないが、プロキシは作る", async () => {
     const { deps, calls, logs } = makeDeps(() => 0, ["/out/a.mp4"]);
 
     await runConvert(
@@ -367,9 +461,9 @@ describe("runConvert", () => {
     );
 
     expect(logs).toContain("skip: /out/a.mp4 は既に存在します");
-    // probe (1 回) + b.mkv の encode (1 回) = 2 回。a.mp4 は skip されるので
-    // encode は呼ばれない。
-    expect(calls).toHaveLength(2);
+    // probe (1 回) + a.mp4 のプロキシ encode (1 回、本体は skip されるので
+    // 呼ばれない) + b.mkv の本体・プロキシ encode (2 回) = 4 回。
+    expect(calls).toHaveLength(4);
   });
 
   it("(e) nvenc 失敗後の libx264 再試行も失敗したら Error を投げ、tmp を unlink する", async () => {
@@ -475,7 +569,141 @@ describe("runConvert", () => {
       ),
     ).rejects.toThrow(ConvertAbortedError);
 
-    // probe + a.mp4 の nvenc encode の 2 回だけ。b.mkv の ffmpeg は呼ばれない。
+    // probe + a.mp4 の nvenc encode の 2 回だけ。abort により a.mp4 の
+    // プロキシも b.mkv の ffmpeg も呼ばれない。
     expect(calls).toHaveLength(2);
+  });
+
+  it("(j) 本体を作った後、その出力を入力にしてプロキシを作る", async () => {
+    const { deps, calls, renames, logs } = makeDeps(() => 0);
+
+    await runConvert(
+      { inputs: ["a.mp4"], outDir: "/out", fps: 30, gop: 30 },
+      deps,
+    );
+
+    // 0: probe, 1: 本体 encode, 2: プロキシ encode。
+    expect(calls).toHaveLength(3);
+    expect(calls[2].args).toEqual(
+      previewArgs({
+        encoder: "nvenc",
+        input: "/out/a.mp4",
+        output: "/out/.tmp.a.preview.mp4",
+        gop: 30,
+      }),
+    );
+    expect(renames).toContainEqual({
+      from: "/out/.tmp.a.preview.mp4",
+      to: "/out/a.preview.mp4",
+    });
+    expect(logs.filter((line) => line.startsWith("done:"))).toEqual([
+      "done: /out/a.mp4 (nvenc)",
+      "done: /out/a.preview.mp4 (nvenc, preview)",
+    ]);
+  });
+
+  it("(k) 本体は既に存在するがプロキシが無ければプロキシだけ作る", async () => {
+    const { deps, calls, logs } = makeDeps(() => 0, ["/out/a.mp4"]);
+
+    await runConvert(
+      { inputs: ["a.mp4"], outDir: "/out", fps: 30, gop: 30 },
+      deps,
+    );
+
+    expect(logs).toContain("skip: /out/a.mp4 は既に存在します");
+    // probe + プロキシ encode の 2 回だけ。本体は skip されるので呼ばれない。
+    expect(calls).toHaveLength(2);
+  });
+
+  it("(l) 本体・プロキシとも既に存在すれば encode を 1 回も呼ばない", async () => {
+    const { deps, calls, logs } = makeDeps(
+      () => 0,
+      ["/out/a.mp4", "/out/a.preview.mp4"],
+    );
+
+    await runConvert(
+      { inputs: ["a.mp4"], outDir: "/out", fps: 30, gop: 30 },
+      deps,
+    );
+
+    expect(logs).toContain("skip: /out/a.mp4 は既に存在します");
+    expect(logs).toContain("skip: /out/a.preview.mp4 は既に存在します");
+    // probe だけで encode は 1 回も呼ばれない。
+    expect(calls).toHaveLength(1);
+  });
+
+  it("(m) プロキシの nvenc・libx264 再試行とも失敗したら Error を投げ、プロキシの tmp だけ unlink して本体は残す", async () => {
+    const { deps, unlinks, renames, warns } = makeDeps((call, index) => {
+      // 0: probe (成功), 1: 本体 nvenc (成功), 2: プロキシ nvenc (失敗),
+      // 3: プロキシ libx264 再試行 (失敗)。
+      if (index <= 1) {
+        return 0;
+      }
+      return 1;
+    });
+
+    await expect(
+      runConvert({ inputs: ["a.mp4"], outDir: "/out", fps: 30, gop: 30 }, deps),
+    ).rejects.toThrow("ffmpeg が失敗しました (exit 1): /out/a.mp4");
+
+    expect(unlinks).toEqual(["/out/.tmp.a.preview.mp4"]);
+    expect(renames).toEqual([{ from: "/out/.tmp.a.mp4", to: "/out/a.mp4" }]);
+    expect(warns).toContain(
+      "warn: nvenc に失敗したため libx264 で再試行します: /out/a.mp4",
+    );
+  });
+
+  it("(n) プロキシの nvenc encode 中に abort されたら ConvertAbortedError を投げる", async () => {
+    const controller = new AbortController();
+    const { deps, calls, unlinks, warns } = makeDeps((call, index) => {
+      // 0: probe (成功), 1: 本体 nvenc (成功), 2: プロキシ nvenc encode
+      // (この呼び出し中に abort)。
+      if (index === 2) {
+        controller.abort();
+        return 1;
+      }
+      return 0;
+    });
+
+    await expect(
+      runConvert(
+        {
+          inputs: ["a.mp4"],
+          outDir: "/out",
+          fps: 30,
+          gop: 30,
+          signal: controller.signal,
+        },
+        deps,
+      ),
+    ).rejects.toThrow(ConvertAbortedError);
+
+    // probe + 本体 encode + プロキシの nvenc encode の 3 回だけ。abort に
+    // より libx264 の再試行は起きない。
+    expect(calls).toHaveLength(3);
+    expect(unlinks).toEqual(["/out/.tmp.a.preview.mp4"]);
+    expect(warns).not.toContain(
+      "warn: nvenc に失敗したため libx264 で再試行します: /out/a.mp4",
+    );
+  });
+
+  it("(o) .preview.mp4 の入力は本体・プロキシとも処理せずスキップする", async () => {
+    const { deps, calls, logs } = makeDeps(
+      () => 0,
+      ["/out/a.mp4", "/out/a.preview.mp4"],
+    );
+
+    await runConvert(
+      { inputs: ["a.mp4", "a.preview.mp4"], outDir: "/out", fps: 30, gop: 30 },
+      deps,
+    );
+
+    expect(logs).toContain("skip: a.preview.mp4 はプロキシです");
+    expect(logs.some((line) => line.includes("a.preview.preview.mp4"))).toBe(
+      false,
+    );
+    // probe のみ。a.mp4 は本体・プロキシとも既存なのでスキップし、
+    // a.preview.mp4 はプロキシ入力としてスキップするので ffmpeg は呼ばれない。
+    expect(calls).toHaveLength(1);
   });
 });

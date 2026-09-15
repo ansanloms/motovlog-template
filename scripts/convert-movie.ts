@@ -1,5 +1,7 @@
 // 使い方: npm run convert -- <slug> <入力ファイル>...
 // 各入力を public/projects/<slug>/<basename>.mp4 へ変換する (ADR-0003)。
+// あわせて、その変換済み素材から Studio 用プロキシ (540p)
+// public/projects/<slug>/<basename>.preview.mp4 を作る (ADR-0013)。
 // 出力先は cwd (利用側のルート) から引く (ADR-0012)。
 // fps は theme の定数 1 つで、composition と一致させる (ADR-0003)。
 // 起動時に nvenc が使えるかを確認し、使えなければ libx264 を使う。nvenc が使える場合でも、

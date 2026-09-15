@@ -26,6 +26,7 @@ npm run convert -- 20260901-example /mnt/c/path/to/DASHCAM_20260901_133345.MP4
 ```
 
 - 出力は `public/projects/20260901-example/DASHCAM_20260901_133345.mp4` (原本の basename + `.mp4`)。既にあればスキップする。
+- あわせて Studio 用プロキシ `public/projects/20260901-example/DASHCAM_20260901_133345.preview.mp4` (540p) も作る ([ADR-0013](adr/0013-add-preview-proxy-for-studio.md))。`npm run dev` で使うため必須で、無いと Studio でこの素材が再生できない。
 - フレームレートは `src/theme/timing.ts` の `fps` に固定されており、指定オプションは無い。composition の fps と常に一致する。
 - 原本 1 本 (約 43 分・8GB) で NVENC なら約 9 分、出力は約 5GB。NVENC が使えない環境では libx264 で約 10 倍かかる。
 - `npm run` はリポジトリルートを cwd にするので原本は絶対パスで渡す。

@@ -1,6 +1,7 @@
 import { Video as MediaVideo } from "@remotion/media";
 import React from "react";
-import { useVideoConfig } from "remotion";
+import { useRemotionEnvironment, useVideoConfig } from "remotion";
+import { previewSrc } from "./previewSrc.ts";
 import { toVolumeProp, type Volume } from "./volume.ts";
 
 /** Video が受け取るもの。 */
@@ -18,9 +19,15 @@ type Props = {
   volume?: Volume;
 };
 
-/** 走行映像を 1 本描く純粋コンポーネント (@remotion/media、ADR-0003)。 */
+/**
+ * 走行映像を 1 本描く純粋コンポーネント (@remotion/media、ADR-0003)。Studio
+ * (render 以外) では `<basename>.preview.mp4` (convert が作る 540p の
+ * プロキシ、ADR-0013) を読み、render では本体を読む。プロキシが無い場合の
+ * 救済は持たない (convert を再実行する)。
+ */
 export const Video: React.FC<Props> = ({ src, trimBefore = 0, volume = 1 }) => {
   const { fps } = useVideoConfig();
+  const { isRendering } = useRemotionEnvironment();
   const volumeProp = React.useMemo(
     () => toVolumeProp(volume, fps),
     [volume, fps],
@@ -28,7 +35,7 @@ export const Video: React.FC<Props> = ({ src, trimBefore = 0, volume = 1 }) => {
 
   return (
     <MediaVideo
-      src={src}
+      src={isRendering ? src : previewSrc(src)}
       trimBefore={Math.round(trimBefore * fps)}
       volume={volumeProp}
       objectFit="cover"
