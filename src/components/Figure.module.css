@@ -1,10 +1,10 @@
+/* 枠は画像の位置決め (下端揃え、高さ 720 が見える範囲) のみを行う。画像の下側は枠からはみ出して画面外まで続き、フレームの端で切れる。overflow は掛けない (掛けると立ち絵の drop-shadow が上端で切れてしまう)。 */
 .box {
   position: absolute;
   left: var(--figure-inset);
   bottom: 0;
   width: var(--figure-box-width);
   height: var(--figure-box-height);
-  overflow: hidden;
 }
 
 .right {
