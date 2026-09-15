@@ -1,7 +1,7 @@
 // convert-movie.ts のロジック (純粋関数 + 変換の手順)。fs・child_process は
 // import せず、実際の I/O は呼び出し側 (convert-movie.ts) が ConvertDeps 経由で渡す。
-// 変換済み素材に加えて、そこから Studio 用プロキシ (ADR-0013、540p) も作る。
-// テストしやすくするための分離。
+// 変換済み素材に加えて、そこから Studio 用プロキシ (ADR-0013、既定 540p、
+// 環境変数 PREVIEW_HEIGHT で変更可) も作る。テストしやすくするための分離。
 
 import path from "node:path";
 import { PROJECT_SLUG_PATTERN } from "../../src/project/load.ts";
@@ -158,10 +158,41 @@ export const probeArgs = (fps: number, gop: number): string[] => [
 export type Encoder = "nvenc" | "libx264";
 
 /**
- * Studio 用プロキシ (ADR-0013) の高さ。幅は `-2` でアスペクト比から自動で
- * 決める。ffmpeg での再生が足りないほど重ければ 360 に下げる。
+ * Studio 用プロキシ (ADR-0013) の高さの既定値。幅は `-2` でアスペクト比から
+ * 自動で決める。環境変数 `PREVIEW_HEIGHT` (`.env`) で変えられる (下記
+ * `previewHeight` 参照)。
  */
-export const PREVIEW_HEIGHT = 540;
+export const DEFAULT_PREVIEW_HEIGHT = 540;
+
+/**
+ * Studio 用プロキシ (ADR-0013) の高さを環境変数 `PREVIEW_HEIGHT` から読む。
+ * 未設定・空文字なら `DEFAULT_PREVIEW_HEIGHT` (540)。yuv420p はクロマの
+ * サブサンプリングのため縦横とも偶数を要求する (幅は `-2` が担う) ので、
+ * 2 以上の偶数の整数以外は throw する。
+ */
+export const previewHeight = (env: NodeJS.ProcessEnv): number => {
+  const raw = env.PREVIEW_HEIGHT?.trim();
+
+  if (!raw) {
+    return DEFAULT_PREVIEW_HEIGHT;
+  }
+
+  if (!/^\d+$/.test(raw)) {
+    throw new Error(
+      `PREVIEW_HEIGHT が不正です: ${raw} (2 以上の偶数を指定する)`,
+    );
+  }
+
+  const value = Number.parseInt(raw, 10);
+
+  if (value < 2 || value % 2 !== 0) {
+    throw new Error(
+      `PREVIEW_HEIGHT が不正です: ${raw} (2 以上の偶数を指定する)`,
+    );
+  }
+
+  return value;
+};
 
 /**
  * 変換済み素材の出力名 (拡張子を除いた basename) から、Studio 用プロキシの
@@ -265,8 +296,10 @@ export const previewArgs = (o: {
   output: string;
   /** GOP 長 (キーフレーム間隔)。変換済み素材と同じ値を使う。 */
   gop: number;
+  /** プロキシの高さ (`previewHeight` の戻り値)。 */
+  height: number;
 }): string[] => {
-  const { encoder, input, output, gop } = o;
+  const { encoder, input, output, gop, height } = o;
 
   if (encoder === "nvenc") {
     return [
@@ -274,7 +307,7 @@ export const previewArgs = (o: {
       "-i",
       input,
       "-vf",
-      `scale=-2:${PREVIEW_HEIGHT}`,
+      `scale=-2:${height}`,
       "-c:v",
       "h264_nvenc",
       "-pix_fmt",
@@ -298,7 +331,7 @@ export const previewArgs = (o: {
     "-i",
     input,
     "-vf",
-    `scale=-2:${PREVIEW_HEIGHT}`,
+    `scale=-2:${height}`,
     "-c:v",
     "libx264",
     "-preset",
@@ -354,11 +387,12 @@ export class ConvertAbortedError extends Error {
 /**
  * 各入力を <outDir>/<basename>.mp4 へ変換する (ADR-0003)。あわせて、その
  * 変換済み素材から Studio 用プロキシ <outDir>/<basename>.preview.mp4
- * (540p) を作る (ADR-0013)。nvenc が使えるかを起動時にプローブし、以降の
- * 変換はプローブ結果の encoder で統一する。nvenc が使える場合でも、ある
- * ファイルの変換に失敗したときはそのファイルだけ libx264 で再試行し、
- * 以降のファイル・プロキシも libx264 に切り替える。signal が中断されたら、
- * nvenc → libx264 の再試行はせず ConvertAbortedError を投げる。
+ * (既定 540p、`PREVIEW_HEIGHT` で変更可) を作る (ADR-0013)。nvenc が使える
+ * かを起動時にプローブし、以降の変換はプローブ結果の encoder で統一する。
+ * nvenc が使える場合でも、あるファイルの変換に失敗したときはそのファイル
+ * だけ libx264 で再試行し、以降のファイル・プロキシも libx264 に切り替える。
+ * signal が中断されたら、nvenc → libx264 の再試行はせず ConvertAbortedError
+ * を投げる。
  */
 export const runConvert = async (
   o: {
@@ -376,6 +410,10 @@ export const runConvert = async (
   deps: ConvertDeps,
 ): Promise<void> => {
   const { inputs, outDir, fps, gop, signal } = o;
+
+  // ffmpeg を 1 本も起動する前に検証する (不正な値なら probe より前に失敗させる)。
+  const height = previewHeight(deps.env);
+  deps.log(`preview: 高さ ${height}px`);
 
   let encoder: Encoder = "nvenc";
   const probeCode = await deps.ffmpeg(probeArgs(fps, gop), nvencEnv(deps.env));
@@ -532,7 +570,13 @@ export const runConvert = async (
       target: previewOutput,
       label: output,
       buildArgs: (e) =>
-        previewArgs({ encoder: e, input: output, output: previewTmp, gop }),
+        previewArgs({
+          encoder: e,
+          input: output,
+          output: previewTmp,
+          gop,
+          height,
+        }),
     });
 
     deps.log(`done: ${previewOutput} (${usedPreviewEncoder}, preview)`);

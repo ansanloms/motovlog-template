@@ -9,6 +9,7 @@ import {
   outputName,
   parseConvertArgs,
   previewArgs,
+  previewHeight,
   previewName,
   probeArgs,
   PROJECT_SLUG_PATTERN,
@@ -267,6 +268,49 @@ describe("isPreviewInput", () => {
   });
 });
 
+describe("previewHeight", () => {
+  it("未設定なら 540 を返す", () => {
+    expect(previewHeight({})).toBe(540);
+  });
+
+  it("空文字・空白のみなら 540 を返す", () => {
+    expect(previewHeight({ PREVIEW_HEIGHT: "" })).toBe(540);
+    expect(previewHeight({ PREVIEW_HEIGHT: "   " })).toBe(540);
+  });
+
+  it("数値の文字列を整数として返す", () => {
+    expect(previewHeight({ PREVIEW_HEIGHT: "360" })).toBe(360);
+  });
+
+  it("前後の空白を trim して読む", () => {
+    expect(previewHeight({ PREVIEW_HEIGHT: " 360 " })).toBe(360);
+  });
+
+  it("整数でなければ throw する", () => {
+    expect(() => previewHeight({ PREVIEW_HEIGHT: "abc" })).toThrow(
+      "PREVIEW_HEIGHT が不正です: abc (2 以上の偶数を指定する)",
+    );
+  });
+
+  it("0 なら throw する", () => {
+    expect(() => previewHeight({ PREVIEW_HEIGHT: "0" })).toThrow(
+      "PREVIEW_HEIGHT が不正です: 0 (2 以上の偶数を指定する)",
+    );
+  });
+
+  it("奇数なら throw する", () => {
+    expect(() => previewHeight({ PREVIEW_HEIGHT: "361" })).toThrow(
+      "PREVIEW_HEIGHT が不正です: 361 (2 以上の偶数を指定する)",
+    );
+  });
+
+  it("負の数なら throw する", () => {
+    expect(() => previewHeight({ PREVIEW_HEIGHT: "-2" })).toThrow(
+      "PREVIEW_HEIGHT が不正です: -2 (2 以上の偶数を指定する)",
+    );
+  });
+});
+
 describe("previewArgs", () => {
   it("nvenc の ffmpeg 引数を返す", () => {
     expect(
@@ -275,6 +319,7 @@ describe("previewArgs", () => {
         input: "in.mp4",
         output: "out.mp4",
         gop: 30,
+        height: 540,
       }),
     ).toEqual([
       "-y",
@@ -307,6 +352,7 @@ describe("previewArgs", () => {
         input: "in.mp4",
         output: "out.mp4",
         gop: 30,
+        height: 540,
       }),
     ).toEqual([
       "-y",
@@ -590,6 +636,7 @@ describe("runConvert", () => {
         input: "/out/a.mp4",
         output: "/out/.tmp.a.preview.mp4",
         gop: 30,
+        height: 540,
       }),
     );
     expect(renames).toContainEqual({
@@ -705,5 +752,31 @@ describe("runConvert", () => {
     // probe のみ。a.mp4 は本体・プロキシとも既存なのでスキップし、
     // a.preview.mp4 はプロキシ入力としてスキップするので ffmpeg は呼ばれない。
     expect(calls).toHaveLength(1);
+  });
+
+  it("(p) deps.env の PREVIEW_HEIGHT をプロキシの scale に使う", async () => {
+    const { deps, calls } = makeDeps(() => 0);
+    deps.env = { PREVIEW_HEIGHT: "360" };
+
+    await runConvert(
+      { inputs: ["a.mp4"], outDir: "/out", fps: 30, gop: 30 },
+      deps,
+    );
+
+    // 0: probe, 1: 本体 encode, 2: プロキシ encode。
+    expect(calls[2].args).toContain("scale=-2:360");
+  });
+
+  it("(q) PREVIEW_HEIGHT が不正なら probe も含め ffmpeg を 1 回も呼ばずに throw する", async () => {
+    const { deps, calls } = makeDeps(() => 0);
+    deps.env = { PREVIEW_HEIGHT: "361" };
+
+    await expect(
+      runConvert({ inputs: ["a.mp4"], outDir: "/out", fps: 30, gop: 30 }, deps),
+    ).rejects.toThrow(
+      "PREVIEW_HEIGHT が不正です: 361 (2 以上の偶数を指定する)",
+    );
+
+    expect(calls).toHaveLength(0);
   });
 });

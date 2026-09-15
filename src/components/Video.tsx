@@ -21,8 +21,8 @@ type Props = {
 
 /**
  * 走行映像を 1 本描く純粋コンポーネント (@remotion/media、ADR-0003)。Studio
- * (render 以外) では `<basename>.preview.mp4` (convert が作る 540p の
- * プロキシ、ADR-0013) を読み、render では本体を読む。プロキシが無い場合の
+ * (render 以外) では `<basename>.preview.mp4` (convert が作る既定 540p
+ * (`PREVIEW_HEIGHT` で変更可) のプロキシ、ADR-0013) を読み、render では本体を読む。プロキシが無い場合の
  * 救済は持たない (convert を再実行する)。
  */
 export const Video: React.FC<Props> = ({ src, trimBefore = 0, volume = 1 }) => {

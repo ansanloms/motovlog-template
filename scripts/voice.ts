@@ -23,19 +23,13 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 import { resolveProjectSlug } from "../src/project/load.ts";
 import { configure } from "../src/setup.ts";
 import type { Theme } from "../src/setup.ts";
+import { loadDotEnv } from "./env.ts";
 import { extractLines } from "./voice/extract.ts";
 import { generateMissing } from "./voice/generate.ts";
 import type { GenerateDeps } from "./voice/generate.ts";
 
-try {
-  process.loadEnvFile();
-} catch (error) {
-  const code = (error as NodeJS.ErrnoException).code;
-
-  if (code !== "ENOENT") {
-    throw error;
-  }
-}
+// scripts/dev.ts はこのファイルを import した副作用として .env を読ませている。
+loadDotEnv();
 
 // 利用側のルート。lib (このファイル) がどこに置かれていても、実行した
 // ディレクトリを利用側のルートと見なす (ADR-0012)。
