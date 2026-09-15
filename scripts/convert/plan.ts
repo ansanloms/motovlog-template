@@ -1,5 +1,6 @@
 // convert-movie.ts のロジック (純粋関数 + 変換の手順)。fs・child_process は
 // import せず、実際の I/O は呼び出し側 (convert-movie.ts) が ConvertDeps 経由で渡す。
+// 変換済み素材に加えて、そこから Studio 用プロキシ (ADR-0013、540p) も作る。
 // テストしやすくするための分離。
 
 import path from "node:path";
@@ -156,6 +157,29 @@ export const probeArgs = (fps: number, gop: number): string[] => [
 
 export type Encoder = "nvenc" | "libx264";
 
+/**
+ * Studio 用プロキシ (ADR-0013) の高さ。幅は `-2` でアスペクト比から自動で
+ * 決める。ffmpeg での再生が足りないほど重ければ 360 に下げる。
+ */
+export const PREVIEW_HEIGHT = 540;
+
+/**
+ * 変換済み素材の出力名 (拡張子を除いた basename) から、Studio 用プロキシの
+ * 出力名を返す (ADR-0013)。呼び出し側が `outputName` と同様に `.mp4` を
+ * 付けて使う。
+ */
+export const previewName = (name: string): string => `${name}.preview`;
+
+/**
+ * 入力ファイルが Studio 用プロキシ (`<basename>.preview.mp4`) かどうかを、
+ * basename が `.preview.mp4` で終わるかで判定する。README の後付け手順
+ * (`npm run convert -- <slug> public/projects/<slug>/*.mp4`) の glob は
+ * 生成済みのプロキシも拾ってしまうため、runConvert 側でこれを使って
+ * スキップする (`<name>.preview.preview.mp4` の生成を防ぐ)。
+ */
+export const isPreviewInput = (inFile: string): boolean =>
+  path.basename(inFile).endsWith(".preview.mp4");
+
 /** 変換 1 本分の ffmpeg 引数を組み立てる。encoder ごとに異なるオプションを使う。 */
 export const encodeArgs = (o: {
   /** 使うエンコーダ。 */
@@ -226,6 +250,71 @@ export const encodeArgs = (o: {
   ];
 };
 
+/**
+ * Studio 用プロキシ (ADR-0013) 1 本分の ffmpeg 引数を組み立てる。変換済み
+ * 素材 (input) から縮小するだけなので `-hwaccel cuda` は付けない (scale は
+ * CPU フィルタで、1080p H.264 のデコードは CPU で十分速い)。音声は
+ * 再エンコードせずコピーする。
+ */
+export const previewArgs = (o: {
+  /** 使うエンコーダ。 */
+  encoder: Encoder;
+  /** 入力ファイルパス (変換済み素材)。 */
+  input: string;
+  /** 出力ファイルパス。 */
+  output: string;
+  /** GOP 長 (キーフレーム間隔)。変換済み素材と同じ値を使う。 */
+  gop: number;
+}): string[] => {
+  const { encoder, input, output, gop } = o;
+
+  if (encoder === "nvenc") {
+    return [
+      "-y",
+      "-i",
+      input,
+      "-vf",
+      `scale=-2:${PREVIEW_HEIGHT}`,
+      "-c:v",
+      "h264_nvenc",
+      "-pix_fmt",
+      "yuv420p",
+      "-preset",
+      "p4",
+      "-cq",
+      "30",
+      "-g",
+      String(gop),
+      "-c:a",
+      "copy",
+      "-movflags",
+      "+faststart",
+      output,
+    ];
+  }
+
+  return [
+    "-y",
+    "-i",
+    input,
+    "-vf",
+    `scale=-2:${PREVIEW_HEIGHT}`,
+    "-c:v",
+    "libx264",
+    "-preset",
+    "veryfast",
+    "-crf",
+    "30",
+    "-g",
+    String(gop),
+    "-c:a",
+    "copy",
+    "-movflags",
+    "+faststart",
+    output,
+  ];
+};
+
 /** runConvert() が使う I/O・ffmpeg 呼び出しの差し替え口。 */
 export type ConvertDeps = {
   /** ffmpeg の実行。exit code を返す。 */
@@ -263,10 +352,12 @@ export class ConvertAbortedError extends Error {
 }
 
 /**
- * 各入力を <outDir>/<basename>.mp4 へ変換する (ADR-0003)。nvenc が使えるかを
- * 起動時にプローブし、以降の変換はプローブ結果の encoder で統一する。nvenc が
- * 使える場合でも、あるファイルの変換に失敗したときはそのファイルだけ libx264
- * で再試行し、以降のファイルも libx264 に切り替える。signal が中断されたら、
+ * 各入力を <outDir>/<basename>.mp4 へ変換する (ADR-0003)。あわせて、その
+ * 変換済み素材から Studio 用プロキシ <outDir>/<basename>.preview.mp4
+ * (540p) を作る (ADR-0013)。nvenc が使えるかを起動時にプローブし、以降の
+ * 変換はプローブ結果の encoder で統一する。nvenc が使える場合でも、ある
+ * ファイルの変換に失敗したときはそのファイルだけ libx264 で再試行し、
+ * 以降のファイル・プロキシも libx264 に切り替える。signal が中断されたら、
  * nvenc → libx264 の再試行はせず ConvertAbortedError を投げる。
  */
 export const runConvert = async (
@@ -302,39 +393,27 @@ export const runConvert = async (
 
   deps.mkdir(outDir);
 
-  for (const inFile of inputs) {
-    if (signal?.aborted) {
-      throw new ConvertAbortedError();
-    }
+  const envFor = (e: Encoder): NodeJS.ProcessEnv =>
+    e === "nvenc" ? nvencEnv(deps.env) : deps.env;
 
-    const name = outputName(inFile);
-    const output = path.join(outDir, `${name}.mp4`);
-
-    if (deps.exists(output)) {
-      deps.log(`skip: ${output} は既に存在します`);
-      continue;
-    }
-
-    // 拡張子が .tmp のままだと ffmpeg が出力 muxer を推定できず失敗するため、
-    // 拡張子は .mp4 のまま隠しファイル名で一時出力する。
-    const tmp = path.join(outDir, `.tmp.${name}.mp4`);
-    deps.onTmp(tmp);
-
-    deps.log(`encode: ${inFile} -> ${output} (${encoder}, fps=${fps})`);
+  // 1 本のエンコードを tmp へ書いて target へ rename するまでの共通処理。
+  // nvenc が失敗したら libx264 で再試行し、以降 (このファイルのプロキシ・
+  // 次のファイル) の encoder も libx264 に固定する (呼び出し元の `encoder`
+  // を書き換える)。tmp の掃除・onTmp の通知・abort の検知は main の出力・
+  // プロキシの出力で共通のため、ここへ集約する。
+  const encodeToFile = async (p: {
+    tmp: string;
+    target: string;
+    /** ログ・エラーメッセージに出す対象の名前 (入力ファイルまたは出力先)。 */
+    label: string;
+    buildArgs: (e: Encoder) => string[];
+  }): Promise<Encoder> => {
+    deps.onTmp(p.tmp);
     let usedEncoder: Encoder = encoder;
 
     try {
       if (encoder === "nvenc") {
-        const code = await deps.ffmpeg(
-          encodeArgs({
-            encoder: "nvenc",
-            input: inFile,
-            output: tmp,
-            fps,
-            gop,
-          }),
-          nvencEnv(deps.env),
-        );
+        const code = await deps.ffmpeg(p.buildArgs("nvenc"), envFor("nvenc"));
 
         if (signal?.aborted) {
           throw new ConvertAbortedError();
@@ -342,18 +421,12 @@ export const runConvert = async (
 
         if (code !== 0) {
           deps.warn(
-            `warn: nvenc に失敗したため libx264 で再試行します: ${inFile}`,
+            `warn: nvenc に失敗したため libx264 で再試行します: ${p.label}`,
           );
 
           const retryCode = await deps.ffmpeg(
-            encodeArgs({
-              encoder: "libx264",
-              input: inFile,
-              output: tmp,
-              fps,
-              gop,
-            }),
-            deps.env,
+            p.buildArgs("libx264"),
+            envFor("libx264"),
           );
 
           if (signal?.aborted) {
@@ -362,7 +435,7 @@ export const runConvert = async (
 
           if (retryCode !== 0) {
             throw new Error(
-              `ffmpeg が失敗しました (exit ${retryCode}): ${inFile}`,
+              `ffmpeg が失敗しました (exit ${retryCode}): ${p.label}`,
             );
           }
 
@@ -374,14 +447,8 @@ export const runConvert = async (
         }
       } else {
         const code = await deps.ffmpeg(
-          encodeArgs({
-            encoder: "libx264",
-            input: inFile,
-            output: tmp,
-            fps,
-            gop,
-          }),
-          deps.env,
+          p.buildArgs("libx264"),
+          envFor("libx264"),
         );
 
         if (signal?.aborted) {
@@ -389,24 +456,85 @@ export const runConvert = async (
         }
 
         if (code !== 0) {
-          throw new Error(`ffmpeg が失敗しました (exit ${code}): ${inFile}`);
+          throw new Error(`ffmpeg が失敗しました (exit ${code}): ${p.label}`);
         }
       }
     } catch (error) {
-      deps.unlink(tmp);
+      deps.unlink(p.tmp);
       deps.onTmp(null);
       throw error;
     }
 
     try {
-      deps.rename(tmp, output);
+      deps.rename(p.tmp, p.target);
     } catch (error) {
-      deps.unlink(tmp);
+      deps.unlink(p.tmp);
       deps.onTmp(null);
       throw error;
     }
 
     deps.onTmp(null);
-    deps.log(`done: ${output} (${usedEncoder})`);
+    return usedEncoder;
+  };
+
+  for (const inFile of inputs) {
+    if (signal?.aborted) {
+      throw new ConvertAbortedError();
+    }
+
+    if (isPreviewInput(inFile)) {
+      deps.log(`skip: ${inFile} はプロキシです`);
+      continue;
+    }
+
+    const name = outputName(inFile);
+    const output = path.join(outDir, `${name}.mp4`);
+
+    if (deps.exists(output)) {
+      deps.log(`skip: ${output} は既に存在します`);
+    } else {
+      // 拡張子が .tmp のままだと ffmpeg が出力 muxer を推定できず失敗するため、
+      // 拡張子は .mp4 のまま隠しファイル名で一時出力する。
+      const tmp = path.join(outDir, `.tmp.${name}.mp4`);
+
+      deps.log(`encode: ${inFile} -> ${output} (${encoder}, fps=${fps})`);
+
+      const usedEncoder = await encodeToFile({
+        tmp,
+        target: output,
+        label: inFile,
+        buildArgs: (e) =>
+          encodeArgs({ encoder: e, input: inFile, output: tmp, fps, gop }),
+      });
+
+      deps.log(`done: ${output} (${usedEncoder})`);
+    }
+
+    if (signal?.aborted) {
+      throw new ConvertAbortedError();
+    }
+
+    // プロキシは変換済み素材 (output) から作る。原本 (inFile) からは作らない
+    // (ADR-0013): 原本は変換時の読み取り 1 回だけに留める。
+    const previewOutput = path.join(outDir, `${previewName(name)}.mp4`);
+
+    if (deps.exists(previewOutput)) {
+      deps.log(`skip: ${previewOutput} は既に存在します`);
+      continue;
+    }
+
+    const previewTmp = path.join(outDir, `.tmp.${name}.preview.mp4`);
+
+    deps.log(`encode: ${output} -> ${previewOutput} (${encoder}, preview)`);
+
+    const usedPreviewEncoder = await encodeToFile({
+      tmp: previewTmp,
+      target: previewOutput,
+      label: output,
+      buildArgs: (e) =>
+        previewArgs({ encoder: e, input: output, output: previewTmp, gop }),
+    });
+
+    deps.log(`done: ${previewOutput} (${usedPreviewEncoder}, preview)`);
   }
 };

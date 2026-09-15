@@ -25,7 +25,7 @@ lib (動画を作る機能) は次の 2 つ。
 - `theme/index.ts`: カラーパレット (`palette`) と既定の話者 (`narrator`)
 - `projects/<slug>/timeline.ts`: 動画の定義。コミットする
 - `characters/<name>.ts`: キャラクター (立ち絵) の定義。コミットする
-- `public/projects/<slug>/`: 動画固有の素材 (変換済み素材・セリフ音声等)。コミットしない
+- `public/projects/<slug>/`: 動画固有の素材 (変換済み素材・Studio 用プロキシ・セリフ音声等)。コミットしない
 - `public/assets/<種別>/`: 共通素材。`bgm`・`se`・`characters/<name>`・`fonts`。既定でコミットしない。再配布できる自作素材は `.gitignore` の否定パターンで明示してコミットする
 - `remotion.config.ts`: Remotion の設定。`Config.setEntryPoint("./app/index.ts")` で入口を指す
 - `<slug>` は `YYYYMMDD-<name>` (例: `20260813-jododaira`)。同梱のサンプルだけ `00000000-sample` を使う
@@ -125,6 +125,12 @@ import は、このリポジトリ内の相対パスの代わりに bare specifi
 ```sh
 mkdir -p public/projects/00000000-sample
 ffmpeg -n -f lavfi -i testsrc=size=1920x1080:rate=30:duration=40 -pix_fmt yuv420p public/projects/00000000-sample/VID_20260802_074903_00_287_359_DASHCAM1.mp4
+```
+
+この合成素材にも Studio 用プロキシ (「変換済み素材の生成」の「Studio 用プロキシ」参照) が要るので、続けて次を実行する。
+
+```sh
+npm run convert -- 00000000-sample public/projects/00000000-sample/VID_20260802_074903_00_287_359_DASHCAM1.mp4
 ```
 
 写真 (`photos/photo-01.jpg`・`photo-02.jpg`・`photo-03.jpg`) は ffmpeg では代替できない。手元の JPG を同名で置けばサムネ・写真紹介の見た目は仮のものになるが Studio と render は動く。代替の合成動画は変換済み素材と同じファイル名なので、実素材に切り替えるときは代替ファイルを消してから `npm run convert -- 00000000-sample <原本>` を実行する (既存があると skip される)。
@@ -294,6 +300,13 @@ ED・サムネ用フレームの絵は要素ファクトリで置けるが、ED 
 - フレームレートは `src/theme/timing.ts` の `fps` に固定されており、指定オプションは無い。composition の fps と常に一致する。GOP 長は fps と同じ (1 秒ごとにキーフレーム)。
 - 起動時に NVENC が使えるかを確認し、使えなければ libx264 を使う。NVENC が使える場合でも、あるファイルの変換に失敗したときはそのファイルだけ libx264 で再試行する。一度 libx264 に落ちたら以降のファイルも libx264 で変換する。WSL で NVENC を使うために `LD_LIBRARY_PATH=/usr/lib/wsl/lib` をスクリプト内で設定している。
 - 拡張子違いで同じ basename になる入力 (例: `clip.mov` と `clip.mp4`) を同時に渡すとエラーになる。
+
+### Studio 用プロキシ
+
+変換済み素材に加えて `public/projects/<slug>/<basename>.preview.mp4` (Studio 用プロキシ) を作る ([ADR-0013](docs/adr/0013-add-preview-proxy-for-studio.md))。`npm run dev` (Remotion Studio) はこのプロキシを読み、`remotion render` は変換済み素材 (本体) を読む。
+
+- プロキシは変換済み素材から生成する 540p の H.264 で、`scripts/convert/plan.ts` の `PREVIEW_HEIGHT` を変えれば解像度を下げられる。
+- 既に変換済み素材だけがある project にプロキシを追加するときは、変換済み素材自身を入力にして `npm run convert` を再実行する。例: `npm run convert -- 20260813-jododaira public/projects/20260813-jododaira/*.mp4`。この glob は生成済みのプロキシ (`*.preview.mp4`) も拾うが、`.preview.mp4` で終わる入力は convert がスキップするため、そのまま再実行して構わない。
 
 ## コーディング規約
 

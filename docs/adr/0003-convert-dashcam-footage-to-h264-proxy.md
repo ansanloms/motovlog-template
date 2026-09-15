@@ -91,3 +91,4 @@ Remotion の映像コンポーネントには次の事実がある。
 - https://www.remotion.dev/docs/media/video : `<Video>` の `trimBefore`・`trimAfter` の仕様。
 - https://www.remotion.dev/docs/offthreadvideo : `<OffthreadVideo>` の位置づけ。
 - 設計整理 (2026-09-08): 現在の設計を 1 から記述し直した
+- [ADR-0013](./0013-add-preview-proxy-for-studio.md): Studio 用のプロキシを本体から生成する決定。

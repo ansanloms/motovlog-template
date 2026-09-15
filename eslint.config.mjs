@@ -135,9 +135,14 @@ export default [
           paths: [
             {
               name: "remotion",
-              allowImportNames: ["AbsoluteFill", "Img", "useVideoConfig"],
+              allowImportNames: [
+                "AbsoluteFill",
+                "Img",
+                "useVideoConfig",
+                "useRemotionEnvironment",
+              ],
               message:
-                "components は remotion の AbsoluteFill・Img・useVideoConfig と @remotion/media 以外を import しない (useCurrentFrame 等のフレーム API・レンダリング制御を持たない)。",
+                "components は remotion の AbsoluteFill・Img・useVideoConfig・useRemotionEnvironment と @remotion/media 以外を import しない (useCurrentFrame 等のフレーム API・レンダリング制御を持たない)。",
             },
           ],
         },
