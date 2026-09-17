@@ -84,14 +84,16 @@ tags: [remotion, timeline, effects]
 
 - `start(item, offset = 0)`/`end(item, offset = 0)` は `Anchor` を返し、`at: number | Anchor` に渡す。
 - `after` は数値のままとする。
-- `timeline()` は layer を下から、layer 内を前から解決し、解決済みの item を参照同一性で引ける表に積む。
-- `Anchor` の参照先が未解決なら throw する。未解決とは次を指す。
-  - 上の layer の item。
-  - 同じ layer の後ろの item。
-  - どの layer にも置かれていない item。
+- `Anchor` の参照先はどの layer に置かれた item でも指せる (上下の区別を設けない)。`timeline()` は layer を配列順に 1 ラウンド試し、参照先が未解決でブロックされた layer だけを次のラウンドに残して再試行する (依存関係の順で解決する)。
+- 1 ラウンドで誰も解決できなければ throw する。次のいずれかを指す。
+  - 参照が循環している (同じ layer の後ろの item への参照も、layer 内を前から解決するため循環になる)。
+  - どの layer にも置かれていない item を指している。
 - 同じ item オブジェクトを 2 箇所に置いたら throw する。
-- `end(item)` は解決後の終端 (遷移で縮んだ後の値) を指す。
+- `end(item)` は解決後の終端 (遷移で縮んだ後の値、または `until` で求めた尺の終端) を指す。
 - 解決した値には既存の時間順検査を適用する。
+- 戻り値の `layers` は解決した順ではなく、渡した配列の順を保つ。
+- 尺は `duration` (秒数) の代わりに `until: number | Anchor` (排他) でも指定できる。`timeline()` は開始位置を解決した後に `duration = until − 開始` を求める。`until` の参照先の解決規則は `at` と同じ (ブロック・再試行の対象になる)。
+- `narration()` に渡す入力 item (`CutItem`/`FadeItem`) は `source` を持てる。`narration()` が入力 item から発話 layer 用に作った item にこの `source` を付け、`resolveLayer()` は解決結果を `source` (元の入力 item) にも登録する。これにより `narration()` に渡した入力 item を `start()`/`end()` の対象にできる。同じ `source` を 2 箇所で使ったら throw する。
 - mm:ss 表記は導入しない。
 
 ## Consequences
@@ -108,13 +110,15 @@ tags: [remotion, timeline, effects]
 - `frame()` のある layer で `Stage` の DOM が 1 段深くなる。
 - アンカーは item の参照同一性に依存するため、同じ item を複数箇所で使い回せない。
 - `frame()` の効果は item の区間外で消える。
+- `timeline()` の解決が配列順の 1 パスではなく、依存関係の順で複数ラウンドを回す形になり、`resolveLayer()` の実装が複雑になる。
 
 ### 禁止事項
 
 - 遷移を layer の先頭・末尾、または遷移の隣に置くこと。
 - 遷移の直後の item に `at`/`after` を書くこと。
 - `frame()` を `cut` や layer 0 に置くこと。
-- `Anchor` で上の layer や同じ layer の後ろの item を参照すること。
+- `Anchor` で循環した参照 (同じ layer の後ろの item への参照を含む) をすること、またどの layer にも置かれていない item を参照すること。
+- `duration` と `until` を同時に指定すること。
 - `src/effects` が `src/components`・`src/compositions`・`projects` を import すること ([ADR-0006](./0006-write-timeline-as-effects-dsl.md) の禁止事項を引き継ぐ)。
 
 ## Assumptions

@@ -22,6 +22,7 @@ import {
   end,
   fade,
   frame,
+  start,
   timeline,
 } from "../../src/effects/index.ts";
 import { endingTiming, openingTiming } from "../../src/theme/index.ts";
@@ -117,14 +118,57 @@ const clip7 = cut(
   { duration: 62.633 },
 );
 
+// layer 2 (立ち絵) の 6 item は、この発話の開始・終端から相対で位置を決める。
+// narration() に渡す入力 item を const に取っておき、start()/end() で参照する。
+const f1Start = cut(
+  line({
+    text: "取りました",
+    by: { character: ryusei, expression: "normal" },
+  }),
+  { at: 8.5 },
+);
+const f1End = cut(
+  line({
+    text: "行きます",
+    by: { character: ryusei, expression: "angry" },
+  }),
+  { after: 1.433 },
+);
+const f2Start = cut(line({ text: "今日は", by: ryusei }), { at: 61.7 });
+const f2End = cut(
+  line({
+    text: "ライディングジャケットを通りぬける風が ちょっとつめたいです",
+    by: ryusei,
+  }),
+  { after: 2.733 },
+);
+const f3Start = cut(line({ text: "吾妻の山が みえてきました", by: ryusei }), {
+  at: 90.9,
+});
+const f3End = cut(line({ text: "ふて寝を", by: ryusei }), { after: 2.833 });
+const f4Start = cut(line({ text: "朝", by: ryusei }), { at: 209.767 });
+const f4End = cut(line({ text: "そんな 不思議な眺望です", by: ryusei }), {
+  after: 2.8,
+});
+const f5Start = cut(line({ text: "荒々しい山肌も相まって", by: ryusei }), {
+  at: 257.367,
+});
+const f5End = cut(
+  line({
+    text: "(「火山ガス注意」「窓を閉めて走行下さい」の看板にビビり散らかしている)",
+    voice: null,
+  }),
+  { at: 275.9, duration: 3.167 },
+);
+const f6Start = cut(line({ text: "福島は地元で", by: ryusei }), {
+  at: 306.9,
+});
+const f6End = cut(line({ text: "もっと遠くへ", by: ryusei }), {
+  after: 4.033,
+});
+
 const n = await narration([
-  cut(
-    line({
-      text: "取りました",
-      by: { character: ryusei, expression: "normal" },
-    }),
-    { at: 8.5 },
-  ),
+  f1Start,
   cut(
     line({
       text: "免許を",
@@ -176,11 +220,8 @@ const n = await narration([
   cut(line({ text: "{浄土平|じょうどだいら}に", by: ryusei }), {
     after: 2.034,
   }),
-  cut(
-    line({ text: "行きます", by: { character: ryusei, expression: "angry" } }),
-    { after: 1.433 },
-  ),
-  cut(line({ text: "今日は", by: ryusei }), { at: 61.7 }),
+  f1End,
+  f2Start,
   cut(line({ text: "(2026年)8月は中旬", reading: "8月は中旬", by: ryusei }), {
     after: 1.067,
   }),
@@ -197,14 +238,8 @@ const n = await narration([
     after: 2.533,
   }),
   cut(line({ text: "1350メートル", by: ryusei }), { after: 1.5 }),
-  cut(
-    line({
-      text: "ライディングジャケットを通りぬける風が ちょっとつめたいです",
-      by: ryusei,
-    }),
-    { after: 2.733 },
-  ),
-  cut(line({ text: "吾妻の山が みえてきました", by: ryusei }), { at: 90.9 }),
+  f2End,
+  f3Start,
   cut(
     line({
       text: "もうすこしで{浄土平|じょうどだいら}ビジターセンターです",
@@ -261,8 +296,8 @@ const n = await narration([
     after: 3.033,
   }),
   cut(line({ text: "しました", by: ryusei }), { after: 2.434 }),
-  cut(line({ text: "ふて寝を", by: ryusei }), { after: 2.833 }),
-  cut(line({ text: "朝", by: ryusei }), { at: 209.767 }),
+  f3End,
+  f4Start,
   cut(line({ text: "遠くに広がる 朝日に照らされた雲海", by: ryusei }), {
     at: 215.567,
   }),
@@ -270,20 +305,14 @@ const n = await narration([
     line({ text: "つづら折りのその先に 突っこみたくなるような", by: ryusei }),
     { after: 3.933 },
   ),
-  cut(line({ text: "そんな 不思議な眺望です", by: ryusei }), { after: 2.8 }),
-  cut(line({ text: "荒々しい山肌も相まって", by: ryusei }), { at: 257.367 }),
+  f4End,
+  f5Start,
   cut(line({ text: "およそ この世のものとは思えないような", by: ryusei }), {
     after: 2.199,
   }),
   cut(line({ text: "そんな景色でした", by: ryusei }), { after: 3.2 }),
-  cut(
-    line({
-      text: "(「火山ガス注意」「窓を閉めて走行下さい」の看板にビビり散らかしている)",
-      voice: null,
-    }),
-    { at: 275.9, duration: 3.167 },
-  ),
-  cut(line({ text: "福島は地元で", by: ryusei }), { at: 306.9 }),
+  f5End,
+  f6Start,
   cut(
     line({
       text: "実は小さい頃 親の車に連れられ何度か来たことがあります",
@@ -310,7 +339,7 @@ const n = await narration([
     after: 3.533,
   }),
   cut(line({ text: "行ってみたいものですね", by: ryusei }), { after: 4.7 }),
-  cut(line({ text: "もっと遠くへ", by: ryusei }), { after: 4.033 }),
+  f6End,
 ]);
 
 export default timeline([
@@ -396,35 +425,35 @@ export default timeline([
   // layer 2: 立ち絵
   [
     fade(figure(ryusei, { speech: n.speech, side: "left" }), {
-      at: 6.633,
-      duration: 46.801,
+      at: start(f1Start, -1.867),
+      until: end(f1End, 2.173),
       in: 0.4,
     }),
     fade(figure(ryusei, { speech: n.speech, side: "left" }), {
-      at: 59.233,
-      duration: 27.934,
+      at: start(f2Start, -2.467),
+      until: end(f2End, 1.533),
       in: 1,
     }),
     fade(figure(ryusei, { speech: n.speech, side: "right" }), {
-      at: 89.267,
-      duration: 85.266,
+      at: start(f3Start, -1.633),
+      until: end(f3End, 4.281),
       in: 1,
     }),
     fade(figure(ryusei, { speech: n.speech, side: "right" }), {
-      at: 208.667,
-      duration: 23.066,
+      at: start(f4Start, -1.1),
+      until: end(f4End, 1.47),
       in: 1,
       out: 1,
     }),
     fade(figure(ryusei, { speech: n.speech, side: "left" }), {
-      at: 256.167,
-      duration: 24.333,
+      at: start(f5Start, -1.2),
+      until: end(f5End, 1.433),
       in: 1,
       out: 1,
     }),
     fade(figure(ryusei, { speech: n.speech, side: "left" }), {
-      at: 305.567,
-      duration: 50.533,
+      at: start(f6Start, -1.333),
+      until: end(f6End, 3.43),
       in: 0.4,
       out: 1,
     }),

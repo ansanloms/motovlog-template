@@ -197,7 +197,7 @@ layer 内の item の位置は次のいずれかで指定する。
 
 演出は `fade(node, options)`・`cut(node, options)` の 2 つ。`options` は上記の位置指定に加え、`duration` (表示秒数)、`fade` はさらに `in`・`out` (フェードイン・アウトの秒数、既定 0) を持つ。
 
-layer 内の item と item の間には `crossfade({ duration })` を置ける。直後の item は直前の終端から遷移の尺だけ戻って始まり、その区間で重なる (直後の item に `at`/`after` は書けない)。`timeline()` は、遷移が layer の先頭・末尾にある、遷移が連続する、遷移の尺が前後どちらかの item の尺より長い、遷移が 1 フレームに満たない、直前の item が `out` を持つ `fade` である、前後どちらかが `frame()` の item である、のいずれかで throw する。`fade(frame(), options)` は下の layer の合成結果にフェードをかける (layer 0 には置けない)。`at` には `start(item, offset?)` / `end(item, offset?)` で、下の layer か同じ layer の前にある item の開始・終端を基準にした位置を渡せる。
+layer 内の item と item の間には `crossfade({ duration })` を置ける。直後の item は直前の終端から遷移の尺だけ戻って始まり、その区間で重なる (直後の item に `at`/`after` は書けない)。`timeline()` は、遷移が layer の先頭・末尾にある、遷移が連続する、遷移の尺が前後どちらかの item の尺より長い、遷移が 1 フレームに満たない、直前の item が `out` を持つ `fade` である、前後どちらかが `frame()` の item である、のいずれかで throw する。`fade(frame(), options)` は下の layer の合成結果にフェードをかける (layer 0 には置けない)。`at` には `start(item, offset?)` / `end(item, offset?)` で、どの layer に置かれた item でも開始・終端を基準にした位置を渡せる。`timeline()` は item 間の依存関係の順で解決する (配列の順とは限らない) ため layer をまたいだ参照方向は問わないが、参照が循環している (同じ layer の後ろの item への参照も循環になる) か、どの layer にも置かれていない item を指すと throw する。尺は `duration` (秒数) の代わりに `until: number | Anchor` (終端の絶対秒または Anchor、`duration` とは排他) も指定できる。開始位置を解決した後に `duration = until − 開始` を求めるため、他の item の終端に合わせて尺を決められる (例: `fade(figure, { at: 0, until: end(line, 0.5) })`)。
 
 要素は `motovlog-template/components` が公開する要素ファクトリで組み立てる。各ファクトリは対応するコンポーネントと同じ props を受け、フレーム依存の値は持たない。
 
@@ -255,6 +255,7 @@ export default timeline([
 - `by.expression` は `character` の `expressions` のキー (文字列リテラル)。指定すると、この発話の開始と同時に立ち絵の表情がそのキーに切り替わり、次に `expression` を指定する自分宛の発話まで維持する (詳細は「立ち絵」)。`voice: null` の項目でも `by` は書け、表情の切り替えだけ効く (口パクは付かない)。
 - `cut()` の `duration` を省いた item は `narration()` にだけ渡せる。位置は `at`/`after`/省略のいずれかで指定し、`after` は前の発話の音声の終わりからの間隔 (秒) になる。
 - `narration(items, options?)` は `{ layers: [暗がり layer, 発話 layer], speech }` を返す。`speech` は `line()` item ごと (渡した順) に、音声の絶対開始秒・実尺・口パクデータ・`by`・`expression` を持ち、`figure()` (「立ち絵」) が読む。timeline.ts では `layers` と `speech` を分けて書く (`...n.layers` を timeline の layer に、`n.speech` を `figure()` に渡す)。`options.slug` は省略でき、既定は `REMOTION_PROJECT` の解決 (Composition の既定 props と同じ、`app/config.ts` の `defaultProject` に落ちる)。サンプルをコピーして project を作るときに書き換え忘れないよう、通常は省略してよい (明示すれば上書きできる)。暗がりの出し引きは発話の並びから自動で計算され、書き手は書かない。
+- `narration()` に渡した `cut(line(...), { ... })` の入力 item を const に取っておくと、他の layer から `start(item, offset?)` / `end(item, offset?)` でその発話を参照できる (`item` に `until` は指定できない)。`end()` は発話 layer の item の終端 (字幕の尺の終端) を指す。
 - `narration()` は発話の音声キャッシュを待つため、timeline.ts 側は `const n = await narration(...)` の top-level await で受ける。`timeline()` 自体は同期のまま。
 
 project の選択は環境変数 `REMOTION_PROJECT` (slug) で行い、`.env` に書く。Remotion CLI は `.env` の値をシェルの環境変数より優先するため、`REMOTION_PROJECT=<slug> npx remotion studio` の形で渡しても `.env` に書かれた project が読まれる (2026-09-11 実測)。音声キャッシュを生成する `scripts/voice.ts` は Remotion CLI を通さずシェルの環境変数が効くため、`.env` と違う slug をシェルで渡すと、音声の生成先と render の読み先がずれる。未設定・空なら `app/config.ts` の `defaultProject` (同梱の設定ではサンプル project `00000000-sample`) を読む。VOICEVOX ENGINE の URL は環境変数 `VOICEVOX_URL` で渡す (`.env` に書く)。`npm run dev` は未設定でも起動できるが、その間は発話の音声キャッシュを生成しない。`npm run render` は未設定だと非 0 で終了する。composition の props (`--props` や Studio の props パネル) で `slug` を上書きすると、読み込む timeline.ts は変わるが `narration()` の既定の読み先 (`REMOTION_PROJECT`) は変わらないため食い違う ([ADR-0010](docs/adr/0010-build-narration-timeline-with-hashed-voice-cache.md))。
@@ -275,7 +276,7 @@ timeline.ts では `figure(character, { expression?, speech, side? })` を `cut(
 
 - 口の形は発話中の口パクデータから母音ごとに選び、発話の外は口を閉じる (`n`)。目パチは theme の `characterTiming` (周期と閉眼の秒数) に従い、動画先頭からの絶対秒で位相を決める (item を分割しても目パチはずれない)。
 - 表情の切り替えは 2 通りある。1 つは `line()` の `by.expression` (発話に伴う切り替え、上の「発話」参照)。もう 1 つは `figure()` の item を分けて `expression` オプションを変えること (発話と無関係な切り替え)。
-- 立ち絵を一時的に隠す (章タイトル中等) には、`figure()` の item を分けてその区間を空ける。`narration()` と違い `figure()` の item の尺は数値で書く必要がある (アンカーは `at` にしか渡せない、[ADR-0009](docs/adr/0009-add-transition-frame-and-anchor-to-timeline.md))。
+- 立ち絵を一時的に隠す (章タイトル中等) には、`figure()` の item を分けてその区間を空ける。尺は `duration` の代わりに `until: end(line, 0.5)` 等で、発話の終端に合わせて指定できる ([ADR-0009](docs/adr/0009-add-transition-frame-and-anchor-to-timeline.md))。
 
 ## 未実装
 

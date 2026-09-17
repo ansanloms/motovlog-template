@@ -475,20 +475,24 @@ describe("timeline: anchor (start/end)", () => {
     expect(result.layers[0][1].at).toBeCloseTo(1.5);
   });
 
-  it("上の layer の item を参照すると throw する", () => {
+  it("上の layer の item を start() で参照できる (依存順に解決する)", () => {
     const upper = cut(null, { duration: 1 });
 
-    expect(() =>
-      timeline([[cut(null, { duration: 1, at: start(upper, 0) })], [upper]]),
-    ).toThrow();
+    const result = timeline([
+      [cut(null, { duration: 1, at: start(upper, 0.5) })],
+      [upper],
+    ]);
+
+    expect(result.layers[1][0].at).toBe(0);
+    expect(result.layers[0][0].at).toBeCloseTo(0.5);
   });
 
-  it("同じ layer の後ろの item を参照すると throw する", () => {
+  it("同じ layer の後ろの item を参照すると throw する (自己循環)", () => {
     const later = cut(null, { duration: 1 });
 
     expect(() =>
       timeline([[cut(null, { duration: 1, at: start(later, 0) }), later]]),
-    ).toThrow();
+    ).toThrow(/参照先を解決できません/);
   });
 
   it("どの layer にも置いていない item を参照すると throw する", () => {
@@ -496,7 +500,51 @@ describe("timeline: anchor (start/end)", () => {
 
     expect(() =>
       timeline([[cut(null, { duration: 1, at: start(orphan, 0) })]]),
-    ).toThrow();
+    ).toThrow(/参照先を解決できません/);
+  });
+
+  it("2 つの layer が互いを参照する (循環) と throw する", () => {
+    const a = { kind: "cut", node: null, duration: 1 } as unknown as CutItem;
+    const b = { kind: "cut", node: null, duration: 1 } as unknown as CutItem;
+
+    (a as { at?: unknown }).at = start(b, 0);
+    (b as { at?: unknown }).at = start(a, 0);
+
+    expect(() => timeline([[a], [b]])).toThrow(/参照先を解決できません/);
+  });
+
+  it("layer がブロックされても、手前で確定した item は他の layer から参照できる (真の循環ではない)", () => {
+    const a0 = cut(null, { duration: 1, at: 0 });
+    const b0 = cut(null, { duration: 1, at: start(a0, 2) });
+    const a1 = cut(null, { duration: 1, at: end(b0, 1) });
+
+    const result = timeline([[a0, a1], [b0]]);
+
+    expect(result.layers[1][0].at).toBeCloseTo(2);
+    expect(result.layers[0][1].at).toBeCloseTo(4);
+  });
+
+  it("一部の item が確定しても、残りが真に循環していれば throw する", () => {
+    const a0 = cut(null, { duration: 1 });
+    const b0 = { kind: "cut", node: null, duration: 1 } as unknown as CutItem;
+    const a1 = { kind: "cut", node: null, duration: 1 } as unknown as CutItem;
+
+    (b0 as { at?: unknown }).at = start(a1, 0);
+    (a1 as { at?: unknown }).at = start(b0, 0);
+
+    expect(() => timeline([[a0, a1], [b0]])).toThrow(/参照先を解決できません/);
+  });
+
+  it("3 つの layer をまたぐ連鎖を配列順とは異なる順で解決しても、layers は元の配列順のまま", () => {
+    const c = cut(null, { duration: 2 });
+    const a = cut(null, { duration: 1, at: start(c, 1) });
+    const b = cut(null, { duration: 1, at: start(a, 0.5) });
+
+    const result = timeline([[a], [b], [c]]);
+
+    expect(result.layers[2][0].at).toBeCloseTo(0);
+    expect(result.layers[0][0].at).toBeCloseTo(1);
+    expect(result.layers[1][0].at).toBeCloseTo(1.5);
   });
 
   it("同じ item オブジェクトを 2 つの layer に置くと throw する", () => {
@@ -540,6 +588,117 @@ describe("timeline: anchor (start/end)", () => {
     const a = cut(null, { duration: 1 });
 
     expect(() => start(a, Number.NaN)).toThrow();
+  });
+
+  it("item の source を登録し、start()/end() で元の item を参照できる", () => {
+    const original = cut(null, { duration: 1 });
+    const wrapped: CutItem = {
+      ...cut(null, { duration: 3 }),
+      source: original,
+    };
+
+    const result = timeline([
+      [wrapped],
+      [cut(null, { duration: 1, at: start(original, 0.5) })],
+    ]);
+
+    expect(result.layers[1][0].at).toBeCloseTo(0.5);
+  });
+
+  it("解決済み item は source を持たない (narration() の入力 item への参照は Stage に渡さない)", () => {
+    const original = cut(null, { duration: 1 });
+    const wrapped: CutItem = {
+      ...cut(null, { duration: 3 }),
+      source: original,
+    };
+
+    const result = timeline([[wrapped]]);
+
+    expect(result.layers[0][0]).not.toHaveProperty("source");
+  });
+
+  it("同じ source を持つ item が 2 つあると throw する", () => {
+    const original = cut(null, { duration: 1 });
+    const a: CutItem = { ...cut(null, { duration: 1 }), source: original };
+    const b: CutItem = {
+      ...cut(null, { duration: 1, after: 0 }),
+      source: original,
+    };
+
+    expect(() => timeline([[a, b]])).toThrow();
+  });
+});
+
+describe("timeline: until", () => {
+  it("until: number は開始位置解決後に duration = until − start を求める", () => {
+    const result = timeline([
+      [cut(null, { duration: 2, at: 1 }), cut(null, { until: 5, after: 0 })],
+    ]);
+
+    expect(result.layers[0][1].at).toBeCloseTo(3);
+    expect(result.layers[0][1].duration).toBeCloseTo(2);
+  });
+
+  it("until: Anchor は別 layer の item の終端 (end()) を基準に duration を求める", () => {
+    const a = cut(null, { duration: 5 });
+
+    const result = timeline([[a], [cut(null, { at: 0, until: end(a, -1) })]]);
+
+    expect(result.layers[1][0].at).toBe(0);
+    expect(result.layers[1][0].duration).toBeCloseTo(4);
+  });
+
+  it("until が start より前だと 1 フレームに満たない検査で throw する", () => {
+    expect(() => timeline([[cut(null, { at: 5, until: 4 })]])).toThrowError(
+      /1 フレームに満たない/,
+    );
+  });
+
+  it("cut() に duration と until を両方指定すると throw する", () => {
+    const options = { duration: 1, until: 2 } as unknown as Parameters<
+      typeof cut
+    >[1];
+
+    expect(() => cut(null, options)).toThrow(
+      /duration と until は同時に指定できません/,
+    );
+  });
+
+  it("fade() に duration と until を両方指定すると throw する", () => {
+    const options = { duration: 1, until: 2 } as unknown as Parameters<
+      typeof fade
+    >[1];
+
+    expect(() => fade(null, options)).toThrow(
+      /duration と until は同時に指定できません/,
+    );
+  });
+
+  it("duration と until を両方持つ生の item を layer に置くと throw する (cut()/fade() を経由しない object literal)", () => {
+    const item = {
+      kind: "cut",
+      node: null,
+      duration: 1,
+      until: 2,
+    } as unknown as CutItem;
+
+    expect(() => timeline([[item]])).toThrowError(
+      /duration と until を同時に指定できません/,
+    );
+  });
+
+  it("duration も until も無い item (leak した PendingCutItem 等) を layer に置くと throw する", () => {
+    const pending = cut(null, { at: 8.5 });
+
+    expect(() => timeline([[pending as unknown as CutItem]])).toThrowError(
+      /duration か until のどちらかが必要です/,
+    );
+  });
+
+  it("fade() の until 指定で in + out が解決後の duration を超えると throw する", () => {
+    expect(() =>
+      timeline([[fade(null, { at: 0, until: 1, in: 0.6, out: 0.6 })]]),
+    ).toThrowError(/in \(.*\) \+ out \(.*\) が until から求めた duration/);
   });
 });
 
