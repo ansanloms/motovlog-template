@@ -1,7 +1,14 @@
 import type { ReactNode } from "react";
 import { isFrame } from "./frame.ts";
+import type { GroupNode } from "./group.ts";
 import type { SampleNode } from "./sample.ts";
-import type { Anchor, CutItem, PendingCutItem, Placement } from "./types.ts";
+import type {
+  Anchor,
+  CutItem,
+  PendingCutItem,
+  Placement,
+  Span,
+} from "./types.ts";
 
 /** cut() に渡すオプション (duration 指定)。 */
 type CutOptionsWithDuration = Placement & {
@@ -25,8 +32,14 @@ type CutOptionsWithUntil = Placement & {
  * `duration`・`until` を両方省くと PendingCutItem になり、narration()
  * だけが duration (発話の実尺) を埋めて layer に置ける (普通の layer に
  * 直接置くと型エラーになる)。sample() (SampleNode) も node に渡せる
- * (Stage が毎フレーム render を呼ぶ)。
+ * (Stage が毎フレーム render を呼ぶ)。group() (GroupNode、塊) も渡せる
+ * (この場合は duration/until を省略でき、塊の内容の尺になる。ADR-0014。
+ * PendingCutItem にはならず、その場で CutItem になる)。
  */
+export function cut(
+  node: GroupNode,
+  options: Placement & Partial<Span>,
+): CutItem;
 export function cut(
   node: ReactNode | SampleNode,
   options: CutOptionsWithDuration,
@@ -40,7 +53,7 @@ export function cut(
   options: Placement,
 ): PendingCutItem;
 export function cut(
-  node: ReactNode | SampleNode,
+  node: ReactNode | SampleNode | GroupNode,
   options: Placement & { duration?: number; until?: number | Anchor },
 ): CutItem | PendingCutItem {
   const { at, after, duration, until } = options;

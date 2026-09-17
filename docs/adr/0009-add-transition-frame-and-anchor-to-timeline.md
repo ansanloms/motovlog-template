@@ -19,9 +19,8 @@ tags: [remotion, timeline, effects]
 
 ## Decision Drivers
 
-1. `timeline.ts` を平らな時間軸で読めること (時間が入れ子ごとに相対にならない)。
-2. 演出の追加が `src/effects` の中で閉じ、`src/components` に触れないこと ([ADR-0006](./0006-write-timeline-as-effects-dsl.md))。
-3. 書けない演出 (遷移・合成結果への効果・別 layer 基準の位置) を、既存の item の形を壊さずに足せること。
+1. 演出の追加が `src/effects` の中で閉じ、`src/components` に触れないこと ([ADR-0006](./0006-write-timeline-as-effects-dsl.md))。
+2. 書けない演出 (遷移・合成結果への効果・別 layer 基準の位置) を、既存の item の形を壊さずに足せること。
 
 ## Considered Options
 
@@ -36,7 +35,7 @@ tags: [remotion, timeline, effects]
 合成結果への効果について次の案を検討した。
 
 1. `frame()` を印として `fade(frame(), { ... })` を上の layer に置き、`Stage` が下の layer の合成結果を包んで効果をかける (AviUtl のフレームバッファ型、layer は平らなまま) — 採用。時間軸が平らなまま残る。
-2. `fade(stack([...layers]), { ... })` の入れ子 — 却下。時間が入れ子ごとに相対になり、`timeline.ts` を平らな時間軸で読めなくなる。
+2. `fade(stack([...layers]), { ... })` の入れ子 — 却下。合成結果への効果は `frame()` の方が単純な仕組みで足りる。
 
 別 layer 基準の位置について次の案を検討した。
 

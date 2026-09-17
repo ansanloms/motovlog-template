@@ -30,13 +30,13 @@ lib (動画を作る機能) は次の 2 つ。
 
 利用側から lib を import してよいのは次の 5 つの入口だけで、それ以外の `src/` 配下を import すると ESLint が落とす。
 
-| 入口                             | 実体                        | 主な中身                                                          |
-| -------------------------------- | --------------------------- | ----------------------------------------------------------------- |
-| `motovlog-template`              | `src/index.ts`              | `configure`・`RemotionRoot`・`Motovlog` と、下の 4 つの再 export  |
-| `motovlog-template/effects`      | `src/effects/index.ts`      | `timeline`・`cut`・`fade`・`crossfade`・`frame`・`start`・`end`   |
-| `motovlog-template/components`   | `src/components/index.tsx`  | 要素ファクトリ (`video`・`audio`・`chapter`・`ending` 等)         |
-| `motovlog-template/compositions` | `src/compositions/index.ts` | `line`・`narration`・`character`・`figure`・`thumbnail`           |
-| `motovlog-template/theme`        | `src/theme/index.ts`        | 配置と秒数のトークン (`chapterTiming`・`openingTiming`・`fps` 等) |
+| 入口                             | 実体                        | 主な中身                                                                 |
+| -------------------------------- | --------------------------- | ------------------------------------------------------------------------ |
+| `motovlog-template`              | `src/index.ts`              | `configure`・`RemotionRoot`・`Motovlog` と、下の 4 つの再 export         |
+| `motovlog-template/effects`      | `src/effects/index.ts`      | `timeline`・`cut`・`fade`・`crossfade`・`frame`・`start`・`end`・`group` |
+| `motovlog-template/components`   | `src/components/index.tsx`  | 要素ファクトリ (`video`・`audio`・`chapter`・`ending` 等)                |
+| `motovlog-template/compositions` | `src/compositions/index.ts` | `line`・`narration`・`character`・`figure`・`thumbnail`                  |
+| `motovlog-template/theme`        | `src/theme/index.ts`        | 配置と秒数のトークン (`chapterTiming`・`openingTiming`・`fps` 等)        |
 
 このリポジトリの中の利用側ファイルは、同じ 5 つの入口を相対パス (`../../src/effects/index.ts` 等) で import する。外部のリポジトリから依存として使う手順は「外部のリポジトリから使う」にある。
 
@@ -52,41 +52,41 @@ npm install github:ansanloms/motovlog-template
 
 利用側に次のファイルを作る (実物は同梱のサンプル project、`app/`・`theme/index.ts` を参照)。
 
-| ファイル                       | 内容                                                                        |
-| ------------------------------ | --------------------------------------------------------------------------- |
-| `app/index.ts`                 | Temporal polyfill の読み込み・`configure()` の呼び出し・`registerRoot()`    |
-| `app/config.ts`                | `theme` の re-export と `defaultProject`。Remotion を import しない          |
-| `theme/index.ts`                | `palette`・`narrator` の値と `theme: Theme`                                 |
-| `projects/<slug>/timeline.ts`  | 動画の定義 (「新しい動画を作る」参照)                                       |
-| `characters/<name>.ts`         | キャラクターの定義 (「立ち絵」参照)                                         |
-| `remotion.config.ts`           | `Config.setEntryPoint("./app/index.ts")`                                    |
-| `.env`                         | `REMOTION_PROJECT`・`VOICEVOX_URL` (「新しい動画を作る」参照)               |
-| `public/`                      | 素材 (「ディレクトリ構成」参照)                                             |
-| `types/temporal.d.ts`          | `/// <reference types="temporal-polyfill/types/global" />` (下記参照)       |
+| ファイル                      | 内容                                                                     |
+| ----------------------------- | ------------------------------------------------------------------------ |
+| `app/index.ts`                | Temporal polyfill の読み込み・`configure()` の呼び出し・`registerRoot()` |
+| `app/config.ts`               | `theme` の re-export と `defaultProject`。Remotion を import しない      |
+| `theme/index.ts`              | `palette`・`narrator` の値と `theme: Theme`                              |
+| `projects/<slug>/timeline.ts` | 動画の定義 (「新しい動画を作る」参照)                                    |
+| `characters/<name>.ts`        | キャラクターの定義 (「立ち絵」参照)                                      |
+| `remotion.config.ts`          | `Config.setEntryPoint("./app/index.ts")`                                 |
+| `.env`                        | `REMOTION_PROJECT`・`VOICEVOX_URL` (「新しい動画を作る」参照)            |
+| `public/`                     | 素材 (「ディレクトリ構成」参照)                                          |
+| `types/temporal.d.ts`         | `/// <reference types="temporal-polyfill/types/global" />` (下記参照)    |
 
 TypeScript 5.9 には Temporal の型が無いため、`temporal-polyfill/global` が実行時にグローバルへ入れる `Temporal` の型を参照する 1 行だけの `.d.ts` を利用側にも置く (`tsconfig.json` の既定の include に入る場所であれば、パスは上記でなくてよい)。lib の同等のファイル (`src/temporal.d.ts`) は `node_modules` 内にあり、tsc の既定の include には入らないため、利用側で別途持つ必要がある。
 
 import は、このリポジトリ内の相対パスの代わりに bare specifier (5 入口 + `characters/<name>.ts` 用の 1 つ) を使う。
 
-| このリポジトリ内の相対パス                    | 外部からの import         |
-| ---------------------------------------------- | -------------------------- |
-| `../../src/index.ts`                           | `motovlog-template`        |
-| `../../src/effects/index.ts`                   | `motovlog-template/effects` |
-| `../../src/components/index.tsx`               | `motovlog-template/components` |
-| `../../src/compositions/index.ts`              | `motovlog-template/compositions` |
-| `../../src/theme/index.ts`                     | `motovlog-template/theme`  |
+| このリポジトリ内の相対パス                                          | 外部からの import                          |
+| ------------------------------------------------------------------- | ------------------------------------------ |
+| `../../src/index.ts`                                                | `motovlog-template`                        |
+| `../../src/effects/index.ts`                                        | `motovlog-template/effects`                |
+| `../../src/components/index.tsx`                                    | `motovlog-template/components`             |
+| `../../src/compositions/index.ts`                                   | `motovlog-template/compositions`           |
+| `../../src/theme/index.ts`                                          | `motovlog-template/theme`                  |
 | `../../src/compositions/character.ts` (`characters/<name>.ts` 限定) | `motovlog-template/compositions/character` |
 
 `characters/<name>.ts` だけは 5 入口ではなく `motovlog-template/compositions/character` を直に import する (`character()` の実体、`package.json` の `exports` の `./compositions/character`)。理由は [ADR-0012](docs/adr/0012-split-template-library-from-consumer.md) の禁止事項と同じで、5 入口は `figure()`・`line()` 伝いに CSS Modules を辿るため、素の Node から import する音声生成の watcher がこのファイルを読めなくなる。
 
 依存として入った `motovlog-template` は `tsx scripts/<name>.ts` を直接叩けないため、次のコマンドを `bin` として使う。
 
-| コマンド                              | 相当する lib 内の呼び出し           |
-| ------------------------------------- | ------------------------------------ |
-| `npx motovlog-dev`                    | `npm run dev` (`tsx scripts/dev.ts`) |
-| `npx motovlog-voice [slug]`           | `tsx scripts/voice.ts`               |
-| `npx motovlog-convert <slug> <入力ファイル>...` | `tsx scripts/convert-movie.ts` |
-| `npx remotion render Motovlog`        | `npm run render` の後半 (先に `npx motovlog-voice` で音声キャッシュを生成する) |
+| コマンド                                        | 相当する lib 内の呼び出し                                                      |
+| ----------------------------------------------- | ------------------------------------------------------------------------------ |
+| `npx motovlog-dev`                              | `npm run dev` (`tsx scripts/dev.ts`)                                           |
+| `npx motovlog-voice [slug]`                     | `tsx scripts/voice.ts`                                                         |
+| `npx motovlog-convert <slug> <入力ファイル>...` | `tsx scripts/convert-movie.ts`                                                 |
+| `npx remotion render Motovlog`                  | `npm run render` の後半 (先に `npx motovlog-voice` で音声キャッシュを生成する) |
 
 `REMOTION_PROJECT` の優先順位 (Remotion CLI は `.env` の値をシェルの環境変数より優先する) は「新しい動画を作る」の注記のとおり、外部のリポジトリでも変わらない。
 
@@ -196,6 +196,22 @@ layer 内の item の位置は次のいずれかで指定する。
 演出は `fade(node, options)`・`cut(node, options)` の 2 つ。`options` は上記の位置指定に加え、`duration` (表示秒数)、`fade` はさらに `in`・`out` (フェードイン・アウトの秒数、既定 0) を持つ。
 
 layer 内の item と item の間には `crossfade({ duration })` を置ける。直後の item は直前の終端から遷移の尺だけ戻って始まり、その区間で重なる (直後の item に `at`/`after` は書けない)。`timeline()` は、遷移が layer の先頭・末尾にある、遷移が連続する、遷移の尺が前後どちらかの item の尺より長い、遷移が 1 フレームに満たない、直前の item が `out` を持つ `fade` である、前後どちらかが `frame()` の item である、のいずれかで throw する。`fade(frame(), options)` は下の layer の合成結果にフェードをかける (layer 0 には置けない)。`at` には `start(item, offset?)` / `end(item, offset?)` で、どの layer に置かれた item でも開始・終端を基準にした位置を渡せる。`timeline()` は item 間の依存関係の順で解決する (配列の順とは限らない) ため layer をまたいだ参照方向は問わないが、参照が循環している (同じ layer の後ろの item への参照も循環になる) か、どの layer にも置かれていない item を指すと throw する。尺は `duration` (秒数) の代わりに `until: number | Anchor` (終端の絶対秒または Anchor、`duration` とは排他) も指定できる。開始位置を解決した後に `duration = until − 開始` を求めるため、他の item の終端に合わせて尺を決められる (例: `fade(figure, { at: 0, until: end(line, 0.5) })`)。
+
+### 塊 (group)
+
+`group(layers)` は `layers` (item の配列の配列。`timeline()` の `layers` と同じ形) を塊にまとめ、`cut(group(...), options)`・`fade(group(...), options)` で他の item と同じように layer に置ける。塊の中の item の位置 (`at`・`after`・省略) は塊自身の位置指定 (`timeline()`) とは別に、塊の先頭からの相対秒として解決する (アンカー・`until`・`crossfade` も塊の中で同じ規則のまま使える)。塊の item の `duration`/`until` を省くと、内部の全 item の終端の最大値が塊の尺になる (内容の尺)。`duration`/`until` を明示したときは、内部の item がその尺を超えたら `timeline()` が throw する (超えなければ、内容より長い尺も指定できる)。
+
+```ts
+import { cut, group, timeline } from "../../src/effects/index.ts";
+
+const chapter1 = group([
+  [cut(video({ src: asset("clip1.mp4") }), { duration: 10 })],
+]);
+
+export default timeline([[cut(chapter1, { at: 0 })]]);
+```
+
+塊の外の item は `start(item)`/`end(item)` で塊の中の item を参照できる (依存関係の順で解決するのは `timeline()` と同じ)。逆に塊の中の item が塊の外の item を参照すると throw する (`timeline: ... 塊の中の item は塊の外の item を参照できません`)。塊の中に `frame()` は置けない (合成結果への効果は最上位の layer に置く)。塊は入れ子にできる。`sample()` の `absolute` (`SampleTime.absolute`) は「item が属する塊 (最上位なら動画) の先頭からの秒」になるため、塊をまたいだ時刻の比較はできない。
 
 要素は `motovlog-template/components` が公開する要素ファクトリで組み立てる。各ファクトリは対応するコンポーネントと同じ props を受け、フレーム依存の値は持たない。
 
