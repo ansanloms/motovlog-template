@@ -136,7 +136,7 @@ describe("mouthAt", () => {
 
 describe("expressionAt", () => {
   it("どの発話より前は initial", () => {
-    expect(expressionAt(-1, -1, "normal", [])).toBe("normal");
+    expect(expressionAt(-1, -1, "normal", [], false)).toBe("normal");
   });
 
   it("expression を持つ発話が始まった後はその表情", () => {
@@ -144,9 +144,9 @@ describe("expressionAt", () => {
       { at: 1, duration: 1, lipsync: [], by: hero, expression: "sweat" },
     ];
 
-    expect(expressionAt(0.5, 0, "normal", s)).toBe("normal");
-    expect(expressionAt(1, 0, "normal", s)).toBe("sweat");
-    expect(expressionAt(100, 0, "normal", s)).toBe("sweat");
+    expect(expressionAt(0.5, 0, "normal", s, false)).toBe("normal");
+    expect(expressionAt(1, 0, "normal", s, false)).toBe("sweat");
+    expect(expressionAt(100, 0, "normal", s, false)).toBe("sweat");
   });
 
   it("expression を持たない発話は表情を変えない", () => {
@@ -154,7 +154,7 @@ describe("expressionAt", () => {
       { at: 1, duration: 1, lipsync: [], by: hero },
     ];
 
-    expect(expressionAt(2, 0, "normal", s)).toBe("normal");
+    expect(expressionAt(2, 0, "normal", s, false)).toBe("normal");
   });
 
   it("複数の expression 指定は最後 (at が一番遅い) が勝つ", () => {
@@ -163,25 +163,48 @@ describe("expressionAt", () => {
       { at: 3, duration: 1, lipsync: [], by: hero, expression: "normal" },
     ];
 
-    expect(expressionAt(2, 0, "normal", s)).toBe("sweat");
-    expect(expressionAt(3, 0, "normal", s)).toBe("normal");
+    expect(expressionAt(2, 0, "normal", s, false)).toBe("sweat");
+    expect(expressionAt(3, 0, "normal", s, false)).toBe("normal");
   });
 
-  it("item の開始 (itemStart) より前に始まった発話の expression は無視される (#2)", () => {
+  it("expression 省略時 (explicit=false) は item をまたいで直近の発話の表情を引き継ぐ", () => {
+    const s: readonly Speech[] = [
+      { at: 1, duration: 1, lipsync: [], by: hero, expression: "sweat" },
+    ];
+
+    // item の開始 (itemStart=5) より前 (at=1) に始まった発話でも、
+    // expression を明示していないので initial に戻らず引き継ぐ。
+    expect(expressionAt(6, 5, "normal", s, false)).toBe("sweat");
+  });
+
+  it("expression 明示時 (explicit=true) は item の開始より前に始まった発話の expression は無視される (#2)", () => {
     const s: readonly Speech[] = [
       { at: 0, duration: 1, lipsync: [], by: hero, expression: "sweat" },
     ];
 
     // itemStart=2: at=0 の発話は item の開始より前なので無視され initial のまま。
-    expect(expressionAt(3, 2, "normal", s)).toBe("normal");
+    expect(expressionAt(3, 2, "normal", s, true)).toBe("normal");
   });
 
-  it("item の開始 (itemStart) 以降に始まった発話の expression は適用される (#2)", () => {
+  it("expression 明示時 (explicit=true) でも item の開始以降に始まった発話の expression は適用される (#2)", () => {
     const s: readonly Speech[] = [
       { at: 2, duration: 1, lipsync: [], by: hero, expression: "sweat" },
     ];
 
-    expect(expressionAt(3, 2, "normal", s)).toBe("sweat");
+    expect(expressionAt(3, 2, "normal", s, true)).toBe("sweat");
+  });
+
+  it("expression 明示時 (explicit=true) は item の開始でその表情に戻り、以降は item 内の発話が切り替える", () => {
+    const s: readonly Speech[] = [
+      { at: 1, duration: 1, lipsync: [], by: hero, expression: "sweat" },
+      { at: 7, duration: 1, lipsync: [], by: hero, expression: "cry" },
+    ];
+
+    // item の開始 (itemStart=5) より前の発話 (at=1) は無視され、明示した
+    // initial ("normal") に戻る。
+    expect(expressionAt(6, 5, "normal", s, true)).toBe("normal");
+    // item 内で始まった発話 (at=7) はその表情に切り替える。
+    expect(expressionAt(8, 5, "normal", s, true)).toBe("cry");
   });
 });
 
@@ -344,7 +367,7 @@ describe("figure", () => {
     });
   });
 
-  it("item を分けると、その item の開始より前の expression 指定は無視され初期値に戻る (#2)", () => {
+  it("expression 省略時は item を分けても直近の発話の表情を引き継ぐ (ADR-0011)", () => {
     const withExpression: readonly Speech[] = [
       { at: 0, duration: 5, lipsync: [], by: hero, expression: "sweat" },
     ];
@@ -353,8 +376,8 @@ describe("figure", () => {
     // item 1: 絶対 0 秒に始まり、絶対 2 秒 (item 内 2 秒) まで描く。
     // itemStart = absolute - seconds = 0 なので at=0 の expression が効く。
     const item1 = node.render({ frame: 60, seconds: 2, absolute: 2 });
-    // item 2: 絶対 3 秒から新しい item (item を分割)。itemStart = 3 なので
-    // at=0 の発話は item の開始より前で無視され、initial (normal) に戻る。
+    // item 2: 絶対 3 秒から新しい item (item を分割)。expression を明示
+    // していないので、item をまたいでも直近の表情 (sweat) を引き継ぐ。
     const item2 = node.render({ frame: 0, seconds: 0, absolute: 3 });
 
     if (!isValidElement(item1) || !isValidElement(item2)) {
@@ -365,6 +388,49 @@ describe("figure", () => {
       layers: [staticFile("body.png"), staticFile("fx-sweat.png")],
     });
     expect(item2.props).toEqual({
+      layers: [staticFile("body.png"), staticFile("fx-sweat.png")],
+    });
+  });
+
+  it("expression 明示時は item を分けると、その item の開始より前の expression 指定は無視され明示した表情に戻る (#2)", () => {
+    const withExpression: readonly Speech[] = [
+      { at: 0, duration: 5, lipsync: [], by: hero, expression: "sweat" },
+    ];
+    const node = figure(hero, {
+      expression: "normal",
+      speech: withExpression,
+    });
+
+    // item 1: 絶対 0 秒に始まり、絶対 2 秒 (item 内 2 秒) まで描く。
+    // itemStart = absolute - seconds = 0 なので at=0 の expression が効く。
+    const item1 = node.render({ frame: 60, seconds: 2, absolute: 2 });
+    // item 2: 絶対 3 秒から新しい item (item を分割)。itemStart = 3 なので
+    // at=0 の発話は item の開始より前で無視され、明示した表情 (normal) に戻る。
+    const item2 = node.render({ frame: 0, seconds: 0, absolute: 3 });
+
+    if (!isValidElement(item1) || !isValidElement(item2)) {
+      throw new Error("unreachable");
+    }
+
+    expect(item1.props).toEqual({
+      layers: [staticFile("body.png"), staticFile("fx-sweat.png")],
+    });
+    expect(item2.props).toEqual({
+      layers: [staticFile("body.png"), staticFile("mouth-n.png")],
+    });
+  });
+
+  it("expression を省略し、どの発話も expression を持たない場合は expressions の先頭キーになる", () => {
+    const node = figure(hero, { speech: [] });
+
+    const rendered = node.render({ frame: 0, seconds: 0, absolute: 0 });
+
+    if (!isValidElement(rendered)) {
+      throw new Error("unreachable");
+    }
+
+    // hero.expressions の先頭キーは "normal"。
+    expect(rendered.props).toEqual({
       layers: [staticFile("body.png"), staticFile("mouth-n.png")],
     });
   });
@@ -432,15 +498,19 @@ describe("figure", () => {
     }
   });
 
-  it("item の開始より前のフレームで始まった発話の expression は適用されない (#14)", () => {
+  it("expression 明示時は item の開始より前のフレームで始まった発話の expression は適用されない (#14)", () => {
     // 前のテストと同じ item (from = 301) だが、発話は 1 フレーム前
-    // (at: 10.00 → frame 300) に始まっている。item の開始 (frame 301) より
-    // 前に始まった発話なので、丸めても itemStart より前のまま initial に戻る。
+    // (at: 10.00 → frame 300) に始まっている。expression を明示している
+    // ので、item の開始 (frame 301) より前に始まった発話は無視され、
+    // 丸めても itemStart より前のまま明示した表情 (normal) のままになる。
     const from = Math.round(10.02 * fps);
     const withExpression: readonly Speech[] = [
       { at: 10.0, duration: 1, lipsync: [], by: hero, expression: "sweat" },
     ];
-    const node = figure(hero, { speech: withExpression });
+    const node = figure(hero, {
+      expression: "normal",
+      speech: withExpression,
+    });
 
     const rendered = node.render({
       frame: 0,

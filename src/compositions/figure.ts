@@ -149,38 +149,46 @@ export const mouthAt = (
 };
 
 /**
- * 絶対秒から表情名を引く純粋関数。initial (item の expression、省略時は
- * expressions の最初のキー) を初期値とし、itemStart (item の開始の絶対秒)
- * 以降かつ absolute までに始まった (`itemStart <= s.at <= absolute`) 自分宛の
- * 発話のうち expression を持つ最後のものがあればその表情にする (次の指定
- * まで維持し、item を分ければその item の初期値に戻る、ADR-0011)。speech
- * は渡した順 (narration() の出力順) を前提に末尾から遡り、最初に条件に合う
- * ものを返して打ち切る (#8。渡した順での「最後の一致」と同じ結果になる)。
- * speech は figure() が呼び出し側の character 宛に絞り込んだ後の列。
- * itemStart (= t.absolute - t.seconds) と absolute はどちらも Stage が
- * フレーム番号から作る値で frame/fps のグリッドに乗っている (itemStart の
- * 元になる from は round(at × fps)) が、s.at は narration() が積み上げた
- * 生の秒数でフレーム境界に乗るとは限らない (#14。例: item の分割位置を
- * speech の開始秒に合わせて書いた場合)。秒のまま比較すると frame に丸め
- * られた境界と生の秒がわずかにずれ、範囲の端でだけ判定を落とすちらつきが
- * 起きるため、s.at 側を toFrame() (src/effects) でフレーム単位に丸めてから
- * 比較する (itemStart・absolute は元からこのグリッド上にあるので同じ
- * 丸めを掛けても値は変わらない)。
+ * 絶対秒から表情名を引く純粋関数。initial (item の expression が明示され
+ * ていればその値、省略されていれば expressions の最初のキー) を初期値と
+ * し、absolute までに始まった (`toFrame(s.at) <= toFrame(absolute)`) 自分宛
+ * の発話のうち expression を持つ最後のものがあればその表情にする (次の
+ * 指定まで維持する)。explicit (item の expression が明示されたか) が
+ * true の場合のみ、itemStart (item の開始の絶対秒) より前に始まった発話
+ * の expression を無視する (item の開始でいったん initial に戻り、以降は
+ * item 内の発話が切り替える、#2)。explicit が false (省略) の場合は
+ * itemStart を見ず、item をまたいでも直近の発話の表情を引き継ぐ
+ * (ADR-0011)。speech は渡した順 (narration() の出力順) を前提に末尾から
+ * 遡り、最初に条件に合うものを返して打ち切る (#8。渡した順での「最後の
+ * 一致」と同じ結果になる)。speech は figure() が呼び出し側の character
+ * 宛に絞り込んだ後の列。itemStart (= t.absolute - t.seconds) と absolute
+ * はどちらも Stage がフレーム番号から作る値で frame/fps のグリッドに
+ * 乗っている (itemStart の元になる from は round(at × fps)) が、s.at は
+ * narration() が積み上げた生の秒数でフレーム境界に乗るとは限らない (#14。
+ * 例: item の分割位置を speech の開始秒に合わせて書いた場合)。秒のまま
+ * 比較すると frame に丸められた境界と生の秒がわずかにずれ、範囲の端でだけ
+ * 判定を落とすちらつきが起きるため、s.at 側を toFrame() (src/effects) で
+ * フレーム単位に丸めてから比較する (itemStart・absolute は元からこの
+ * グリッド上にあるので同じ丸めを掛けても値は変わらない)。
  */
 export const expressionAt = (
   absolute: number,
   itemStart: number,
   initial: string,
   speech: readonly Speech[],
+  explicit: boolean,
 ): string => {
+  const nowFrame = toFrame(absolute, fps);
+  const itemStartFrame = toFrame(itemStart, fps);
+
   for (let i = speech.length - 1; i >= 0; i--) {
     const s = speech[i];
     const atFrame = toFrame(s.at, fps);
 
     if (
-      atFrame >= toFrame(itemStart, fps) &&
-      atFrame <= toFrame(absolute, fps) &&
-      s.expression !== undefined
+      atFrame <= nowFrame &&
+      s.expression !== undefined &&
+      (!explicit || atFrame >= itemStartFrame)
     ) {
       return s.expression;
     }
@@ -322,7 +330,11 @@ export const figureLayers = (
 export const figure = (
   character: Character,
   options: {
-    /** 初期の表情名。省略時は expressions の最初のキー。 */
+    /**
+     * 初期の表情名。省略時は直近の line() の表情を item をまたいで引き
+     * 継ぐ (指定が無ければ expressions の最初のキー)。明示時はその item
+     * の開始でその表情に戻し、以降は item 内の line() が切り替える。
+     */
     readonly expression?: string;
     /** narration() の戻り値の speech。このキャラクター宛以外は figure() が無視する。 */
     readonly speech: readonly Speech[];
@@ -335,6 +347,7 @@ export const figure = (
     options.expression,
     "figure",
   );
+  const explicit = options.expression !== undefined;
 
   const ownSpeech = options.speech.filter((s) => s.by === character);
 
@@ -350,7 +363,13 @@ export const figure = (
     const itemStart = t.absolute - t.seconds;
     const blinking = isBlinking(t.absolute);
     const mouth = mouthAt(t.absolute, ownSpeech);
-    const expression = expressionAt(t.absolute, itemStart, initial, ownSpeech);
+    const expression = expressionAt(
+      t.absolute,
+      itemStart,
+      initial,
+      ownSpeech,
+      explicit,
+    );
     const layers = resolvedExpressions[expression];
     const sources = layerSources(layers, { blinking, mouth });
 
