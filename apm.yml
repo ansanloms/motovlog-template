@@ -4,7 +4,7 @@ description: APM project for motovlog-template
 author: ansanloms
 dependencies:
   apm:
-    - remotion-dev/skills#bd566b65d521b40fe92e1f26766e82de9e291693
+    - remotion-dev/skills#3b9e6561dababf40a485772a7cd641268bb7c365
     - ansanloms/skills/adr
     - ansanloms/skills/ja-tech-proofread
   mcp: []
