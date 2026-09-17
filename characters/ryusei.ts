@@ -20,36 +20,54 @@
 // scripts/voice/extract.ts の watcher が line().by から voice だけを
 // 読むため)。
 
-import { character } from "../src/compositions/character.ts";
+import {
+  character,
+  type MouthLayer,
+  type EyesLayer,
+  type FigureLayer,
+} from "../src/compositions/character.ts";
 import { narrator } from "../theme/index.ts";
 
 const dir = "assets/characters/ryusei";
 const part = (name: string) => `${dir}/${name}.png`;
 
-const body = part("body");
-
-const eyes = {
-  eyes: { open: part("eyes-open"), closed: part("eyes-closed") },
-};
-
+const body = { normal: part("body") };
 const mouth = {
-  mouth: {
-    a: part("mouth-a"),
-    i: part("mouth-i"),
-    u: part("mouth-u"),
-    e: part("mouth-e"),
-    o: part("mouth-o"),
-    n: part("mouth-n"),
+  normal: {
+    mouth: {
+      a: part("mouth-a"),
+      i: part("mouth-i"),
+      u: part("mouth-u"),
+      e: part("mouth-e"),
+      o: part("mouth-o"),
+      n: part("mouth-n"),
+    },
+  },
+  smile: {
+    mouth: {
+      a: part("mouth-a"),
+      i: part("mouth-i"),
+      u: part("mouth-u"),
+      e: part("mouth-e"),
+      o: part("mouth-o"),
+      n: part("mouth-smile"),
+    },
   },
 };
-
 const arms = {
   down: part("arms-down"),
   crossed: part("arms-crossed"),
   explain: part("arms-explain"),
   scratch: part("arms-scratch"),
 };
-
+const eyes = {
+  normal: { eyes: { open: part("eyes-open"), closed: part("eyes-closed3") } },
+  up: { eyes: { open: part("eyes-up"), closed: part("eyes-closed3") } },
+  down: { eyes: { open: part("eyes-down"), closed: part("eyes-closed3") } },
+  downAway: {
+    eyes: { open: part("eyes-down-away"), closed: part("eyes-closed3") },
+  },
+};
 const brows = {
   normal: part("brows-normal"),
   angry: part("brows-angry"),
@@ -57,35 +75,158 @@ const brows = {
   down: part("brows-down"),
   up: part("brows-up"),
 };
-
 const fx = {
   sweat: part("fx-sweat"),
+  sweatBig: part("fx-sweat-big"),
+  blush: part("fx-blush"),
   tearStream: part("fx-tear-stream"),
+  tearMarks: part("fx-tear-marks"),
+  noseRed: part("fx-nose-red"),
+  gloom: part("fx-gloom"),
+  pale: part("fx-pale"),
+  cheekLines: part("fx-cheek-lines"),
 };
-
-const opt = {
+const opts = {
   pen: part("opt-pen"),
   tears: part("opt-tears"),
   cry: part("opt-cry"),
   glasses: part("opt-glasses"),
 };
 
+type Expression = {
+  body: string;
+  arms: string;
+  fx?: string[];
+  mouth: MouthLayer;
+  eyes: EyesLayer;
+  brows: string;
+  opts?: string[];
+};
+
+const expressionBase: Expression = {
+  body: body.normal,
+  arms: arms.down,
+  fx: [fx.noseRed],
+  mouth: mouth.normal,
+  eyes: eyes.up,
+  brows: brows.normal,
+  opts: [opts.pen],
+};
+
+const getFigureLayer = (expression: Expression): FigureLayer[] => {
+  const { body, arms, fx, mouth, eyes, brows, opts } = expression;
+  return [body, arms, ...(fx ?? []), mouth, eyes, brows, ...(opts ?? [])];
+};
+
 export const ryusei = character({
   voice: narrator,
   expressions: {
-    normal: [body, arms.down, mouth, eyes, brows.normal, opt.pen],
-    sweat: [body, arms.scratch, fx.sweat, mouth, eyes, brows.troubled, opt.pen],
-    tears: [body, arms.down, mouth, eyes, brows.down, opt.pen, opt.tears],
-    cry: [
-      body,
-      arms.down,
-      fx.tearStream,
-      part("mouth-endure"),
-      part("eyes-closed3"),
-      brows.troubled,
-      opt.cry,
-    ],
-    teach: [body, arms.explain, mouth, eyes, brows.up, opt.pen, opt.glasses],
-    armsCrossed: [body, arms.crossed, mouth, eyes, brows.angry, opt.pen],
+    /**
+     * 標準。
+     */
+    normal: getFigureLayer({
+      ...expressionBase,
+    }),
+
+    /**
+     * 怒り。
+     */
+    angry: getFigureLayer({
+      ...expressionBase,
+      brows: brows.angry,
+    }),
+
+    /**
+     * 頬を掻く。
+     */
+    scratch: getFigureLayer({
+      ...expressionBase,
+      arms: arms.scratch,
+    }),
+
+    /**
+     * 汗。
+     */
+    sweat: getFigureLayer({
+      ...expressionBase,
+      fx: [fx.sweat],
+    }),
+
+    /**
+     * 汗。
+     */
+    sweatBig: getFigureLayer({
+      ...expressionBase,
+      fx: [fx.sweatBig],
+    }),
+
+    /**
+     * 涙。
+     */
+    tears: getFigureLayer({
+      ...expressionBase,
+      opts: [...(expressionBase.opts ?? []), opts.tears],
+    }),
+
+    /**
+     * 泣。
+     */
+    cry: getFigureLayer({
+      ...expressionBase,
+      opts: [...(expressionBase.opts ?? []), opts.cry],
+    }),
+
+    /**
+     * 青ざめ。
+     */
+    pale: getFigureLayer({
+      ...expressionBase,
+      fx: [...(expressionBase.fx ?? []), fx.pale],
+    }),
+
+    /**
+     * 青ざめと汗。
+     */
+    paleAndSweat: getFigureLayer({
+      ...expressionBase,
+      fx: [...(expressionBase.fx ?? []), fx.pale, fx.sweat],
+    }),
+
+    /**
+     * 青ざめと大汗。
+     */
+    paleAndSweatBig: getFigureLayer({
+      ...expressionBase,
+      fx: [...(expressionBase.fx ?? []), fx.pale, fx.sweatBig],
+    }),
+
+    /**
+     * 照れ。
+     */
+    shyness: getFigureLayer({
+      ...expressionBase,
+      fx: [...(expressionBase.fx ?? []), fx.blush, fx.cheekLines],
+    }),
+
+    /**
+     * 照れ、頬を掻き右下をみる。
+     */
+    shynessAndScratchAndEyesdownAway: getFigureLayer({
+      ...expressionBase,
+      arms: arms.scratch,
+      eyes: eyes.downAway,
+      fx: [...(expressionBase.fx ?? []), fx.blush, fx.cheekLines],
+    }),
+
+    //teach: [
+    //  body,
+    //  arms.explain,
+    //  mouth,
+    //  eyes.normal,
+    //  brows.up,
+    //  opt.pen,
+    //  opt.glasses,
+    //],
+    //armsCrossed: [body, arms.crossed, mouth, eyes.normal, brows.angry, opt.pen],
   },
 });

@@ -6,7 +6,6 @@ import { staticFile } from "remotion";
 import { ryusei } from "../../characters/ryusei.ts";
 import {
   audio,
-  chapter,
   ending,
   photoShowcase,
   video,
@@ -25,12 +24,7 @@ import {
   frame,
   timeline,
 } from "../../src/effects/index.ts";
-import {
-  chapterDurationSec,
-  chapterTiming,
-  endingTiming,
-  openingTiming,
-} from "../../src/theme/index.ts";
+import { endingTiming, openingTiming } from "../../src/theme/index.ts";
 
 const asset = (path: string) =>
   staticFile(`projects/20260813-jododaira/${path}`);
@@ -129,21 +123,63 @@ const n = await narration([
       text: "取りました",
       by: { character: ryusei, expression: "normal" },
     }),
-    { at: 8.433 },
+    { at: 8.5 },
   ),
-  cut(line({ text: "免許を", by: ryusei }), { after: 2.334 }),
+  cut(
+    line({
+      text: "免許を",
+      by: ryusei,
+    }),
+    { after: 2.334 },
+  ),
   cut(line({ text: "買いました", by: ryusei }), { after: 2.266 }),
   cut(line({ text: "バイクも", by: ryusei }), { after: 2.366 }),
-  cut(line({ text: "Honda GB350C です", by: ryusei }), { after: 2.201 }),
-  cut(line({ text: "乗りました", by: ryusei }), { after: 3.9 }),
+  cut(
+    line({
+      text: "{Honda|ホンダ} GB350C です",
+      reading: "{Honda|ホンダ} GB350 Cです",
+      by: ryusei,
+    }),
+    { after: 2.201 },
+  ),
+  cut(
+    line({
+      text: "乗りました",
+      by: { character: ryusei, expression: "scratch" },
+    }),
+    { after: 3.9 },
+  ),
   cut(line({ text: "半年くらい", by: ryusei }), { after: 1.634 }),
-  cut(line({ text: "まだ 怖いです", by: ryusei }), { after: 3.233 }),
-  cut(line({ text: "でも 楽しいです", by: ryusei }), { after: 1.733 }),
-  cut(line({ text: "福島県は 磐梯吾妻スカイラインを走って", by: ryusei }), {
-    after: 4.7,
+  cut(
+    line({
+      text: "まだ 怖いです",
+      by: { character: ryusei, expression: "paleAndSweatBig" },
+    }),
+    { after: 3.233 },
+  ),
+  cut(
+    line({
+      text: "でも 楽しいです",
+      by: { character: ryusei, expression: "shynessAndScratchAndEyesdownAway" },
+    }),
+    { after: 1.733 },
+  ),
+  cut(
+    line({
+      text: "福島県は 磐梯吾妻スカイラインを走って",
+      by: { character: ryusei, expression: "scratch" },
+    }),
+    {
+      after: 4.7,
+    },
+  ),
+  cut(line({ text: "{浄土平|じょうどだいら}に", by: ryusei }), {
+    after: 2.034,
   }),
-  cut(line({ text: "浄土平に", by: ryusei }), { after: 2.034 }),
-  cut(line({ text: "行きます", by: ryusei }), { after: 1.433 }),
+  cut(
+    line({ text: "行きます", by: { character: ryusei, expression: "angry" } }),
+    { after: 1.433 },
+  ),
   cut(line({ text: "今日は", by: ryusei }), { at: 61.7 }),
   cut(line({ text: "(2026年)8月は中旬", reading: "8月は中旬", by: ryusei }), {
     after: 1.067,
@@ -169,22 +205,54 @@ const n = await narration([
     { after: 2.733 },
   ),
   cut(line({ text: "吾妻の山が みえてきました", by: ryusei }), { at: 90.9 }),
-  cut(line({ text: "もうすこしで浄土平ビジターセンターです", by: ryusei }), {
-    after: 3.233,
-  }),
-  cut(line({ text: "標高は1600メートル程", by: ryusei }), { after: 3.066 }),
+  cut(
+    line({
+      text: "もうすこしで{浄土平|じょうどだいら}ビジターセンターです",
+      reading: "もうすこしで {浄土平|じょうどだいら} ビジターセンターです",
+      by: ryusei,
+    }),
+    {
+      after: 3.233,
+    },
+  ),
+  cut(
+    line({
+      text: "標高は1600メートル程",
+      reading: "標高は 1600メートル程",
+      by: ryusei,
+    }),
+    { after: 3.066 },
+  ),
   cut(line({ text: "吾妻の山々への玄関口になっているほか", by: ryusei }), {
     after: 3.467,
   }),
-  cut(line({ text: "日本一標高の高い天文台もあります", by: ryusei }), {
-    after: 2.599,
-  }),
+  cut(
+    line({
+      text: "日本一標高の高い天文台もあります",
+      reading: "日本一標高の高い天文台も あります",
+      by: ryusei,
+    }),
+    {
+      after: 2.599,
+    },
+  ),
   cut(line({ text: "目の前の山は", by: ryusei }), { at: 121.9 }),
   cut(line({ text: "吾妻小富士", by: ryusei }), { after: 3.567 }),
   cut(line({ text: "登りました", by: ryusei }), { after: 3.4 }),
-  cut(line({ text: "いい山でした", by: ryusei }), { at: 136.767 }),
-  cut(line({ text: "今夜は 泊まります", by: ryusei }), { at: 144 }),
-  cut(line({ text: "浄土平キャンプ場", by: ryusei }), { after: 2.3 }),
+  cut(line({ text: "いい山でした", reading: "いい 山でした", by: ryusei }), {
+    at: 136.767,
+  }),
+  cut(
+    line({
+      text: "今夜は泊まります",
+      reading: "今夜は 泊まります",
+      by: ryusei,
+    }),
+    { at: 144 },
+  ),
+  cut(line({ text: "{浄土平|じょうどだいら}キャンプ場", by: ryusei }), {
+    after: 2.3,
+  }),
   cut(line({ text: "テントを張りました", by: ryusei }), { after: 3.834 }),
   cut(line({ text: "星空観察と 洒落込むつもりでした", by: ryusei }), {
     after: 2,
@@ -262,36 +330,18 @@ export default timeline([
     cut(
       thumbnail({
         photo: asset("photos/PXL_20260815_045406555.RAW-01.jpg"),
-        badge: "",
-        title: "",
+        badge: "#1 福島",
+        title: "浄土平に\n行く",
         by: ryusei,
       }),
       { at: 0, duration: openingTiming.duration },
     ),
-    fade(chapter({ title: "", subtitle: "CHAPTER 1" }), {
-      at: 5.567,
-      duration: chapterDurationSec,
-      in: chapterTiming.fade,
-      out: chapterTiming.fade,
-    }),
     cut(
       photoShowcase({
         photos: [asset("photos/PXL_20260815_045406555.RAW-01.jpg")],
       }),
       { at: 19.967, duration: 3.133 },
     ),
-    fade(chapter({ title: "", subtitle: "CHAPTER 2" }), {
-      at: 58.9,
-      duration: chapterDurationSec,
-      in: chapterTiming.fade,
-      out: chapterTiming.fade,
-    }),
-    fade(chapter({ title: "", subtitle: "CHAPTER 3" }), {
-      at: 87.9,
-      duration: chapterDurationSec,
-      in: chapterTiming.fade,
-      out: chapterTiming.fade,
-    }),
     cut(
       photoShowcase({
         photos: [asset("photos/PXL_20260816_084122600.RAW-01.MP.jpg")],
@@ -316,36 +366,26 @@ export default timeline([
       }),
       { at: 152.867, duration: 1.733 },
     ),
-    fade(chapter({ title: "", subtitle: "CHAPTER 4" }), {
-      at: 207.133,
-      duration: chapterDurationSec,
-      in: chapterTiming.fade,
-      out: chapterTiming.fade,
-    }),
-    fade(chapter({ title: "", subtitle: "CHAPTER 5" }), {
-      at: 254.333,
-      duration: chapterDurationSec,
-      in: chapterTiming.fade,
-      out: chapterTiming.fade,
-    }),
-    fade(chapter({ title: "", subtitle: "CHAPTER 6" }), {
-      at: 304.1,
-      duration: chapterDurationSec,
-      in: chapterTiming.fade,
-      out: chapterTiming.fade,
-    }),
     cut(
       ending({
-        title: "",
-        subtitle: "",
+        title: "RIDE LOG",
+        subtitle: "#1 福島",
         date: {
           from: Temporal.ZonedDateTime.from("2026-08-16T00:00[Asia/Tokyo]"),
           to: Temporal.ZonedDateTime.from("2026-08-17T00:00[Asia/Tokyo]"),
         },
-        distance: 0,
-        ridingTime: Temporal.Duration.from({ hours: 0, minutes: 0 }),
-        routes: [],
-        credits: [{ VOICEVOX: "青山龍星" }, { 立ち絵作者: "Jacca" }],
+        distance: 213,
+        ridingTime: Temporal.Duration.from({ hours: 13, minutes: 37 }),
+        routes: [
+          "道の駅 ばんだい",
+          "道の駅 裏磐梯",
+          "浄土平ビジターセンター",
+          "浄土平キャンプ場",
+        ],
+        credits: [
+          { ナレーション: "VOICEVOX 青山龍星" },
+          { イラスト: "Jacca さま" },
+        ],
       }),
       {
         at: end(clip7, -endingTiming.duration),
@@ -355,114 +395,39 @@ export default timeline([
   ],
   // layer 2: 立ち絵
   [
-    fade(
-      figure(ryusei, { expression: "normal", speech: n.speech, side: "left" }),
-      { at: 6.633, duration: 19.967, in: 0.4 },
-    ),
-    cut(
-      figure(ryusei, { expression: "normal", speech: n.speech, side: "left" }),
-      { at: 26.6, duration: 6.367 },
-    ),
-    cut(
-      figure(ryusei, { expression: "normal", speech: n.speech, side: "left" }),
-      { at: 32.967, duration: 3 },
-    ),
-    cut(
-      figure(ryusei, { expression: "normal", speech: n.speech, side: "left" }),
-      { at: 35.967, duration: 4.233 },
-    ),
-    cut(
-      figure(ryusei, { expression: "normal", speech: n.speech, side: "left" }),
-      { at: 40.2, duration: 9.667 },
-    ),
-    cut(
-      figure(ryusei, { expression: "normal", speech: n.speech, side: "left" }),
-      { at: 49.867, duration: 3.567 },
-    ),
-    fade(
-      figure(ryusei, { expression: "normal", speech: n.speech, side: "left" }),
-      { at: 59.233, duration: 22.467, in: 1 },
-    ),
-    cut(
-      figure(ryusei, { expression: "normal", speech: n.speech, side: "left" }),
-      { at: 81.7, duration: 5.467 },
-    ),
-    fade(
-      figure(ryusei, { expression: "normal", speech: n.speech, side: "right" }),
-      { at: 89.267, duration: 12.767, in: 1 },
-    ),
-    cut(
-      figure(ryusei, { expression: "normal", speech: n.speech, side: "right" }),
-      { at: 102.033, duration: 19.867 },
-    ),
-    cut(
-      figure(ryusei, { expression: "normal", speech: n.speech, side: "right" }),
-      { at: 121.9, duration: 7.267 },
-    ),
-    cut(
-      figure(ryusei, { expression: "normal", speech: n.speech, side: "right" }),
-      { at: 129.167, duration: 7.6 },
-    ),
-    cut(
-      figure(ryusei, { expression: "normal", speech: n.speech, side: "right" }),
-      { at: 136.767, duration: 6.367 },
-    ),
-    cut(
-      figure(ryusei, { expression: "normal", speech: n.speech, side: "right" }),
-      { at: 143.133, duration: 9.733 },
-    ),
-    cut(
-      figure(ryusei, { expression: "normal", speech: n.speech, side: "right" }),
-      { at: 152.867, duration: 6.867 },
-    ),
-    cut(
-      figure(ryusei, { expression: "normal", speech: n.speech, side: "right" }),
-      { at: 159.733, duration: 5.767 },
-    ),
-    cut(
-      figure(ryusei, { expression: "normal", speech: n.speech, side: "right" }),
-      { at: 165.5, duration: 9.033 },
-    ),
-    fade(
-      figure(ryusei, { expression: "normal", speech: n.speech, side: "right" }),
-      { at: 208.667, duration: 13.633, in: 1 },
-    ),
-    fade(
-      figure(ryusei, { expression: "normal", speech: n.speech, side: "right" }),
-      { at: 222.3, duration: 9.433, out: 1 },
-    ),
-    fade(
-      figure(ryusei, { expression: "normal", speech: n.speech, side: "left" }),
-      { at: 256.167, duration: 5.367, in: 1 },
-    ),
-    cut(
-      figure(ryusei, { expression: "normal", speech: n.speech, side: "left" }),
-      { at: 261.533, duration: 14.367 },
-    ),
-    fade(
-      figure(ryusei, { expression: "normal", speech: n.speech, side: "left" }),
-      { at: 275.9, duration: 4.6, out: 1 },
-    ),
-    fade(
-      figure(ryusei, { expression: "normal", speech: n.speech, side: "left" }),
-      { at: 305.567, duration: 21.5, in: 0.4 },
-    ),
-    cut(
-      figure(ryusei, { expression: "normal", speech: n.speech, side: "left" }),
-      { at: 327.067, duration: 7.3 },
-    ),
-    cut(
-      figure(ryusei, { expression: "normal", speech: n.speech, side: "left" }),
-      { at: 334.367, duration: 5.2 },
-    ),
-    cut(
-      figure(ryusei, { expression: "normal", speech: n.speech, side: "left" }),
-      { at: 339.567, duration: 7 },
-    ),
-    fade(
-      figure(ryusei, { expression: "normal", speech: n.speech, side: "left" }),
-      { at: 346.567, duration: 9.533, out: 1 },
-    ),
+    fade(figure(ryusei, { speech: n.speech, side: "left" }), {
+      at: 6.633,
+      duration: 46.801,
+      in: 0.4,
+    }),
+    fade(figure(ryusei, { speech: n.speech, side: "left" }), {
+      at: 59.233,
+      duration: 27.934,
+      in: 1,
+    }),
+    fade(figure(ryusei, { speech: n.speech, side: "right" }), {
+      at: 89.267,
+      duration: 85.266,
+      in: 1,
+    }),
+    fade(figure(ryusei, { speech: n.speech, side: "right" }), {
+      at: 208.667,
+      duration: 23.066,
+      in: 1,
+      out: 1,
+    }),
+    fade(figure(ryusei, { speech: n.speech, side: "left" }), {
+      at: 256.167,
+      duration: 24.333,
+      in: 1,
+      out: 1,
+    }),
+    fade(figure(ryusei, { speech: n.speech, side: "left" }), {
+      at: 305.567,
+      duration: 50.533,
+      in: 0.4,
+      out: 1,
+    }),
   ],
   // layer 3: BGM
   [
