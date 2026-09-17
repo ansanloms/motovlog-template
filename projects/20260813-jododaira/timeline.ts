@@ -1,6 +1,4 @@
-// このファイルは scripts/migrate/aup2 が AviUtl ExEdit2 の project ファイル
-// (.aup2) から生成した。編集してよいが、再生成すると上書きされる。写像の
-// 規則と再生成の手順は scripts/migrate/README.md にある。
+// 浄土平 (2026-08-13) の timeline。AviUtl ExEdit2 の project から移行した。
 
 import { staticFile } from "remotion";
 import { ryusei } from "../../characters/ryusei.ts";
