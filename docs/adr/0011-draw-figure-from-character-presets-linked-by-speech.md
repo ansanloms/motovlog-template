@@ -85,7 +85,7 @@ Remotion は各フレームを個別に描くため、CSS アニメーション�
   - N と pau は n。
   - cl と区間の隙間 (子音) は直前の口の形を維持する。
   - 発話の外は n とする。
-- 表情は次の順で決める。item の `expression` (省略時は `expressions` の最初の表情) を初期値とし、item の開始以降かつ絶対秒までに始まった自分宛の発話のうち `expression` を持つ最後のものがあればその表情にする。表情は次の指定まで維持し、item を分ければその item の初期値に戻る。
+- 表情は絶対秒までに始まった自分宛の発話のうち `expression` を持つ最後のものがあればその表情にし、次の指定まで維持する。item の `expression` を明示した場合は、その値を初期値としつつ item の開始より前に始まった発話の指定を無視する (item の開始でいったんその初期値に戻り、以降は item 内の発話が切り替える)。item の `expression` を省略した場合は `expressions` の最初の表情を初期値としつつ、item の開始に関わらず直近の発話の指定を引き継ぐ (item をまたいでも表情が戻らない)。
 - 目パチは theme の `characterTiming` (周期と閉眼の秒数) に従い、絶対秒で位相を決める。item を分割しても位相は変わらない。
 - 発話と無関係な表情の切り替え、章タイトル中の非表示、左右の移動は、書き手が立ち絵 layer の item を分けて書く (左右は item ごとの `side` で指定する)。
 - 音声生成の watcher は `line()` の `by` を、識別子ならその値、`{ character, expression? }` の形のオブジェクトリテラルなら `character` プロパティ (識別子限定) を、それぞれ同じファイルの top-level const の `character()` 呼び出し、または import の binding として解決し、その `voice` プロパティを [ADR-0010](./0010-build-narration-timeline-with-hashed-voice-cache.md) の `voice` と同じ規則で評価する。`character()` 呼び出しの引数からは `voice` だけを読み、`expressions` は評価しない。オブジェクトリテラルの `expression` は文字列リテラルに限り、値は読み飛ばす。`line()` 直下に `expression` を書くことはできない (`by` の中に書く)。
