@@ -19,8 +19,7 @@
   "files": [
     "src",
     "scripts",
-    "!**/*.test.*",
-    "!scripts/migrate"
+    "!**/*.test.*"
   ],
   "bin": {
     "motovlog-voice": "scripts/bin/voice.mjs",

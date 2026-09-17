@@ -61,10 +61,9 @@ Remotion には次の仕様がある (2026-09-11 時点のドキュメント)。
 
   | 側     | ディレクトリ                                                                          | 内容                                                                                            |
   | ------ | ------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------- |
-  | lib    | `src/`、`scripts/` (`scripts/migrate/` を除く)                                        | 演出の DSL・コンポーネント・compositions・theme の layout と timing・音声生成と変換のスクリプト |
+  | lib    | `src/`、`scripts/`                                                                    | 演出の DSL・コンポーネント・compositions・theme の layout と timing・音声生成と変換のスクリプト |
   | 利用側 | `app/`、`theme/`、`projects/`、`characters/`、`public/`、`remotion.config.ts`、`.env` | 入口・パレットと既定話者・project 定義・キャラクター定義・素材・Remotion の設定                 |
 
-- `scripts/migrate/` は 1 回限りの移行スクリプトの置き場とし、lib の公開面にも配布物にも含めない。
 - lib の公開面を `package.json` の `exports` で次の 5 入口に限る。
 
   | 入口                             | 実体                        |
@@ -136,16 +135,15 @@ Remotion には次の仕様がある (2026-09-11 時点のドキュメント)。
 - lib に既定のパレット・既定の話者の値を持つこと。lib が持てるのは型と、`palette` から導出する値に限る。
 - lib に `projects/` や `characters/` への import (静的・動的を問わない) を書くこと。
 - `app/config.ts` から Remotion を import すること。
-- `scripts/migrate/` を `exports` または `files` に含めること。
 
 ## Assumptions
 
-| 前提                                                                                     | 状態   | 確認方法 / 結果                                                                        |
-| ---------------------------------------------------------------------------------------- | ------ | -------------------------------------------------------------------------------------- |
-| `Config.setEntryPoint("./app/index.ts")` で入口が `app/index.ts` になる                  | 検証済 | `npx remotion render Motovlog` を引数無しで実行して確認 (2026-09-11)                   |
-| node_modules 配下の TypeScript と CSS Modules を Remotion の既定のバンドラ設定が処理する | 検証済 | `npm pack` の tarball を外部想定のディレクトリに `npm install` し、`overrideBundlerConfig()` 無しで `remotion compositions`・`remotion render` が通ることを確認 (2026-09-12)              |
-| パッケージ自己参照 (自リポジトリ内から `motovlog-template` を import) を解決できる       | 未検証 | 利用側ファイルの import を bare specifier に変えて Studio と render が通るかを確認する |
-| 配置 (layout) と秒数 (timing) のトークンは lib に固定したままで利用側の要求を満たす      | 未検証 | 2 本目以降の project を作る際に、これらを利用側で変えたい場面が出るかを確認する        |
+| 前提                                                                                     | 状態   | 確認方法 / 結果                                                                                                                                                              |
+| ---------------------------------------------------------------------------------------- | ------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `Config.setEntryPoint("./app/index.ts")` で入口が `app/index.ts` になる                  | 検証済 | `npx remotion render Motovlog` を引数無しで実行して確認 (2026-09-11)                                                                                                         |
+| node_modules 配下の TypeScript と CSS Modules を Remotion の既定のバンドラ設定が処理する | 検証済 | `npm pack` の tarball を外部想定のディレクトリに `npm install` し、`overrideBundlerConfig()` 無しで `remotion compositions`・`remotion render` が通ることを確認 (2026-09-12) |
+| パッケージ自己参照 (自リポジトリ内から `motovlog-template` を import) を解決できる       | 未検証 | 利用側ファイルの import を bare specifier に変えて Studio と render が通るかを確認する                                                                                       |
+| 配置 (layout) と秒数 (timing) のトークンは lib に固定したままで利用側の要求を満たす      | 未検証 | 2 本目以降の project を作る際に、これらを利用側で変えたい場面が出るかを確認する                                                                                              |
 
 ## References
 
