@@ -24,14 +24,18 @@ export type Transition = {
 /**
  * 解決済みの item を基準にした位置指定。start(item) は item の開始、
  * end(item) は item の終端 (遷移で縮んだ後の値) を指す。offset は基準
- * からの相対秒 (負も可)。参照先は timeline() が下から前へ解決する順で
- * 既に解決済みでなければならない (上の layer・同じ layer の後ろの item・
- * どの layer にも置かれていない item は throw)。
+ * からの相対秒 (負も可)。参照先は layer に関わらず (どの layer に置かれた
+ * item でも) 参照できるが、timeline() は item 間の依存関係の順で解決する
+ * ため、参照が循環している (同じ layer の後ろの item への参照も循環に
+ * なる) か、どの layer にも置かれていない item を指すと throw する。
+ * item は narration() に渡した入力 item 自体 (CutItem・FadeItem の
+ * source によって narration() が組み立てた発話 layer の item に結び付く)
+ * も渡せる。
  */
 export type Anchor = {
   readonly kind: "anchor";
   readonly edge: "start" | "end";
-  readonly item: Item;
+  readonly item: Item | PendingCutItem;
   readonly offset: number;
 };
 
@@ -52,35 +56,66 @@ export type Placement =
       readonly at?: never;
     };
 
+/**
+ * item の尺の指定。`duration` (秒数) か `until` (終端の絶対秒または Anchor)
+ * のいずれかで、型として排他 (両方は同時に指定できない)。`until` は
+ * timeline() が resolveLayer で開始位置を解決した後に `duration = until − 開始`
+ * として尺を求める (Anchor は start/end と同じ規則で解決する)。
+ */
+export type Span =
+  | {
+      /** 表示する尺 (秒)。 */
+      readonly duration: number;
+      readonly until?: never;
+    }
+  | {
+      /** 終端の絶対秒または Anchor。尺は開始位置を解決してから求める。 */
+      readonly until: number | Anchor;
+      readonly duration?: never;
+    };
+
 /** fade() が組み立てるアイテム。node をフェードイン/アウトで重ねる。 */
-export type FadeItem = Placement & {
-  readonly kind: "fade";
-  /** 表示する要素。frame() (FrameMarker) や sample() (SampleNode) も渡せる。 */
-  readonly node: ReactNode | FrameMarker | SampleNode;
-  /** 表示する尺 (秒)。 */
-  readonly duration: number;
-  /** フェードインの尺 (秒)。0 ならフェードなし。 */
-  readonly in: number;
-  /** フェードアウトの尺 (秒)。0 ならフェードなし。 */
-  readonly out: number;
-};
+export type FadeItem = Placement &
+  Span & {
+    readonly kind: "fade";
+    /** 表示する要素。frame() (FrameMarker) や sample() (SampleNode) も渡せる。 */
+    readonly node: ReactNode | FrameMarker | SampleNode;
+    /** フェードインの尺 (秒)。0 ならフェードなし。 */
+    readonly in: number;
+    /** フェードアウトの尺 (秒)。0 ならフェードなし。 */
+    readonly out: number;
+    /**
+     * narration() が入力 item から作った item が指す、元の入力 item
+     * (narration() に渡した item 自体)。resolveLayer() は解決結果を
+     * source にも登録し、start()/end() で元の item を参照できるようにする。
+     * narration() 以外の書き手は指定しない。
+     */
+    readonly source?: Item | PendingCutItem;
+  };
 
 /** cut() が組み立てるアイテム。node をフェード無しで重ねる。 */
-export type CutItem = Placement & {
-  readonly kind: "cut";
-  /** 表示する要素。sample() (SampleNode) も渡せる。 */
-  readonly node: ReactNode | SampleNode;
-  /** 表示する尺 (秒)。 */
-  readonly duration: number;
-};
+export type CutItem = Placement &
+  Span & {
+    readonly kind: "cut";
+    /** 表示する要素。sample() (SampleNode) も渡せる。 */
+    readonly node: ReactNode | SampleNode;
+    /**
+     * narration() が入力 item から作った item が指す、元の入力 item
+     * (narration() に渡した item 自体)。resolveLayer() は解決結果を
+     * source にも登録し、start()/end() で元の item を参照できるようにする。
+     * narration() 以外の書き手は指定しない。
+     */
+    readonly source?: Item | PendingCutItem;
+  };
 
 /**
- * cut() が duration を省いて組み立てるアイテム。narration() が発話の実尺で
- * duration を埋めてから layer に置くための中間形で、Item には含めない
- * (Layer に直接置くと型エラーになる)。
+ * cut() が duration も until も省いて組み立てるアイテム。narration() が
+ * 発話の実尺で duration を埋めてから layer に置くための中間形で、Item には
+ * 含めない (Layer に直接置くと型エラーになる)。
  */
-export type PendingCutItem = Omit<CutItem, "duration"> & {
+export type PendingCutItem = Omit<CutItem, "duration" | "until"> & {
   readonly duration?: undefined;
+  readonly until?: undefined;
 };
 
 /** timeline() に渡す入力アイテムの列 (位置は at / after / 省略のいずれか)。 */
@@ -89,16 +124,26 @@ export type Item = FadeItem | CutItem;
 /** layer (時間が重ならない item の列。item と item の間に Transition を置ける)。 */
 export type Layer = readonly (Item | Transition)[];
 
-/** `at` が解決済みの FadeItem (timeline() の戻り値 `layers` の要素)。 */
-export type ResolvedFadeItem = Omit<FadeItem, "at" | "after"> & {
+/** `at`・`duration` が解決済みの FadeItem (timeline() の戻り値 `layers` の要素)。 */
+export type ResolvedFadeItem = Omit<
+  FadeItem,
+  "at" | "after" | "duration" | "until" | "source"
+> & {
   readonly at: number;
+  /** 表示する尺 (秒)。until 指定の item も開始位置の解決後に数値へ求まる。 */
+  readonly duration: number;
   /** 直前からの遷移 (crossfade)。無ければ undefined。 */
   readonly transitionIn?: Transition;
 };
 
-/** `at` が解決済みの CutItem (timeline() の戻り値 `layers` の要素)。 */
-export type ResolvedCutItem = Omit<CutItem, "at" | "after"> & {
+/** `at`・`duration` が解決済みの CutItem (timeline() の戻り値 `layers` の要素)。 */
+export type ResolvedCutItem = Omit<
+  CutItem,
+  "at" | "after" | "duration" | "until" | "source"
+> & {
   readonly at: number;
+  /** 表示する尺 (秒)。until 指定の item も開始位置の解決後に数値へ求まる。 */
+  readonly duration: number;
   /** 直前からの遷移 (crossfade)。無ければ undefined。 */
   readonly transitionIn?: Transition;
 };

@@ -3,8 +3,10 @@ import { isAnchor } from "./anchor.ts";
 import { isFrame } from "./frame.ts";
 import { toFrame, transitionFrames } from "./frames.ts";
 import type {
+  Anchor,
   Item,
   Layer,
+  PendingCutItem,
   ResolvedItem,
   Timeline,
   Transition,
@@ -25,30 +27,119 @@ type TimelineOptions = {
 };
 
 /**
- * layer ごとに item の位置を解決する。`at` (絶対秒または Anchor)・`after`
- * (直前の終端からの相対秒)・省略 (直前の終端に連結) のいずれかで解決する。
- * `at` と `after` の同時指定、at/after の不正値 (非有限・負)、直前の item
- * との時間順違反があれば throw する。duration は有限の正で、フレームに
- * 丸めた終端が開始より後になる長さでなければならない。重なり判定はフレーム
- * 単位 (round(秒 × fps)) で行い、秒の丸め誤差による誤検出を避ける。
+ * layer が Anchor の未解決参照でブロックされたときに resolveLayer() が
+ * 巻き戻す位置。ブロックされた item (index) より手前の entries は既に
+ * resolved へ書き込み済みで確定しているため、次のラウンドはここから
+ * 再開する (layer の先頭からやり直さない)。cursor (直前までのカーソル
+ * 位置) と prev (直前の解決済み item) は result から導出できる
+ * (prev = result の末尾、無ければ null。cursor = prev があればその
+ * at + duration、無ければ 0) ため、この状態には持たない。
+ */
+type LayerResumeState = {
+  /** 再開する entry の index (ブロックされた item そのもの)。 */
+  readonly index: number;
+  /** ブロックされた item の直前で保留中だった crossfade。無ければ null。 */
+  readonly pending: Transition | null;
+  /** ブロックされた item より手前で解決済みの item (元の配列順)。 */
+  readonly result: readonly ResolvedItem[];
+};
+
+/**
+ * Anchor の参照先がまだ解決されていないことを示す内部エラー。timeline() が
+ * 層をまたいだラウンド (依存順序で解決するための再試行) を回すための印で、
+ * resolveLayer() の呼び出し元 (narration() 等) には漏らさない (呼び出し元は
+ * Error として素通しで受け取り、通常の throw と区別しない)。resumeState は
+ * resolveAnchor() が投げる時点ではまだ無く (undefined)、resolveLayer() が
+ * item ごとの catch でブロック位置の状態を積んでから timeline() へ渡す。
+ */
+class AnchorBlockedError extends Error {
+  readonly resumeState?: LayerResumeState;
+
+  constructor(message: string, resumeState?: LayerResumeState) {
+    super(message);
+    this.name = "AnchorBlockedError";
+    this.resumeState = resumeState;
+  }
+}
+
+/**
+ * layer ごとに item の位置・尺を解決する。`at` (絶対秒または Anchor)・
+ * `after` (直前の終端からの相対秒)・省略 (直前の終端に連結) のいずれかで
+ * 位置を、`duration` (秒数) または `until` (終端の絶対秒または Anchor) の
+ * いずれかで尺を解決する。`at` と `after`、`duration` と `until` の同時
+ * 指定、duration と until をどちらも指定していない場合、at/after/until の
+ * 不正値 (非有限・負)、直前の item との時間順違反があれば throw する。
+ * duration は有限の正で、フレームに丸めた終端が開始より後になる長さで
+ * なければならない。重なり判定はフレーム単位 (round(秒 × fps)) で行い、
+ * 秒の丸め誤差による誤検出を避ける。
  *
  * layer 内の item と item の間に置かれた Transition (crossfade) は、直後
  * の item の開始を「直前の item の終端 − 遷移の尺」に固定する (layer 内
- * 非重複の唯一の例外)。resolved は layer を跨いで参照同一性で解決済み
- * item を引くための表で、Anchor (start/end) の解決に使う。narration() が
- * 発話の実尺で duration を埋めた仮 layer の解決にも使うため export する。
+ * 非重複の唯一の例外)。resolved は layer・呼び出しをまたいで参照同一性で
+ * 解決済み item を引くための表で、Anchor (start/end、at/until) の解決に
+ * 使う。Anchor の参照先が resolved・このレイヤーの解決中の途中結果の
+ * どちらにも見つからなければ AnchorBlockedError を throw する (未解決を
+ * 示す印で、timeline() が別の layer を先に解決してから再試行する)。この
+ * とき、ブロックされた item より手前の entries は既に確定しているため、
+ * その解決結果 (item.source の登録を含む) を resolved へ先に書き込み、
+ * 再開に必要な状態 (index・保留中の crossfade・ここまでの result。cursor
+ * と直前の item は result から導出する) を AnchorBlockedError に積んで
+ * throw する (ブロックされた item 自体は登録しない)。timeline() は次の
+ * ラウンドでその状態を resume に渡し、resolveLayer() は layer の先頭から
+ * ではなくそこから解決を続ける。
+ * duration と until の同時指定等、AnchorBlockedError 以外の throw では
+ * resolved に何も書き込まない (この場合は timeline() 全体が throw で
+ * 終わるため、書き込まれないこと自体に副作用は無い)。item に source
+ * (narration() が入力 item から作った item に付ける、元の入力 item への
+ * 参照) があれば、その item の解決結果を source にも登録し、start()/end()
+ * で元の item を参照できるようにする (同じ source が 2 箇所にあれば
+ * throw する)。narration() が発話の実尺で duration を埋めた仮 layer の
+ * 解決にも使うため export する。resume は timeline() が層をまたいだ再試行
+ * で使う内部状態で、narration() 等の一発呼び出しでは省略する (layer の
+ * 先頭から解決する)。
  */
 export const resolveLayer = (
   layer: Layer,
   layerIndex: number,
-  resolved: Map<Item, ResolvedItem>,
+  resolved: Map<Item | PendingCutItem, ResolvedItem>,
+  resume?: LayerResumeState,
 ): ResolvedItem[] => {
-  const result: ResolvedItem[] = [];
-  let cursor = 0;
-  let pending: Transition | null = null;
-  let prev: ResolvedItem | null = null;
+  const local = new Map<Item | PendingCutItem, ResolvedItem>();
+  const lookup = (key: Item | PendingCutItem): ResolvedItem | undefined =>
+    local.get(key) ?? resolved.get(key);
+  const hasEither = (key: Item | PendingCutItem): boolean =>
+    local.has(key) || resolved.has(key);
 
-  layer.forEach((entry, entryIndex) => {
+  const resolveAnchor = (
+    anchor: Anchor,
+    entryIndex: number,
+    field: "at" | "until",
+  ): number => {
+    const ref = lookup(anchor.item);
+
+    if (ref === undefined) {
+      throw new AnchorBlockedError(
+        `timeline: layer ${layerIndex} の item ${entryIndex} の ${field} (Anchor) の参照先を解決できません`,
+      );
+    }
+
+    const base = anchor.edge === "start" ? ref.at : ref.at + ref.duration;
+
+    return base + anchor.offset;
+  };
+
+  const result: ResolvedItem[] = resume ? [...resume.result] : [];
+  let prev: ResolvedItem | null = result[result.length - 1] ?? null;
+  let cursor = prev ? prev.at + prev.duration : 0;
+  let pending: Transition | null = resume?.pending ?? null;
+
+  for (
+    let entryIndex = resume?.index ?? 0;
+    entryIndex < layer.length;
+    entryIndex++
+  ) {
+    const entry = layer[entryIndex];
+
     if (entry.kind === "crossfade") {
       if (prev === null) {
         throw new Error(
@@ -107,135 +198,202 @@ export const resolveLayer = (
       }
 
       pending = entry;
-      return;
+      continue;
     }
 
     const item = entry;
+    const pendingBeforeItem = pending;
 
-    if (resolved.has(item)) {
+    if (hasEither(item)) {
       throw new Error(
         `timeline: layer ${layerIndex} の item ${entryIndex} は既に別の場所で使われています (同じ item を複数箇所に置けません)`,
       );
     }
 
-    const { at, after, ...rest } = item;
-    const { duration } = rest;
+    try {
+      const {
+        at,
+        after,
+        duration: explicitDuration,
+        until,
+        source,
+        ...rest
+      } = item;
 
-    if (!Number.isFinite(duration) || duration <= 0) {
-      throw new Error(
-        `timeline: layer ${layerIndex} の item ${entryIndex} の duration が不正です (${duration})`,
-      );
-    }
-
-    let start: number;
-    let transitionIn: Transition | undefined;
-
-    if (pending !== null) {
-      if (at !== undefined || after !== undefined) {
+      if (explicitDuration !== undefined && until !== undefined) {
         throw new Error(
-          `timeline: layer ${layerIndex} の item ${entryIndex} は crossfade の直後に at/after を指定できません`,
+          `timeline: layer ${layerIndex} の item ${entryIndex} は duration と until を同時に指定できません`,
         );
       }
 
-      if (isFrame(item.node)) {
+      if (explicitDuration === undefined && until === undefined) {
         throw new Error(
-          `timeline: layer ${layerIndex} の item ${entryIndex} (frame()) を crossfade の対象にできません`,
+          `timeline: layer ${layerIndex} の item ${entryIndex} は duration か until のどちらかが必要です`,
         );
       }
 
-      if (duration < pending.duration) {
-        throw new Error(
-          `timeline: layer ${layerIndex} の item ${entryIndex} の尺 (${duration}) が crossfade の尺 (${pending.duration}) より短いです`,
-        );
-      }
+      let start: number;
+      let transitionIn: Transition | undefined;
 
-      // この分岐には後段の 1 フレーム検査・時間順検査を置かない。crossfade
-      // 側で duration が正かつ 1 フレーム以上、item 側で duration >=
-      // pending.duration を検査済みのため、start (= cursor -
-      // pending.duration) から start + duration までは必ず 1 フレーム以上
-      // ある。start も定義上 cursor より前 (pending.duration > 0) なので
-      // 時間順違反にもならない。
-      start = cursor - pending.duration;
-
-      transitionIn = pending;
-      pending = null;
-    } else {
-      if (at !== undefined && after !== undefined) {
-        throw new Error(
-          `timeline: layer ${layerIndex} の item ${entryIndex} は at と after を同時に指定できません`,
-        );
-      }
-
-      let resolvedAt: number | undefined;
-
-      if (isAnchor(at)) {
-        const ref = resolved.get(at.item);
-
-        if (ref === undefined) {
+      if (pending !== null) {
+        if (at !== undefined || after !== undefined) {
           throw new Error(
-            `timeline: layer ${layerIndex} の item ${entryIndex} の at (Anchor) の参照先が未解決です (上の layer・同じ layer の後ろの item・どの layer にも置かれていない item は参照できません)`,
+            `timeline: layer ${layerIndex} の item ${entryIndex} は crossfade の直後に at/after を指定できません`,
           );
         }
 
-        const base = at.edge === "start" ? ref.at : ref.at + ref.duration;
+        if (isFrame(item.node)) {
+          throw new Error(
+            `timeline: layer ${layerIndex} の item ${entryIndex} (frame()) を crossfade の対象にできません`,
+          );
+        }
 
-        resolvedAt = base + at.offset;
+        // この分岐には後段の 1 フレーム検査・時間順検査を置かない。crossfade
+        // 側で duration が正かつ 1 フレーム以上、下段で item 側の duration
+        // (until 経由でも) が >= pending.duration であることを検査済みのため、
+        // start (= cursor - pending.duration) から start + duration までは
+        // 必ず 1 フレーム以上ある。start も定義上 cursor より前
+        // (pending.duration > 0) なので時間順違反にもならない。
+        start = cursor - pending.duration;
+
+        transitionIn = pending;
+        pending = null;
       } else {
-        resolvedAt = at;
+        if (at !== undefined && after !== undefined) {
+          throw new Error(
+            `timeline: layer ${layerIndex} の item ${entryIndex} は at と after を同時に指定できません`,
+          );
+        }
+
+        let resolvedAt: number | undefined;
+
+        if (isAnchor(at)) {
+          resolvedAt = resolveAnchor(at, entryIndex, "at");
+        } else {
+          resolvedAt = at;
+        }
+
+        if (
+          resolvedAt !== undefined &&
+          (!Number.isFinite(resolvedAt) || resolvedAt < 0)
+        ) {
+          throw new Error(
+            `timeline: layer ${layerIndex} の item ${entryIndex} の at が不正です (${resolvedAt})`,
+          );
+        }
+
+        if (after !== undefined && (!Number.isFinite(after) || after < 0)) {
+          throw new Error(
+            `timeline: layer ${layerIndex} の item ${entryIndex} の after が不正です (${after})`,
+          );
+        }
+
+        start = resolvedAt ?? cursor + (after ?? 0);
       }
 
-      if (
-        resolvedAt !== undefined &&
-        (!Number.isFinite(resolvedAt) || resolvedAt < 0)
-      ) {
+      let duration: number;
+
+      if (explicitDuration !== undefined) {
+        if (!Number.isFinite(explicitDuration) || explicitDuration <= 0) {
+          throw new Error(
+            `timeline: layer ${layerIndex} の item ${entryIndex} の duration が不正です (${explicitDuration})`,
+          );
+        }
+
+        duration = explicitDuration;
+      } else {
+        const untilValue = isAnchor(until)
+          ? resolveAnchor(until, entryIndex, "until")
+          : until;
+
+        if (untilValue === undefined || !Number.isFinite(untilValue)) {
+          throw new Error(
+            `timeline: layer ${layerIndex} の item ${entryIndex} の until が不正です (${untilValue})`,
+          );
+        }
+
+        duration = untilValue - start;
+
+        if (rest.kind === "fade" && rest.in + rest.out > duration) {
+          throw new Error(
+            `timeline: layer ${layerIndex} の item ${entryIndex} の in (${rest.in}) + out (${rest.out}) が until から求めた duration (${duration}) を超えています`,
+          );
+        }
+      }
+
+      if (transitionIn !== undefined) {
+        if (duration < transitionIn.duration) {
+          throw new Error(
+            `timeline: layer ${layerIndex} の item ${entryIndex} の尺 (${duration}) が crossfade の尺 (${transitionIn.duration}) より短いです`,
+          );
+        }
+      } else {
+        if (toFrame(start + duration, fps) <= toFrame(start, fps)) {
+          throw new Error(
+            `timeline: layer ${layerIndex} の item ${entryIndex} (start ${start}, duration ${duration}) が 1 フレームに満たない。フレームに丸めると開始と終端が同じになります`,
+          );
+        }
+
+        if (toFrame(start, fps) < toFrame(cursor, fps)) {
+          throw new Error(
+            `timeline: layer ${layerIndex} の item ${entryIndex} (start ${start}) が直前の item の終端 (${cursor}) より前です。layer 内の item は時間順に並べる`,
+          );
+        }
+      }
+
+      if (isFrame(item.node) && layerIndex === 0) {
         throw new Error(
-          `timeline: layer ${layerIndex} の item ${entryIndex} の at が不正です (${resolvedAt})`,
+          `timeline: layer 0 に frame() の item は置けません (下の layer が無いため)`,
         );
       }
 
-      if (after !== undefined && (!Number.isFinite(after) || after < 0)) {
-        throw new Error(
-          `timeline: layer ${layerIndex} の item ${entryIndex} の after が不正です (${after})`,
-        );
+      const resolvedItem = {
+        ...rest,
+        at: start,
+        duration,
+        ...(transitionIn !== undefined ? { transitionIn } : {}),
+      } as ResolvedItem;
+
+      local.set(item, resolvedItem);
+
+      if (source !== undefined) {
+        if (hasEither(source)) {
+          throw new Error(
+            `timeline: layer ${layerIndex} の item ${entryIndex} の source は既に別の item の source として使われています`,
+          );
+        }
+
+        local.set(source, resolvedItem);
       }
 
-      start = resolvedAt ?? cursor + (after ?? 0);
-
-      if (toFrame(start + duration, fps) <= toFrame(start, fps)) {
-        throw new Error(
-          `timeline: layer ${layerIndex} の item ${entryIndex} (start ${start}, duration ${duration}) が 1 フレームに満たない。フレームに丸めると開始と終端が同じになります`,
-        );
+      result.push(resolvedItem);
+      prev = resolvedItem;
+      cursor = start + duration;
+    } catch (error) {
+      if (!(error instanceof AnchorBlockedError)) {
+        throw error;
       }
 
-      if (toFrame(start, fps) < toFrame(cursor, fps)) {
-        throw new Error(
-          `timeline: layer ${layerIndex} の item ${entryIndex} (start ${start}) が直前の item の終端 (${cursor}) より前です。layer 内の item は時間順に並べる`,
-        );
+      for (const [key, value] of local) {
+        resolved.set(key, value);
       }
+
+      throw new AnchorBlockedError(error.message, {
+        index: entryIndex,
+        pending: pendingBeforeItem,
+        result: [...result],
+      });
     }
-
-    if (isFrame(item.node) && layerIndex === 0) {
-      throw new Error(
-        `timeline: layer 0 に frame() の item は置けません (下の layer が無いため)`,
-      );
-    }
-
-    const resolvedItem = {
-      ...rest,
-      at: start,
-      ...(transitionIn !== undefined ? { transitionIn } : {}),
-    } as ResolvedItem;
-
-    resolved.set(item, resolvedItem);
-    result.push(resolvedItem);
-    prev = resolvedItem;
-    cursor = start + duration;
-  });
+  }
 
   if (pending !== null) {
     throw new Error(
       `timeline: layer ${layerIndex} の crossfade が末尾にあります`,
     );
+  }
+
+  for (const [key, value] of local) {
+    resolved.set(key, value);
   }
 
   return result;
@@ -245,9 +403,21 @@ export const resolveLayer = (
  * timeline.ts の layer の列から Timeline を組み立てる。layer = z 順 (配列
  * の後ろが上)。layer 内は時間が重ならず時間順に並び (crossfade の直後の
  * item のみ例外)、位置は `at`/`after`/省略 (直前の item の終端に連結) の
- * いずれかで解決する。durationSec は全 layer 全 item の `at + duration` の
- * 最大値。layers が空、または空の layer があれば throw する。fps は theme
- * の定数で、convert と composition が同じ値を使う (ADR-0003)。
+ * いずれかで解決する。Anchor (start()/end()) はどの layer に置かれた item
+ * でも参照できるが、依存関係の順で解決する必要があるため、`timeline()` は
+ * 全 layer をまず配列順に 1 ラウンド試し、Anchor の参照先が未解決で
+ * ブロックされた layer だけを次のラウンドに残して再試行する。ブロックされた
+ * layer も、ブロックされた item より手前の entries は resolveLayer() が
+ * resolved へ先に書き込んでいるため、他の layer がその手前の item を
+ * 参照していれば次のラウンドで解決できる (layer 丸ごとが未コミットのままだと
+ * 起きる、循環していないのに循環扱いされる誤検出を避ける)。1 ラウンドで
+ * どの layer も 1 件も進展しなければ (resolved への新規登録が無い。参照先が
+ * どの layer にも置かれていない、または参照が循環している。同じ layer の
+ * 後ろの item への参照も循環になる) throw する。戻り値の `layers` は解決順
+ * ではなく元の配列順を保つ。durationSec は全 layer 全 item の
+ * `at + duration` の最大値。layers が空、または空の layer があれば throw
+ * する。fps は theme の定数で、convert と composition が同じ値を使う
+ * (ADR-0003)。
  */
 export const timeline = (
   layers: readonly Layer[],
@@ -259,15 +429,59 @@ export const timeline = (
     throw new Error("timeline: layers が空です");
   }
 
-  const resolved = new Map<Item, ResolvedItem>();
-
-  const resolvedLayers = layers.map((layer, layerIndex) => {
+  layers.forEach((layer, layerIndex) => {
     if (layer.length === 0) {
       throw new Error(`timeline: layer ${layerIndex} が空です`);
     }
-
-    return resolveLayer(layer, layerIndex, resolved);
   });
+
+  const resolved = new Map<Item | PendingCutItem, ResolvedItem>();
+  const resolvedLayers: ResolvedItem[][] = new Array(layers.length);
+  const resumeStates = new Map<number, LayerResumeState>();
+
+  let remaining = layers.map((_, layerIndex) => layerIndex);
+  let lastBlockedError: unknown;
+
+  while (remaining.length > 0) {
+    const stillBlocked: number[] = [];
+    const resolvedSizeBefore = resolved.size;
+
+    for (const layerIndex of remaining) {
+      try {
+        resolvedLayers[layerIndex] = resolveLayer(
+          layers[layerIndex],
+          layerIndex,
+          resolved,
+          resumeStates.get(layerIndex),
+        );
+        resumeStates.delete(layerIndex);
+      } catch (error) {
+        if (!(error instanceof AnchorBlockedError)) {
+          throw error;
+        }
+
+        stillBlocked.push(layerIndex);
+        lastBlockedError = error;
+
+        if (error.resumeState !== undefined) {
+          resumeStates.set(layerIndex, error.resumeState);
+        }
+      }
+    }
+
+    if (resolved.size === resolvedSizeBefore) {
+      const message =
+        lastBlockedError instanceof Error
+          ? lastBlockedError.message
+          : String(lastBlockedError);
+
+      throw new Error(
+        `${message} (参照先がどの layer にも置かれていないか、参照が循環しています。同じ layer の後ろの item への参照も循環になります)`,
+      );
+    }
+
+    remaining = stillBlocked;
+  }
 
   const durationSec = Math.max(
     ...resolvedLayers.flatMap((layer) =>

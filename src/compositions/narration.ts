@@ -259,11 +259,12 @@ const waitForVoiceCache = async (
 /**
  * narration() に渡せる item (cut()/fade() が組み立てる CutItem・FadeItem か
  * PendingCutItem)。`at` は timeline() の Placement では秒の数値または
- * Anchor だが、narration() の中では Anchor を使えない (下の layer の解決
- * 結果を要するため)。CutItem 等は Placement の 2 分岐 (at/after) を
- * Omit 越しに単一の平坦な型へ畳んでしまい、型だけでは at/after の排他性も
- * Anchor の排除も表せないため、Anchor を渡した場合は narration() が実行時
- * に throw する。
+ * Anchor だが、narration() の中では Anchor を使えない (仮 layer を単独で
+ * resolveLayer() に渡すため、他の layer の item を参照できない)。`until`
+ * も同じ理由で使えない (発話の実尺から duration を求めるため)。CutItem 等は
+ * Placement・Span の分岐を Omit 越しに単一の平坦な型へ畳んでしまい、型
+ * だけでは at/after・duration/until の排他性も Anchor の排除も表せないため、
+ * Anchor や until を渡した場合は narration() が実行時に throw する。
  */
 type NarrationItem = CutItem | FadeItem | PendingCutItem;
 
@@ -376,7 +377,11 @@ const noAudioBandInput = (
  * 無音で続くのを防ぐ、#3。voice: null は duration そのもの)・口パクの母音
  * 区間 (lipsync、cache.lipsync。voice: null は空配列)・by (指定時)・
  * expression (指定時) を持つ
- * (#39 の立ち絵の目パチ・口パク・表情の切り替えに使う)。
+ * (#39 の立ち絵の目パチ・口パク・表情の切り替えに使う)。発話 layer に置く
+ * 各 item には source (narration() に渡した入力 item 自体への参照) を
+ * 付ける。timeline.ts で入力 item を const に取っておけば、
+ * start()/end() でこの発話の開始・終端 (字幕の尺の終端) を他の layer の
+ * item から参照できる (「立ち絵」参照)。
  */
 export const narration = async (
   items: readonly NarrationItem[],
@@ -391,6 +396,12 @@ export const narration = async (
     if (item.at !== undefined && typeof item.at !== "number") {
       throw new Error(
         "narration の item の at は秒の数値だけ受け付けます (アンカーは下の layer を知らないため使えません)",
+      );
+    }
+
+    if (item.until !== undefined) {
+      throw new Error(
+        "narration の item に until は指定できません (narration() は発話の実尺から duration を求めるため使えません)",
       );
     }
 
@@ -487,12 +498,14 @@ export const narration = async (
               at: resolved.at,
               in: original.in,
               out: original.out,
+              source: original,
             }
           : {
               kind: "cut",
               node: original.node,
               duration: positionDuration,
               at: resolved.at,
+              source: original,
             },
       );
 
@@ -514,12 +527,13 @@ export const narration = async (
         expression: speech.expression,
       });
 
-      speechLayer.push(
-        cut(React.createElement(Line, { text: speech.text }), {
+      speechLayer.push({
+        ...cut(React.createElement(Line, { text: speech.text }), {
           at: resolved.at,
           duration: positionDuration,
         }),
-      );
+        source: original,
+      });
 
       return;
     }
@@ -559,15 +573,16 @@ export const narration = async (
       expression: speech.expression,
     });
 
-    speechLayer.push(
-      cut(
+    speechLayer.push({
+      ...cut(
         React.createElement(Line, {
           text: speech.text,
           src: staticFile(`${linePath(slug, key)}.wav`),
         }),
         { at: resolved.at, duration: captionDuration },
       ),
-    );
+      source: original,
+    });
   });
 
   const spans = computeBandSpans(bandInputs, bandTiming);

@@ -3,7 +3,7 @@ import { staticFile } from "remotion";
 import { describe, expect, it, vi } from "vitest";
 import { annotation } from "../components/index.tsx";
 import { Line } from "../components/Line.tsx";
-import { cut, fade, frame, start } from "../effects/index.ts";
+import { cut, end, fade, frame, start, timeline } from "../effects/index.ts";
 import type { CutItem, FadeItem } from "../effects/index.ts";
 import { bandTiming, subtitleTiming } from "../theme/index.ts";
 import type { LipsyncEntry, VoiceCache, VoiceOptions } from "../voice/cache.ts";
@@ -166,6 +166,83 @@ describe("narration", () => {
     ).rejects.toThrow(
       /narration: frame\(\) は narration\(\) の item に置けません/,
     );
+  });
+
+  it("item の until を指定すると throw する (narration() は発話の実尺から duration を求めるため使えない)", async () => {
+    await expect(
+      narration(
+        [cut(line({ text: "A" }), { at: 0, until: 5 })],
+        { slug: "sample" },
+        { isStudio: () => false },
+      ),
+    ).rejects.toThrow(/narration の item に until は指定できません/);
+  });
+
+  it("発話 layer の line() item は source として渡した入力 item 自体を持つ", async () => {
+    const fetchCache = await fetchCacheFor({ A: 1 });
+    const input = cut(line({ text: "A" }), { at: 0 });
+
+    const {
+      layers: [, speechLayer],
+    } = await narration(
+      [input],
+      { slug: "sample" },
+      { fetchCache, isStudio: () => false },
+    );
+
+    expect((speechLayer[0] as CutItem).source).toBe(input);
+  });
+
+  it("声無しの line() item も source として渡した入力 item 自体を持つ", async () => {
+    const input: CutItem = {
+      kind: "cut",
+      node: line({ text: "A", voice: null }),
+      at: 0,
+      duration: 1,
+    };
+
+    const {
+      layers: [, speechLayer],
+    } = await narration([input], { slug: "sample" }, { isStudio: () => false });
+
+    expect((speechLayer[0] as CutItem).source).toBe(input);
+  });
+
+  it("line() 以外の item も source として渡した入力 item 自体を持つ", async () => {
+    const fetchCache = await fetchCacheFor({});
+    const input = cut(annotation({ text: "x" }), { after: 1, duration: 3 });
+
+    const {
+      layers: [, speechLayer],
+    } = await narration(
+      [input],
+      { slug: "sample" },
+      { fetchCache, isStudio: () => false },
+    );
+
+    expect((speechLayer[0] as CutItem).source).toBe(input);
+  });
+
+  it("narration() に渡した入力 item を start()/end() で他の layer から参照できる", async () => {
+    const fetchCache = await fetchCacheFor({ A: 1 });
+    const first = cut(line({ text: "A" }), { at: 0 });
+
+    const n = await narration(
+      [first],
+      { slug: "sample" },
+      { fetchCache, isStudio: () => false },
+    );
+
+    const result = timeline([
+      ...n.layers,
+      [cut(null, { duration: 1, at: start(first) })],
+      [cut(null, { duration: 1, at: end(first) })],
+    ]);
+
+    const speech = result.layers[1][0];
+
+    expect(result.layers[2][0].at).toBeCloseTo(speech.at);
+    expect(result.layers[3][0].at).toBeCloseTo(speech.at + speech.duration);
   });
 
   it("item の位置解決に失敗すると narration: の位置付きエラーに包み直される", async () => {
