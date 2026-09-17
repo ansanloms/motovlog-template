@@ -20,7 +20,6 @@ import {
   end,
   fade,
   frame,
-  start,
   timeline,
 } from "../../src/effects/index.ts";
 import { endingTiming, openingTiming } from "../../src/theme/index.ts";
@@ -116,228 +115,237 @@ const clip7 = cut(
   { duration: 62.633 },
 );
 
-// layer 2 (立ち絵) の 6 item は、この発話の開始・終端から相対で位置を決める。
-// narration() に渡す入力 item を const に取っておき、start()/end() で参照する。
-const f1Start = cut(
-  line({
-    text: "取りました",
-    by: { character: ryusei, expression: "normal" },
-  }),
-  { at: 8.5 },
-);
-const f1End = cut(
-  line({
-    text: "行きます",
-    by: { character: ryusei, expression: "angry" },
-  }),
-  { after: 1.433 },
-);
-const f2Start = cut(line({ text: "今日は", by: ryusei }), { at: 61.7 });
-const f2End = cut(
-  line({
-    text: "ライディングジャケットを通りぬける風が ちょっとつめたいです",
-    by: ryusei,
-  }),
-  { after: 2.733 },
-);
-const f3Start = cut(line({ text: "吾妻の山が みえてきました", by: ryusei }), {
-  at: 90.9,
-});
-const f3End = cut(line({ text: "ふて寝を", by: ryusei }), { after: 2.833 });
-const f4Start = cut(line({ text: "朝", by: ryusei }), { at: 209.767 });
-const f4End = cut(line({ text: "そんな 不思議な眺望です", by: ryusei }), {
-  after: 2.8,
-});
-const f5Start = cut(line({ text: "荒々しい山肌も相まって", by: ryusei }), {
-  at: 257.367,
-});
-const f5End = cut(
-  line({
-    text: "(「火山ガス注意」「窓を閉めて走行下さい」の看板にビビり散らかしている)",
-    voice: null,
-  }),
-  { at: 275.9, duration: 3.167 },
-);
-const f6Start = cut(line({ text: "福島は地元で", by: ryusei }), {
-  at: 306.9,
-});
-const f6End = cut(line({ text: "もっと遠くへ", by: ryusei }), {
-  after: 4.033,
-});
+// 発話は立ち絵が出る 6 本の区間 (走行中の会話) に分け、それぞれ塊
+// (narration()、ADR-0014) にする。各塊は figure() の括りに区間内のすべての
+// 行を入れ、立ち絵を出したまま話を続ける。lead・tail・side・in/out は
+// AviUtl ExEdit2 の project (移行元) の立ち絵の出入りに合わせた値。各塊は
+// 塊の先頭 (0 秒) を、その立ち絵が出始める秒 (lead 分手前) に置くため、
+// timeline() の layer では `cut(nK, { at: <立ち絵が出始める秒> })` で置く
+// (下の layer 3)。区間の途中で at を使っていた行は、その塊の先頭からの
+// 相対秒 (元の絶対秒 − 立ち絵が出始める秒) に書き換えている。
+const n1 = await narration([
+  figure(ryusei, { side: "left", in: 0.4, lead: 1.867, tail: 2.173 }, [
+    cut(
+      line({
+        text: "取りました",
+        by: { character: ryusei, expression: "normal" },
+      }),
+      { at: 1.867 },
+    ),
+    cut(line({ text: "免許を", by: ryusei }), { after: 2.334 }),
+    cut(line({ text: "買いました", by: ryusei }), { after: 2.266 }),
+    cut(line({ text: "バイクも", by: ryusei }), { after: 2.366 }),
+    cut(
+      line({
+        text: "{Honda|ホンダ} GB350C です",
+        reading: "{Honda|ホンダ} GB350 Cです",
+        by: ryusei,
+      }),
+      { after: 2.201 },
+    ),
+    cut(
+      line({
+        text: "乗りました",
+        by: { character: ryusei, expression: "scratch" },
+      }),
+      { after: 3.9 },
+    ),
+    cut(line({ text: "半年くらい", by: ryusei }), { after: 1.634 }),
+    cut(
+      line({
+        text: "まだ 怖いです",
+        by: { character: ryusei, expression: "paleAndSweatBig" },
+      }),
+      { after: 3.233 },
+    ),
+    cut(
+      line({
+        text: "でも 楽しいです",
+        by: {
+          character: ryusei,
+          expression: "shynessAndScratchAndEyesdownAway",
+        },
+      }),
+      { after: 1.733 },
+    ),
+    cut(
+      line({
+        text: "福島県は 磐梯吾妻スカイラインを走って",
+        by: { character: ryusei, expression: "scratch" },
+      }),
+      { after: 4.7 },
+    ),
+    cut(line({ text: "{浄土平|じょうどだいら}に", by: ryusei }), {
+      after: 2.034,
+    }),
+    cut(
+      line({
+        text: "行きます",
+        by: { character: ryusei, expression: "angry" },
+      }),
+      { after: 1.433 },
+    ),
+  ]),
+]);
 
-const n = await narration([
-  f1Start,
-  cut(
-    line({
-      text: "免許を",
-      by: ryusei,
+const n2 = await narration([
+  figure(ryusei, { side: "left", in: 1, lead: 2.467, tail: 1.533 }, [
+    cut(line({ text: "今日は", by: ryusei }), { at: 2.467 }),
+    cut(line({ text: "(2026年)8月は中旬", reading: "8月は中旬", by: ryusei }), {
+      after: 1.067,
     }),
-    { after: 2.334 },
-  ),
-  cut(line({ text: "買いました", by: ryusei }), { after: 2.266 }),
-  cut(line({ text: "バイクも", by: ryusei }), { after: 2.366 }),
-  cut(
-    line({
-      text: "{Honda|ホンダ} GB350C です",
-      reading: "{Honda|ホンダ} GB350 Cです",
-      by: ryusei,
+    cut(line({ text: "お盆です", by: ryusei }), { after: 1.233 }),
+    cut(
+      line({
+        text: "ここは 南ゲート入口(土湯峠側)",
+        reading: "ここは 南ゲート入口",
+        by: ryusei,
+      }),
+      { after: 2.234 },
+    ),
+    cut(line({ text: "磐梯吾妻スカイラインの平均標高は", by: ryusei }), {
+      after: 2.533,
     }),
-    { after: 2.201 },
-  ),
-  cut(
-    line({
-      text: "乗りました",
-      by: { character: ryusei, expression: "scratch" },
+    cut(line({ text: "1350メートル", by: ryusei }), { after: 1.5 }),
+    cut(
+      line({
+        text: "ライディングジャケットを通りぬける風が ちょっとつめたいです",
+        by: ryusei,
+      }),
+      { after: 2.733 },
+    ),
+  ]),
+]);
+
+const n3 = await narration([
+  figure(ryusei, { side: "right", in: 1, lead: 1.633, tail: 4.281 }, [
+    cut(line({ text: "吾妻の山が みえてきました", by: ryusei }), {
+      at: 1.633,
     }),
-    { after: 3.9 },
-  ),
-  cut(line({ text: "半年くらい", by: ryusei }), { after: 1.634 }),
-  cut(
-    line({
-      text: "まだ 怖いです",
-      by: { character: ryusei, expression: "paleAndSweatBig" },
+    cut(
+      line({
+        text: "もうすこしで{浄土平|じょうどだいら}ビジターセンターです",
+        reading: "もうすこしで {浄土平|じょうどだいら} ビジターセンターです",
+        by: ryusei,
+      }),
+      { after: 3.233 },
+    ),
+    cut(
+      line({
+        text: "標高は1600メートル程",
+        reading: "標高は 1600メートル程",
+        by: ryusei,
+      }),
+      { after: 3.066 },
+    ),
+    cut(line({ text: "吾妻の山々への玄関口になっているほか", by: ryusei }), {
+      after: 3.467,
     }),
-    { after: 3.233 },
-  ),
-  cut(
-    line({
-      text: "でも 楽しいです",
-      by: { character: ryusei, expression: "shynessAndScratchAndEyesdownAway" },
+    cut(
+      line({
+        text: "日本一標高の高い天文台もあります",
+        reading: "日本一標高の高い天文台も あります",
+        by: ryusei,
+      }),
+      { after: 2.599 },
+    ),
+    cut(line({ text: "目の前の山は", by: ryusei }), { at: 32.633 }),
+    cut(line({ text: "吾妻小富士", by: ryusei }), { after: 3.567 }),
+    cut(line({ text: "登りました", by: ryusei }), { after: 3.4 }),
+    cut(line({ text: "いい山でした", reading: "いい 山でした", by: ryusei }), {
+      at: 47.5,
     }),
-    { after: 1.733 },
-  ),
-  cut(
-    line({
-      text: "福島県は 磐梯吾妻スカイラインを走って",
-      by: { character: ryusei, expression: "scratch" },
+    cut(
+      line({
+        text: "今夜は泊まります",
+        reading: "今夜は 泊まります",
+        by: ryusei,
+      }),
+      { at: 54.733 },
+    ),
+    cut(line({ text: "{浄土平|じょうどだいら}キャンプ場", by: ryusei }), {
+      after: 2.3,
     }),
-    {
+    cut(line({ text: "テントを張りました", by: ryusei }), { after: 3.834 }),
+    cut(line({ text: "星空観察と 洒落込むつもりでした", by: ryusei }), {
+      after: 2,
+    }),
+    cut(line({ text: "あいにくの曇りと そして霧", by: ryusei }), {
+      after: 3.033,
+    }),
+    cut(line({ text: "しました", by: ryusei }), { after: 2.434 }),
+    cut(line({ text: "ふて寝を", by: ryusei }), { after: 2.833 }),
+  ]),
+]);
+
+const n4 = await narration([
+  figure(ryusei, { side: "right", in: 1, out: 1, lead: 1.1, tail: 1.47 }, [
+    cut(line({ text: "朝", by: ryusei }), { at: 1.1 }),
+    cut(line({ text: "遠くに広がる 朝日に照らされた雲海", by: ryusei }), {
+      at: 6.9,
+    }),
+    cut(
+      line({ text: "つづら折りのその先に 突っこみたくなるような", by: ryusei }),
+      { after: 3.933 },
+    ),
+    cut(line({ text: "そんな 不思議な眺望です", by: ryusei }), {
+      after: 2.8,
+    }),
+  ]),
+]);
+
+const n5 = await narration([
+  figure(ryusei, { side: "left", in: 1, out: 1, lead: 1.2, tail: 1.433 }, [
+    cut(line({ text: "荒々しい山肌も相まって", by: ryusei }), { at: 1.2 }),
+    cut(line({ text: "およそ この世のものとは思えないような", by: ryusei }), {
+      after: 2.199,
+    }),
+    cut(line({ text: "そんな景色でした", by: ryusei }), { after: 3.2 }),
+    cut(
+      line({
+        text: "(「火山ガス注意」「窓を閉めて走行下さい」の看板にビビり散らかしている)",
+        voice: null,
+      }),
+      { at: 19.733, duration: 3.167 },
+    ),
+  ]),
+]);
+
+const n6 = await narration([
+  figure(ryusei, { side: "left", in: 0.4, out: 1, lead: 1.333, tail: 3.43 }, [
+    cut(line({ text: "福島は地元で", by: ryusei }), { at: 1.333 }),
+    cut(
+      line({
+        text: "実は小さい頃 親の車に連れられ何度か来たことがあります",
+        by: ryusei,
+      }),
+      { after: 2.233 },
+    ),
+    cut(
+      line({
+        text: "自分のバイクでここに来たのは もちろんはじめてだったのですが",
+        by: ryusei,
+      }),
+      { after: 4.034 },
+    ),
+    cut(
+      line({
+        text: "車窓の景色を眺めるのとは違う 形容しがたいこの感覚に",
+        by: ryusei,
+      }),
+      { after: 4.4 },
+    ),
+    cut(line({ text: "圧倒されてしまいました", by: ryusei }), {
+      after: 3.033,
+    }),
+    cut(line({ text: "まだまだ バイクが楽しい季節です", by: ryusei }), {
+      after: 3.533,
+    }),
+    cut(line({ text: "行ってみたいものですね", by: ryusei }), {
       after: 4.7,
-    },
-  ),
-  cut(line({ text: "{浄土平|じょうどだいら}に", by: ryusei }), {
-    after: 2.034,
-  }),
-  f1End,
-  f2Start,
-  cut(line({ text: "(2026年)8月は中旬", reading: "8月は中旬", by: ryusei }), {
-    after: 1.067,
-  }),
-  cut(line({ text: "お盆です", by: ryusei }), { after: 1.233 }),
-  cut(
-    line({
-      text: "ここは 南ゲート入口(土湯峠側)",
-      reading: "ここは 南ゲート入口",
-      by: ryusei,
     }),
-    { after: 2.234 },
-  ),
-  cut(line({ text: "磐梯吾妻スカイラインの平均標高は", by: ryusei }), {
-    after: 2.533,
-  }),
-  cut(line({ text: "1350メートル", by: ryusei }), { after: 1.5 }),
-  f2End,
-  f3Start,
-  cut(
-    line({
-      text: "もうすこしで{浄土平|じょうどだいら}ビジターセンターです",
-      reading: "もうすこしで {浄土平|じょうどだいら} ビジターセンターです",
-      by: ryusei,
-    }),
-    {
-      after: 3.233,
-    },
-  ),
-  cut(
-    line({
-      text: "標高は1600メートル程",
-      reading: "標高は 1600メートル程",
-      by: ryusei,
-    }),
-    { after: 3.066 },
-  ),
-  cut(line({ text: "吾妻の山々への玄関口になっているほか", by: ryusei }), {
-    after: 3.467,
-  }),
-  cut(
-    line({
-      text: "日本一標高の高い天文台もあります",
-      reading: "日本一標高の高い天文台も あります",
-      by: ryusei,
-    }),
-    {
-      after: 2.599,
-    },
-  ),
-  cut(line({ text: "目の前の山は", by: ryusei }), { at: 121.9 }),
-  cut(line({ text: "吾妻小富士", by: ryusei }), { after: 3.567 }),
-  cut(line({ text: "登りました", by: ryusei }), { after: 3.4 }),
-  cut(line({ text: "いい山でした", reading: "いい 山でした", by: ryusei }), {
-    at: 136.767,
-  }),
-  cut(
-    line({
-      text: "今夜は泊まります",
-      reading: "今夜は 泊まります",
-      by: ryusei,
-    }),
-    { at: 144 },
-  ),
-  cut(line({ text: "{浄土平|じょうどだいら}キャンプ場", by: ryusei }), {
-    after: 2.3,
-  }),
-  cut(line({ text: "テントを張りました", by: ryusei }), { after: 3.834 }),
-  cut(line({ text: "星空観察と 洒落込むつもりでした", by: ryusei }), {
-    after: 2,
-  }),
-  cut(line({ text: "あいにくの曇りと そして霧", by: ryusei }), {
-    after: 3.033,
-  }),
-  cut(line({ text: "しました", by: ryusei }), { after: 2.434 }),
-  f3End,
-  f4Start,
-  cut(line({ text: "遠くに広がる 朝日に照らされた雲海", by: ryusei }), {
-    at: 215.567,
-  }),
-  cut(
-    line({ text: "つづら折りのその先に 突っこみたくなるような", by: ryusei }),
-    { after: 3.933 },
-  ),
-  f4End,
-  f5Start,
-  cut(line({ text: "およそ この世のものとは思えないような", by: ryusei }), {
-    after: 2.199,
-  }),
-  cut(line({ text: "そんな景色でした", by: ryusei }), { after: 3.2 }),
-  f5End,
-  f6Start,
-  cut(
-    line({
-      text: "実は小さい頃 親の車に連れられ何度か来たことがあります",
-      by: ryusei,
-    }),
-    { after: 2.233 },
-  ),
-  cut(
-    line({
-      text: "自分のバイクでここに来たのは もちろんはじめてだったのですが",
-      by: ryusei,
-    }),
-    { after: 4.034 },
-  ),
-  cut(
-    line({
-      text: "車窓の景色を眺めるのとは違う 形容しがたいこの感覚に",
-      by: ryusei,
-    }),
-    { after: 4.4 },
-  ),
-  cut(line({ text: "圧倒されてしまいました", by: ryusei }), { after: 3.033 }),
-  cut(line({ text: "まだまだ バイクが楽しい季節です", by: ryusei }), {
-    after: 3.533,
-  }),
-  cut(line({ text: "行ってみたいものですね", by: ryusei }), { after: 4.7 }),
-  f6End,
+    cut(line({ text: "もっと遠くへ", by: ryusei }), { after: 4.033 }),
+  ]),
 ]);
 
 export default timeline([
@@ -420,43 +428,7 @@ export default timeline([
       },
     ),
   ],
-  // layer 2: 立ち絵
-  [
-    fade(figure(ryusei, { speech: n.speech, side: "left" }), {
-      at: start(f1Start, -1.867),
-      until: end(f1End, 2.173),
-      in: 0.4,
-    }),
-    fade(figure(ryusei, { speech: n.speech, side: "left" }), {
-      at: start(f2Start, -2.467),
-      until: end(f2End, 1.533),
-      in: 1,
-    }),
-    fade(figure(ryusei, { speech: n.speech, side: "right" }), {
-      at: start(f3Start, -1.633),
-      until: end(f3End, 4.281),
-      in: 1,
-    }),
-    fade(figure(ryusei, { speech: n.speech, side: "right" }), {
-      at: start(f4Start, -1.1),
-      until: end(f4End, 1.47),
-      in: 1,
-      out: 1,
-    }),
-    fade(figure(ryusei, { speech: n.speech, side: "left" }), {
-      at: start(f5Start, -1.2),
-      until: end(f5End, 1.433),
-      in: 1,
-      out: 1,
-    }),
-    fade(figure(ryusei, { speech: n.speech, side: "left" }), {
-      at: start(f6Start, -1.333),
-      until: end(f6End, 3.43),
-      in: 0.4,
-      out: 1,
-    }),
-  ],
-  // layer 3: BGM
+  // layer 2: BGM
   [
     cut(
       audio({
@@ -484,6 +456,17 @@ export default timeline([
       { at: 200.467, duration: 165.167 },
     ),
   ],
+  // layer 3: 発話 (立ち絵・暗がり・字幕を持つ塊、6 本)。各塊の先頭を
+  // その立ち絵が出始める秒に置く (上のコメント参照)。frame() の黒落ち
+  // (layer 4) より下に置くため、立ち絵・字幕も黒落ちの対象になる。
+  [
+    cut(n1, { at: 6.633 }),
+    cut(n2, { at: 59.233 }),
+    cut(n3, { at: 89.267 }),
+    cut(n4, { at: 208.667 }),
+    cut(n5, { at: 256.167 }),
+    cut(n6, { at: 305.567 }),
+  ],
   // layer 4: 下の layer の合成結果に掛ける黒からの立ち上がり・黒落ち
   [
     fade(frame(), {
@@ -497,6 +480,4 @@ export default timeline([
     fade(frame(), { at: 173.367, duration: 1.167, out: 0.5 }),
     fade(frame(), { at: 364.267, duration: 1.367, in: 0.667, out: 0.667 }),
   ],
-  // layer 5・6: 暗がりと発話 (narration() の戻り値)
-  ...n.layers,
 ]);

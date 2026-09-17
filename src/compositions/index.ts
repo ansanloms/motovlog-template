@@ -18,6 +18,7 @@ export type {
   MouthLayer,
 } from "./character.ts";
 export { figure, figureLayers } from "./figure.ts";
+export type { FigureGroup } from "./figure.ts";
 export { line, narration } from "./narration.ts";
-export type { Narration, Speech } from "./narration.ts";
+export type { Narration, NarrationItem, Speech } from "./narration.ts";
 export { thumbnail } from "./thumbnail.ts";

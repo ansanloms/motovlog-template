@@ -12,11 +12,12 @@ import {
   start,
   timeline,
 } from "../effects/index.ts";
-import type { CutItem, FadeItem } from "../effects/index.ts";
-import { bandTiming, subtitleTiming } from "../theme/index.ts";
+import type { CutItem, FadeItem, SampleNode } from "../effects/index.ts";
+import { bandTiming, characterTiming, subtitleTiming } from "../theme/index.ts";
 import type { LipsyncEntry, VoiceCache, VoiceOptions } from "../voice/cache.ts";
 import { linePath, resolveVoice, voiceKey } from "../voice/key.ts";
 import { character } from "./character.ts";
+import { figure } from "./figure.ts";
 import { line, narration } from "./narration.ts";
 
 /** isVoiceCache を通る偽のキャッシュ本体を組む。duration 以外は固定値 (voice・lipsync は overrides で差し替え可)。 */
@@ -738,5 +739,264 @@ describe("narration", () => {
 
     expect(speech).toHaveLength(1);
     expect(speech[0].at).toBe(0);
+  });
+
+  describe("figure() の括り (ADR-0014)", () => {
+    it("戻り値は塊 (kind: group) で、figure() の括りが無ければ 2 layers、あれば 3 layers", async () => {
+      const fetchCache = await fetchCacheFor({ A: 1, B: 1 });
+      const c = character({ expressions: { normal: ["a.png"] } });
+
+      const noFigure = await narration(
+        [cut(line({ text: "A" }), { at: 0 })],
+        { slug: "sample" },
+        { fetchCache, isStudio: () => false },
+      );
+
+      expect(noFigure.kind).toBe("group");
+      expect(noFigure.layers).toHaveLength(2);
+
+      const withFigure = await narration(
+        [
+          figure(c, {}, [
+            cut(line({ text: "B", by: c }), { at: characterTiming.lead }),
+          ]),
+        ],
+        { slug: "sample" },
+        { fetchCache, isStudio: () => false },
+      );
+
+      expect(withFigure.kind).toBe("group");
+      expect(withFigure.layers).toHaveLength(3);
+    });
+
+    it("立ち絵 item の範囲は既定の lead/tail (「最初の行の開始 − lead」〜「最後の行の字幕の終端 + tail」) になる", async () => {
+      const fetchCache = await fetchCacheFor({ A: 2 });
+      const c = character({ expressions: { normal: ["a.png"] } });
+
+      const n = await narration(
+        [
+          figure(c, {}, [
+            cut(line({ text: "A", by: c }), { at: characterTiming.lead }),
+          ]),
+        ],
+        { slug: "sample" },
+        { fetchCache, isStudio: () => false },
+      );
+
+      const [figureLayer] = n.layers;
+      const item = figureLayer[0] as CutItem;
+
+      const lineAt = characterTiming.lead;
+      const captionDuration = 2 + subtitleTiming.tail;
+      const expectedAt = lineAt - characterTiming.lead;
+      const expectedEnd = lineAt + captionDuration + characterTiming.tail;
+
+      expect(item.at).toBeCloseTo(expectedAt, 6);
+      expect(item.duration).toBeCloseTo(expectedEnd - expectedAt, 6);
+    });
+
+    it("figure() の lead/tail を明示すると立ち絵 item の範囲がそれに従う", async () => {
+      const fetchCache = await fetchCacheFor({ A: 2 });
+      const c = character({ expressions: { normal: ["a.png"] } });
+      const lead = 0.5;
+      const tail = 0.3;
+
+      const n = await narration(
+        [
+          figure(c, { lead, tail }, [
+            cut(line({ text: "A", by: c }), { at: lead }),
+          ]),
+        ],
+        { slug: "sample" },
+        { fetchCache, isStudio: () => false },
+      );
+
+      const [figureLayer] = n.layers;
+      const item = figureLayer[0] as CutItem;
+
+      const captionDuration = 2 + subtitleTiming.tail;
+      const expectedAt = lead - lead;
+      const expectedEnd = lead + captionDuration + tail;
+
+      expect(item.at).toBeCloseTo(expectedAt, 6);
+      expect(item.duration).toBeCloseTo(expectedEnd - expectedAt, 6);
+    });
+
+    it("in/out を指定すると fade()、無ければ cut() で立ち絵 layer に置く", async () => {
+      const fetchCache = await fetchCacheFor({ A: 2, B: 2 });
+      const c = character({ expressions: { normal: ["a.png"] } });
+
+      const withoutFade = await narration(
+        [
+          figure(c, {}, [
+            cut(line({ text: "A", by: c }), { at: characterTiming.lead }),
+          ]),
+        ],
+        { slug: "sample" },
+        { fetchCache, isStudio: () => false },
+      );
+      const [cutFigureLayer] = withoutFade.layers;
+
+      expect((cutFigureLayer[0] as CutItem).kind).toBe("cut");
+
+      const withFade = await narration(
+        [
+          figure(c, { in: 0.3, out: 0.2 }, [
+            cut(line({ text: "B", by: c }), { at: characterTiming.lead }),
+          ]),
+        ],
+        { slug: "sample" },
+        { fetchCache, isStudio: () => false },
+      );
+      const [fadeFigureLayer] = withFade.layers;
+      const fadeItem = fadeFigureLayer[0] as FadeItem;
+
+      expect(fadeItem.kind).toBe("fade");
+      expect(fadeItem.in).toBe(0.3);
+      expect(fadeItem.out).toBe(0.2);
+    });
+
+    it("expression・side は立ち絵の SampleNode にそのまま渡る", async () => {
+      const fetchCache = await fetchCacheFor({ A: 1 });
+      const c = character({
+        expressions: { normal: ["a.png"], smile: ["b.png"] },
+      });
+
+      const n = await narration(
+        [
+          figure(c, { expression: "smile", side: "right" }, [
+            cut(line({ text: "A", by: c }), { at: characterTiming.lead }),
+          ]),
+        ],
+        { slug: "sample" },
+        { fetchCache, isStudio: () => false },
+      );
+
+      const [figureLayer] = n.layers;
+      const node = (figureLayer[0] as CutItem).node as SampleNode;
+      const rendered = node.render({
+        frame: 0,
+        seconds: 0,
+        absolute: characterTiming.lead,
+      });
+
+      if (!React.isValidElement(rendered)) {
+        throw new Error("unreachable");
+      }
+
+      expect(rendered.props).toEqual({
+        layers: [staticFile("b.png")],
+        side: "right",
+      });
+    });
+
+    it("括りの開始 (最初の行の開始 − lead) が塊の先頭より前なら throw する", async () => {
+      const fetchCache = await fetchCacheFor({ A: 1 });
+      const c = character({ expressions: { normal: ["a.png"] } });
+
+      await expect(
+        narration(
+          [figure(c, {}, [cut(line({ text: "A", by: c }), { at: 0 })])],
+          { slug: "sample" },
+          { fetchCache, isStudio: () => false },
+        ),
+      ).rejects.toThrow(
+        /narration: 立ち絵の括り \(1 個目\) の開始が塊の先頭より前になります/,
+      );
+    });
+
+    it("括り同士が重なると throw する", async () => {
+      const fetchCache = await fetchCacheFor({ A: 1, B: 1 });
+      const c = character({ expressions: { normal: ["a.png"] } });
+
+      await expect(
+        narration(
+          [
+            // A: 立ち絵の開始 = at(1) − lead(既定 1) = 0 (>= 0 なので単独では throw しない)。
+            // tail (既定 1) を含めた終端 = 1 + 1(duration) + 1(tail) = 3。
+            figure(c, {}, [
+              cut(line({ text: "A", by: c }), { at: 1, duration: 1 }),
+            ]),
+            // B: A の終端 (cursor 2) 以降でなければ layer 内の時間順違反になるため at: 2。
+            // 立ち絵の開始 = at(2) − lead(既定 1) = 1 で、A の終端 (3) より前 = 重なる。
+            figure(c, {}, [
+              cut(line({ text: "B", by: c }), { at: 2, duration: 1 }),
+            ]),
+          ],
+          { slug: "sample" },
+          { fetchCache, isStudio: () => false },
+        ),
+      ).rejects.toThrow(
+        /narration: 立ち絵の括り \(2 個目\) が前の括りと重なります/,
+      );
+    });
+
+    it("括りの中の item は配列の順のまま平らにして解決し、括りの後ろの item も speech も平らに書いた場合と同じ結果になる", async () => {
+      const fetchCache = await fetchCacheFor({ A: 1, B: 1 });
+      const c = character({ expressions: { normal: ["a.png"] } });
+
+      const grouped = await narration(
+        [
+          figure(c, {}, [
+            cut(line({ text: "A", by: c }), { at: characterTiming.lead }),
+          ]),
+          cut(line({ text: "B" }), { after: 0.5 }),
+        ],
+        { slug: "sample" },
+        { fetchCache, isStudio: () => false },
+      );
+
+      const flat = await narration(
+        [
+          cut(line({ text: "A", by: c }), { at: characterTiming.lead }),
+          cut(line({ text: "B" }), { after: 0.5 }),
+        ],
+        { slug: "sample" },
+        { fetchCache, isStudio: () => false },
+      );
+
+      const groupedSpeechLayer = grouped.layers[2] as CutItem[];
+      const flatSpeechLayer = flat.layers[1] as CutItem[];
+
+      expect(
+        groupedSpeechLayer.map((item) => ({
+          at: item.at,
+          duration: item.duration,
+        })),
+      ).toEqual(
+        flatSpeechLayer.map((item) => ({
+          at: item.at,
+          duration: item.duration,
+        })),
+      );
+      expect(grouped.speech).toEqual(flat.speech);
+    });
+
+    it("narration() は塊として cut(n, { at }) で置け、内部 item は塊の位置 + 相対秒で解決され、start(lineItem) は塊の外からも参照できる", async () => {
+      const fetchCache = await fetchCacheFor({ A: 1 });
+      const first = cut(line({ text: "A" }), { at: 0 });
+
+      const n = await narration(
+        [first],
+        { slug: "sample" },
+        { fetchCache, isStudio: () => false },
+      );
+
+      const result = timeline([
+        [cut(n, { at: 5 })],
+        [cut(null, { duration: 1, at: start(first) })],
+      ]);
+
+      const placedGroup = result.layers[0][0];
+
+      if (!placedGroup.group) {
+        throw new Error("unreachable");
+      }
+
+      const speechItem = placedGroup.group.layers[1][0];
+
+      expect(speechItem.at).toBeCloseTo(5, 6);
+      expect(result.layers[1][0].at).toBeCloseTo(speechItem.at, 6);
+    });
   });
 });
