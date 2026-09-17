@@ -451,6 +451,21 @@ describe("extractLines", () => {
     await expect(extractLines(source, FILE)).rejects.toThrow(/有限の数値/);
   });
 
+  it("figure() の括り (narration([figure(character, {...}, [cut(line(...))])])) の中の line() も拾う (ADR-0014)", async () => {
+    const source = `${LINE_IMPORT}
+      narration([
+        figure(hero, { side: "left" }, [
+          cut(line({ text: "a" }), { at: 0 }),
+        ]),
+      ]);
+    `;
+
+    await expect(extractLines(source, FILE)).resolves.toEqual({
+      lines: [{ text: "a" }],
+      silent: 0,
+    });
+  });
+
   it("line() の呼び出しが無ければ空配列を返す", async () => {
     await expect(extractLines("const x = 1;", FILE)).resolves.toEqual({
       lines: [],

@@ -4,19 +4,20 @@ import { describe, expect, it } from "vitest";
 import { character } from "./character.ts";
 import type { Character } from "./character.ts";
 import { Figure } from "../components/Figure.tsx";
-import { isSample } from "../effects/index.ts";
+import { cut, isSample } from "../effects/index.ts";
 import { fps } from "../theme/timing.ts";
 import type { LipsyncEntry } from "../voice/cache.ts";
 import {
   expressionAt,
   figure,
   figureLayers,
+  figureNode,
   isBlinking,
   layerSources,
   mouthAt,
 } from "./figure.ts";
 import type { MouthKey } from "./figure.ts";
-import type { Speech } from "./narration.ts";
+import type { NarrationItem, Speech } from "./narration.ts";
 
 // 発話 1 本分の口パクデータ (ADR-0011)。0.1〜0.3 が "a"、0.3〜0.35 が促音の
 // 無音 ("cl"、直前の "a" を維持)、0.35〜0.55 が "i"、0.55〜0.6 が撥音
@@ -296,21 +297,21 @@ describe("layerSources", () => {
   });
 });
 
-describe("figure", () => {
+describe("figureNode", () => {
   it("SampleNode (kind: sample) を返す", () => {
-    const node = figure(hero, { speech });
+    const node = figureNode(hero, { speech });
 
     expect(isSample(node)).toBe(true);
   });
 
   it("expressions に無い expression を指定すると throw する", () => {
-    expect(() => figure(hero, { expression: "unknown", speech })).toThrow(
+    expect(() => figureNode(hero, { expression: "unknown", speech })).toThrow(
       /unknown/,
     );
   });
 
   it("render() は Figure 要素を返し、layers が目パチ・口パク・表情から決まる", () => {
-    const node = figure(hero, { speech });
+    const node = figureNode(hero, { speech });
 
     // absolute=0.15 (発話 1 の a) → normal 表情、口は "a"。
     const rendered = node.render({ frame: 0, seconds: 0, absolute: 0.15 });
@@ -331,7 +332,7 @@ describe("figure", () => {
     const withExpression: readonly Speech[] = [
       { at: 1, duration: 1, lipsync: [], by: hero, expression: "sweat" },
     ];
-    const node = figure(hero, { speech: withExpression });
+    const node = figureNode(hero, { speech: withExpression });
 
     const before = node.render({ frame: 0, seconds: 0, absolute: 0.5 });
     const after = node.render({ frame: 0, seconds: 0, absolute: 1 });
@@ -352,7 +353,7 @@ describe("figure", () => {
     const mixed: readonly Speech[] = [
       { at: 0, duration: 10, lipsync: entriesA, by: other },
     ];
-    const node = figure(hero, { speech: mixed });
+    const node = figureNode(hero, { speech: mixed });
 
     const rendered = node.render({ frame: 0, seconds: 0, absolute: 0.15 });
 
@@ -371,7 +372,7 @@ describe("figure", () => {
     const withExpression: readonly Speech[] = [
       { at: 0, duration: 5, lipsync: [], by: hero, expression: "sweat" },
     ];
-    const node = figure(hero, { speech: withExpression });
+    const node = figureNode(hero, { speech: withExpression });
 
     // item 1: 絶対 0 秒に始まり、絶対 2 秒 (item 内 2 秒) まで描く。
     // itemStart = absolute - seconds = 0 なので at=0 の expression が効く。
@@ -396,7 +397,7 @@ describe("figure", () => {
     const withExpression: readonly Speech[] = [
       { at: 0, duration: 5, lipsync: [], by: hero, expression: "sweat" },
     ];
-    const node = figure(hero, {
+    const node = figureNode(hero, {
       expression: "normal",
       speech: withExpression,
     });
@@ -421,7 +422,7 @@ describe("figure", () => {
   });
 
   it("expression を省略し、どの発話も expression を持たない場合は expressions の先頭キーになる", () => {
-    const node = figure(hero, { speech: [] });
+    const node = figureNode(hero, { speech: [] });
 
     const rendered = node.render({ frame: 0, seconds: 0, absolute: 0 });
 
@@ -436,7 +437,7 @@ describe("figure", () => {
   });
 
   it("expressions の prototype のキー (toString 等) を指定すると throw する (#11)", () => {
-    expect(() => figure(hero, { expression: "toString", speech })).toThrow(
+    expect(() => figureNode(hero, { expression: "toString", speech })).toThrow(
       /toString/,
     );
   });
@@ -453,7 +454,7 @@ describe("figure", () => {
     const withExpression: readonly Speech[] = [
       { at: 3, duration: 10, lipsync: [], by: hero, expression: "sweat" },
     ];
-    const node = figure(hero, { speech: withExpression });
+    const node = figureNode(hero, { speech: withExpression });
 
     for (let frame = 0; frame < 10 * fps; frame++) {
       const seconds = frame / fps;
@@ -481,7 +482,7 @@ describe("figure", () => {
     const withExpression: readonly Speech[] = [
       { at: 10.02, duration: 1, lipsync: [], by: hero, expression: "sweat" },
     ];
-    const node = figure(hero, { speech: withExpression });
+    const node = figureNode(hero, { speech: withExpression });
 
     for (let frame = 0; frame < 5; frame++) {
       const seconds = frame / fps;
@@ -507,7 +508,7 @@ describe("figure", () => {
     const withExpression: readonly Speech[] = [
       { at: 10.0, duration: 1, lipsync: [], by: hero, expression: "sweat" },
     ];
-    const node = figure(hero, {
+    const node = figureNode(hero, {
       expression: "normal",
       speech: withExpression,
     });
@@ -525,6 +526,46 @@ describe("figure", () => {
     expect(rendered.props).toEqual({
       layers: [staticFile("body.png"), staticFile("mouth-n.png")],
     });
+  });
+});
+
+describe("figure (括り、ADR-0014)", () => {
+  const dummyItem = cut(null, { at: 0, duration: 1 }) as NarrationItem;
+
+  it("kind: figureGroup を持ち、character・options・items をそのまま保持する", () => {
+    const options = { side: "right" as const };
+    const items: readonly NarrationItem[] = [dummyItem];
+
+    const group = figure(hero, options, items);
+
+    expect(group).toEqual({
+      kind: "figureGroup",
+      character: hero,
+      options,
+      items,
+    });
+  });
+
+  it("items が空なら throw する", () => {
+    expect(() => figure(hero, {}, [])).toThrow(/items が空です/);
+  });
+
+  it("lead が NaN なら throw する", () => {
+    expect(() => figure(hero, { lead: NaN }, [dummyItem])).toThrow(
+      /lead が不正です \(NaN\)/,
+    );
+  });
+
+  it("tail が負なら throw する", () => {
+    expect(() => figure(hero, { tail: -1 }, [dummyItem])).toThrow(
+      /tail が不正です \(-1\)/,
+    );
+  });
+
+  it("in が負なら throw する", () => {
+    expect(() => figure(hero, { in: -0.1 }, [dummyItem])).toThrow(
+      /in が不正です \(-0\.1\)/,
+    );
   });
 });
 

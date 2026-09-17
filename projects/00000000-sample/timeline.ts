@@ -108,10 +108,9 @@ const clipB = cut(
 // 差分だけをファイル内の const として持てる (ADR-0010)。
 const calm = { ...narrator, speed: 0.9 };
 
-// 発話を先に解決する。n.speech (発話ごとの絶対開始秒・実尺・口パクの母音
-// 区間・by・expression) を立ち絵の口パク・表情に使うため、timeline() より
-// 前に await する (ADR-0011)。narration() は
-// { layers: [暗がり layer, 発話 layer], speech } を返す。
+// 発話を先に解決する。narration() は塊 (GroupNode、ADR-0014) に speech を
+// 加えた値を返す。内部は下から立ち絵 layer・暗がり layer・発話 layer の順。
+// timeline() より前に await すること。
 //
 // text は文字列リテラルで書くこと (watcher が timeline.ts を静的に読む。
 // 変数や関数呼び出しは使えない)。voice に書けるのはリテラル・spread・
@@ -127,8 +126,13 @@ const calm = { ...narrator, speed: 0.9 };
 // 上書きした値になる (watcher と narration() の両方が同じ関数
 // (mergeVoice()) で合成するため、生成される音声キャッシュの key は一致する)。
 //
+// 3 本すべてを figure() (ADR-0014) の括りに入れ、立ち絵を出したまま並べる。
+// lead・tail は OP → (0.2 秒) → 章タイトルが終わるまで立ち絵を消しておき
+// (点滅を避けるため、間の 0.2 秒も出さない)、ED が始まる直前 (clipB の終端 −
+// endingTiming.duration) で消す (T&M「画面配置」) 位置に合わせて計算した値。
+//
 // 1 本目: voice を省略すると by.voice (sampleCharacter では theme の narrator) の
-// ままになる。{漢字|よみ} で読みを添えられる。at は絶対秒。
+// ままになる。{漢字|よみ} で読みを添えられる。at は塊の先頭からの相対秒。
 //
 // 2 本目: voice にファイル内の const (calm、theme の narrator の差分) を
 // 渡し、by.voice を上書きしている。after は「前の発話の音声の終わりからの
@@ -142,39 +146,36 @@ const calm = { ...narrator, speed: 0.9 };
 // 長く出る)。時間は timeline() の他の演出と同じくすべて秒で書くため、
 // duration もフレーム数ではなく秒の数値。by: { character, expression:
 // "teach" } でここから教える表情になる。発話と無関係に表情を変えたい・
-// 立ち絵を隠したいときは、layer 2 (立ち絵) の item を分けて書く (figure()
-// の expression オプションや、別の duration の cut() を並べる。ADR-0011)。
+// 立ち絵を隠したいときは、figure() の括りを分ける (expression オプションや、
+// 括りの外に置く別の duration の cut() を並べる。ADR-0011)。
 const n = await narration([
-  cut(
-    line({
-      text: "{磐梯吾妻|ばんだいあづま}スカイラインを登って、\n{浄土平|じょうどだいら}へ向かう。",
-      by: sampleCharacter,
-    }),
-    { at: 8 },
-  ),
-  cut(
-    line({
-      text: "今日は雲が多いけど、\n風は無くて走りやすい。",
-      by: { character: sampleCharacter, expression: "sweat" },
-      voice: calm,
-    }),
-    { after: 0.5 },
-  ),
-  cut(
-    line({
-      text: "{浄土平|じょうどだいら}の展望台に着いた。\n少し休憩していこう。",
-      by: { character: sampleCharacter, expression: "teach" },
-    }),
-    { after: 1, duration: 4 },
-  ),
+  // 立ち絵は最後の発話の字幕が消えてから tail 秒で消える (ED の手前)。ED の
+  // 開始に揃えたければ tail を調整する。
+  figure(sampleCharacter, { in: 0.2, out: 0.2, lead: 0.6, tail: 5 }, [
+    cut(
+      line({
+        text: "{磐梯吾妻|ばんだいあづま}スカイラインを登って、\n{浄土平|じょうどだいら}へ向かう。",
+        by: sampleCharacter,
+      }),
+      { at: 8 },
+    ),
+    cut(
+      line({
+        text: "今日は雲が多いけど、\n風は無くて走りやすい。",
+        by: { character: sampleCharacter, expression: "sweat" },
+        voice: calm,
+      }),
+      { after: 0.5 },
+    ),
+    cut(
+      line({
+        text: "{浄土平|じょうどだいら}の展望台に着いた。\n少し休憩していこう。",
+        by: { character: sampleCharacter, expression: "teach" },
+      }),
+      { after: 1, duration: 4 },
+    ),
+  ]),
 ]);
-
-// 立ち絵 (layer 2) の表示区間。OP → (0.2 秒) → 章タイトルが終わるまでは
-// 消しておき (点滅を避けるため、間の 0.2 秒も出さない)、ED が始まる直前
-// (clipB の終端 − endingTiming.duration) で消す (T&M「画面配置」)。
-const figureFromSec = openingTiming.duration + 0.2 + chapterDurationSec;
-const figureUntilSec =
-  clipASec + clipBSec - crossfadeSec - endingTiming.duration;
 
 export default timeline([
   [
@@ -211,8 +212,8 @@ export default timeline([
       out: chapterTiming.fade,
     }),
     // 写真紹介 (1〜2 枚)。at に start(item, offset?) で「clipB の開始の
-    // 1 秒後」を渡している。offset は開始からの相対秒 (負も可)。1 つ上の
-    // layer 2 の立ち絵より後ろに描かれる (T&M「写真紹介」)。
+    // 1 秒後」を渡している。offset は開始からの相対秒 (負も可)。発話の塊
+    // (立ち絵を含む、layer 4) より後ろに描かれる (T&M「写真紹介」)。
     cut(
       photoShowcase({
         photos: [asset("photos/photo-01.jpg"), asset("photos/photo-02.jpg")],
@@ -242,28 +243,7 @@ export default timeline([
     ),
   ],
   [
-    // layer 2: 立ち絵 (ADR-0011)。sampleCharacter は characters/sample.ts の
-    // character()。figure() は n.speech (上で解決済みの narration() の
-    // 結果) のうち by が sampleCharacter と同じ参照の発話だけを見て、目パチ・口パク・
-    // 表情を sample() で毎フレーム選び直す。1 つ下の layer 1 (OP・章タイトル・
-    // 写真紹介・ED) より上に置き、写真は立ち絵の後ろに出す
-    // (T&M「写真紹介」「画面配置」)。
-    // OP・章タイトル・ED の間は立ち絵を消す (T&M「画面配置」)。消すのは
-    // 上の layer で覆うのではなく item の区間を分けて空ける (ADR-0011)。
-    // ここでは章タイトルの終わり (figureFromSec) から ED の始まり
-    // (figureUntilSec) までの 1 item にしている。出入りは 0.2 秒のフェード
-    // (T&M「出入りのタイミング」)。cut()/fade() の duration にはまだ
-    // start()/end() のようなアンカーを渡せない (ADR-0009 は at だけが
-    // アンカーに対応) ため秒の数値で書く。
-    fade(figure(sampleCharacter, { speech: n.speech }), {
-      at: figureFromSec,
-      duration: figureUntilSec - figureFromSec,
-      in: 0.2,
-      out: 0.2,
-    }),
-  ],
-  [
-    // layer 3: 注釈。右上に横書きで出る補足。text の \n で改行する (最大
+    // layer 2: 注釈。右上に横書きで出る補足。text の \n で改行する (最大
     // 2 行)。位置は絶対秒 (at)。
     cut(
       annotation({
@@ -273,7 +253,7 @@ export default timeline([
     ),
   ],
   [
-    // layer 4: BGM。audio() は音だけの要素で、絵は持たない。loop で素材を
+    // layer 3: BGM。audio() は音だけの要素で、絵は持たない。loop で素材を
     // 繰り返し、volume の折れ線で走行音の下に薄く (0.2) 敷いて、末尾は
     // 走行音・黒落ちと同じ endingFadeSec 秒でフェードアウトする。loop 時も
     // at は周回をまたいだ通算秒なので、素材の長さより長い区間でも末尾の
@@ -293,6 +273,17 @@ export default timeline([
     ),
   ],
   [
+    // layer 4: 発話 (立ち絵・暗がり・字幕を持つ塊、上で解決済みの
+    // narration() の結果)。cut(n, { at: 0 }) で塊の先頭を動画の 0 秒に
+    // 合わせて置く。frame() の黒落ち (layer 5) より下に置くため、立ち絵・
+    // 字幕も黒落ちの対象になる。章タイトルの表示中 (〜7.4 秒) と重ならない
+    // よう、最初の発話を 8 秒以降に置いている (narration() への入力は上で
+    // 定義した n を参照)。写真紹介・ED の表示中に発話が重なっても構わない
+    // (この配置では字幕・暗がり・立ち絵が写真紹介・ED より上に重なって
+    // 見える。重なる/重ならないも layer の順で決まる例)。
+    cut(n, { at: 0 }),
+  ],
+  [
     // layer 5: 下の layer (0〜4) の合成結果を黒から立ち上げ、終端で黒へ
     // 落とす。frame() は fade() の node にだけ渡せ (cut() や layer 0 には
     // 置けない)、それより下の layer の合成結果にフェードをかける。
@@ -307,12 +298,4 @@ export default timeline([
       out: endingFadeSec,
     }),
   ],
-  // layer 6・7: 発話。n.layers ([暗がり layer, 発話 layer]、上で解決済みの
-  // narration() の結果) を配列の最後に置くと、この 2 layer は他のどの
-  // layer よりも上に重なる (「配列の後ろが上」)。章タイトルの表示中
-  // (〜7.4 秒) と重ならないよう、最初の発話を 8 秒以降に置いている
-  // (narration() への入力は上で定義した n を参照)。写真紹介・ED の表示中に
-  // 発話が重なっても構わない (この配置では字幕・暗がりが写真紹介・ED より
-  // 上に重なって見える。重なる/重ならないも layer の順で決まる例)。
-  ...n.layers,
 ]);

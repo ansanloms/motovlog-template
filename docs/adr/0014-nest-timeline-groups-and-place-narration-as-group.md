@@ -119,5 +119,5 @@ narration について次を決めた。
 
 - [ADR-0006](./0006-write-timeline-as-effects-dsl.md)、[ADR-0009](./0009-add-transition-frame-and-anchor-to-timeline.md)、[ADR-0010](./0010-build-narration-timeline-with-hashed-voice-cache.md)、[ADR-0011](./0011-draw-figure-from-character-presets-linked-by-speech.md)
 - ユーザからの依頼 (2026-09-16): 章ごとに timeline を切って、最後に cut や fade で結合したい
-- ユーザからの依頼 (2026-09-17): 立ち絵の範囲の中でナレーションを設定したい。narration に位置を持たせて `clip1` の 2 秒後から置けるようにしたい。narration の塊は最前面に置く
+- ユーザからの依頼 (2026-09-17): 立ち絵の範囲の中でナレーションを設定したい。narration に位置を持たせて `clip1` の 2 秒後から置けるようにしたい。narration の塊は frame() の黒落ちより下に置く (最初は最前面としたが、立ち絵と字幕が黒落ちの対象から外れるため改めた)
 - `projects/20260813-jododaira/timeline.ts` の立ち絵 6 item と発話 51 行 (2026-09-17 時点)

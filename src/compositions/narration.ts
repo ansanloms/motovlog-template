@@ -23,15 +23,23 @@
 // 指定した表情に切り替える (省略時は現在の表情を
 // 維持する)。
 //
-// narration() は各発話の音声キャッシュ (public/projects/<slug>/lines/
-// <key>.json、key.ts の voiceKey()) から実尺を読み、
-// { layers: [暗がり layer, 発話 layer], speech } を返す。speech は
-// line() item ごとに { at, duration, lipsync, by?, expression? } を持ち、
-// figure() (#39) の目パチ・口パク・表情の判定に使う (声無しの item は
-// lipsync: [] で、表情の切り替えだけ効く)。キャッシュが無いときは Studio
-// では書き上がるまで待ち、render と Node (Studio でも rendering でもない
-// 環境) では即エラーにする (npm run dev の watcher か npm run render の
-// 前段が生成する)。
+// narration() は塊 (GroupNode、ADR-0014) を返し、`cut(n, { at })`/
+// `fade(n, { at, in, out })` で timeline の layer に置く。内部は下から
+// 立ち絵 layer (置いた場合のみ)・暗がり layer・発話 layer の順で、`speech`
+// (塊の先頭からの秒) も併せ持つ。各発話の音声キャッシュ
+// (public/projects/<slug>/lines/<key>.json、key.ts の voiceKey()) から
+// 実尺を読み、位置 (at/after/省略) はこの塊の先頭からの相対秒として解決する。
+// speech は line() item ごとに { at, duration, lipsync, by?, expression? }
+// を持ち、figure() の括り (このファイル下部の figureNode() 呼び出し) の
+// 目パチ・口パク・表情の判定に使う (声無しの item は lipsync: [] で、
+// 表情の切り替えだけ効く)。キャッシュが無いときは Studio では書き上がるまで
+// 待ち、render と Node (Studio でも rendering でもない環境) では即エラーに
+// する (npm run dev の watcher か npm run render の前段が生成する)。
+//
+// 入力配列には line() の item に加え、figure() (./figure.ts) が返す括り
+// (FigureGroup) を混ぜて置ける。narration() は括りの中の item を配列の順の
+// まま平らにして解決し (位置・after の連鎖は行を直接書いたのと同じに
+// 振る舞う)、括りごとに立ち絵の item を 1 つ立ち絵 layer に作る (ADR-0014)。
 
 import type { ReactNode } from "react";
 import React from "react";
@@ -40,11 +48,20 @@ import { subtitleBand } from "../components/index.tsx";
 import { Line } from "../components/Line.tsx";
 import type { TextLines } from "../components/text.ts";
 import { joinLines } from "../components/text.ts";
-import { cut, fade, isFrame, isGroup, resolveLayer } from "../effects/index.ts";
+import {
+  cut,
+  fade,
+  group,
+  isFrame,
+  isGroup,
+  resolveLayer,
+  toFrame,
+} from "../effects/index.ts";
 import type {
   CutItem,
   FadeItem,
   FrameMarker,
+  GroupNode,
   Item,
   Layer,
   PendingCutItem,
@@ -52,7 +69,12 @@ import type {
   SampleNode,
 } from "../effects/index.ts";
 import { resolveProjectSlug } from "../project/load.ts";
-import { bandTiming, subtitleTiming } from "../theme/index.ts";
+import {
+  bandTiming,
+  characterTiming,
+  fps,
+  subtitleTiming,
+} from "../theme/index.ts";
 import { isVoiceCache } from "../voice/cache.ts";
 import type { LipsyncEntry, VoiceCache, VoiceOptions } from "../voice/cache.ts";
 import { linePath, mergeVoice, voiceKey } from "../voice/key.ts";
@@ -60,6 +82,8 @@ import { assertReadingNotation } from "../voice/reading.ts";
 import { computeBandSpans } from "./band.ts";
 import { resolveBy } from "./character.ts";
 import type { ByRef, Character } from "./character.ts";
+import { figureNode, isFigureGroup } from "./figure.ts";
+import type { FigureGroup } from "./figure.ts";
 
 /** line() が受け取る props。 */
 type LineProps = {
@@ -265,8 +289,9 @@ const waitForVoiceCache = async (
  * Placement・Span の分岐を Omit 越しに単一の平坦な型へ畳んでしまい、型
  * だけでは at/after・duration/until の排他性も Anchor の排除も表せないため、
  * Anchor や until を渡した場合は narration() が実行時に throw する。
+ * figure() (./figure.ts) の items の型としても使う。
  */
-type NarrationItem = CutItem | FadeItem | PendingCutItem;
+export type NarrationItem = CutItem | FadeItem | PendingCutItem;
 
 /**
  * narration() のオプション。slug は staticFile() のパス組み立てに要る。
@@ -284,7 +309,7 @@ type NarrationOptions = {
  * line() item の分だけ、渡した順に積む。
  */
 export type Speech = {
-  /** 音声の絶対開始秒 (発話 layer の item に使った at と同じ)。 */
+  /** 塊 (narration() が返す GroupNode) の先頭からの秒 (発話 layer の item に使った at と同じ)。 */
   readonly at: number;
   /**
    * 音声が実際に鳴る秒数 (cache.duration と字幕の尺 (captionDuration) の
@@ -300,10 +325,13 @@ export type Speech = {
   readonly expression?: string;
 };
 
-/** narration() の戻り値。[暗がり layer, 発話 layer] に加え、発話ごとの音声の実測値を持つ。 */
-export type Narration = {
-  /** [暗がり layer, 発話 layer]。 */
-  readonly layers: readonly [Layer, Layer];
+/**
+ * narration() の戻り値。塊 (GroupNode、ADR-0014) に発話ごとの音声の実測値
+ * (speech) を加えたもの。`cut(n, { at })`/`fade(n, { at, in, out })` で
+ * timeline の layer に置く。内部 layer は下から立ち絵 layer (figure() の
+ * 括りを渡した場合のみ)・暗がり layer・発話 layer の順。
+ */
+export type Narration = GroupNode & {
   /** 発話 (line() item) ごとの音声の実測値。渡した順。 */
   readonly speech: readonly Speech[];
 };
@@ -355,36 +383,46 @@ const noAudioBandInput = (
 };
 
 /**
- * 発話の列から Narration ({ layers: [暗がり layer, 発話 layer], speech }) を
- * 組み立てる。node が line() の戻り値 (LineMarker コンポーネント) の item は
- * 音声キャッシュから実尺を取り (voice: null なら音声キャッシュを読まず
- * duration が必須、無ければ throw)、それ以外の item は duration が必須
- * (無ければ throw)。位置 (at/after/省略) は実尺を埋めた仮 layer を
- * resolveLayer() で解決して求める。line() item に duration が明示されて
- * いれば、位置決め・字幕の尺の両方にその値をそのまま使い、tail もクランプも
- * 掛けない (書き手が明示した値を実尺で上書きしない、voice: null は常にこの
- * 扱い)。明示が無い line() item の字幕の尺は min(実尺 + subtitleTiming.tail,
- * 次の item の開始 − 自分の開始) にクランプする (最後の item は前者のまま)。
- * line() 以外の item は kind・node・duration (fade なら in/out も) を保った
- * まま、at を解決済みの開始秒に置き換えて発話 layer にそのまま残す。暗がり
+ * 発話の列から Narration (GroupNode + speech、ADR-0014) を組み立てる。
+ * items には line() の item に加え figure() の括り (FigureGroup) を混ぜて
+ * 置ける。括りの中の item は配列の順のまま平らにしてから解決するため、
+ * 位置 (at/after/省略) は行を直接書いたのと同じに振る舞う (「flatItems」参照)。
+ * node が line() の戻り値 (LineMarker コンポーネント) の item は音声
+ * キャッシュから実尺を取り (voice: null なら音声キャッシュを読まず duration
+ * が必須、無ければ throw)、それ以外の item は duration が必須 (無ければ
+ * throw)。位置は実尺を埋めた仮 layer を resolveLayer() で解決して求める。
+ * line() item に duration が明示されていれば、位置決め・字幕の尺の両方に
+ * その値をそのまま使い、tail もクランプも掛けない (書き手が明示した値を
+ * 実尺で上書きしない、voice: null は常にこの扱い)。明示が無い line() item
+ * の字幕の尺は min(実尺 + subtitleTiming.tail, 次の item の開始 − 自分の
+ * 開始) にクランプする (最後の item は前者のまま)。line() 以外の item は
+ * kind・node・duration (fade なら in/out も) を保ったまま、at を解決済みの
+ * 開始秒に置き換えて発話 layer にそのまま残す。暗がり
  * (computeBandSpans() への入力) は line() item なら字幕が消えるまで
  * (captionEnd) 出る (voice: null は duration の間だけ)。音声 (speechEnd) が
  * 字幕より先に終わっていても、暗がりは字幕の消灯までは維持される (duration
  * を明示して字幕を長く出した場合も同じ)。戻り値の `speech` は line() item
- * ごと (渡した順) に、音声の絶対開始秒 (at)・音声が実際に鳴る秒数
+ * ごと (渡した順) に、塊 (narration() が返す GroupNode) の先頭からの秒 (at)・
+ * 音声が実際に鳴る秒数
  * (duration、cache.duration と字幕の尺 (captionDuration) の小さい方。
  * duration を明示して字幕を実尺より短く切ったときに、実尺のまま口パクが
  * 無音で続くのを防ぐ、#3。voice: null は duration そのもの)・口パクの母音
  * 区間 (lipsync、cache.lipsync。voice: null は空配列)・by (指定時)・
- * expression (指定時) を持つ
- * (#39 の立ち絵の目パチ・口パク・表情の切り替えに使う)。発話 layer に置く
- * 各 item には source (narration() に渡した入力 item 自体への参照) を
- * 付ける。timeline.ts で入力 item を const に取っておけば、
- * start()/end() でこの発話の開始・終端 (字幕の尺の終端) を他の layer の
- * item から参照できる (「立ち絵」参照)。
+ * expression (指定時) を持つ (figure() の括りが作る立ち絵の item の
+ * 目パチ・口パク・表情の判定に使う)。発話 layer に置く各 item には source
+ * (narration() に渡した入力 item 自体への参照) を付ける。timeline.ts で
+ * 入力 item を const に取っておけば、start()/end() でこの発話の開始・終端
+ * (字幕の尺の終端) を他の layer の item から参照できる (「立ち絵」参照)。
+ * 括りごとの立ち絵の item は、括りの最初の行の開始 (実尺解決後) − lead を
+ * 開始、括りの最後の行の字幕の終端 + tail を終端として立ち絵 layer に積む
+ * (lead・tail の既定値は theme の characterTiming.lead・characterTiming.tail)。
+ * 開始が塊の先頭 (0 秒) より前になる、または前の括りと重なる (フレーム単位)
+ * 場合は throw する。立ち絵の item は options.in/out のどちらかを指定すれば
+ * fade()、どちらも無ければ cut() で置く。立ち絵 layer は 1 つ以上の括りが
+ * あるときだけ作り、最下段 (暗がりのさらに下) に置く。
  */
 export const narration = async (
-  items: readonly NarrationItem[],
+  items: readonly (NarrationItem | FigureGroup)[],
   options: NarrationOptions = {},
   deps: Partial<NarrationDeps> = {},
 ): Promise<Narration> => {
@@ -392,7 +430,31 @@ export const narration = async (
     throw new Error("narration: 発話が 1 つもありません");
   }
 
-  items.forEach((item) => {
+  /** items を配列の順のまま平らにした列 (figure() の括りの中の item も展開する)。 */
+  const flatItems: NarrationItem[] = [];
+  /** flatItems 内での各 figure() の括りの範囲 (start・end は flatItems の index、両端を含む)。 */
+  const figureGroupRanges: {
+    readonly start: number;
+    readonly end: number;
+    readonly group: FigureGroup;
+  }[] = [];
+
+  items.forEach((entry) => {
+    if (isFigureGroup(entry)) {
+      const start = flatItems.length;
+      flatItems.push(...entry.items);
+      figureGroupRanges.push({
+        start,
+        end: flatItems.length - 1,
+        group: entry,
+      });
+      return;
+    }
+
+    flatItems.push(entry);
+  });
+
+  flatItems.forEach((item) => {
     if (item.at !== undefined && typeof item.at !== "number") {
       throw new Error(
         "narration の item の at は秒の数値だけ受け付けます (アンカーは下の layer を知らないため使えません)",
@@ -417,7 +479,7 @@ export const narration = async (
   const resolvedDeps: NarrationDeps = { ...defaultDeps, ...deps };
   const slug = options.slug ?? resolveProjectSlug(process.env.REMOTION_PROJECT);
 
-  const resolvedItems$ = items.map(async (item, index) => {
+  const resolvedItems$ = flatItems.map(async (item, index) => {
     if (isGroup(item.node)) {
       throw new Error("narration の item に塊 (group) は置けません");
     }
@@ -464,7 +526,7 @@ export const narration = async (
 
   // 実尺 (line() は positionDuration) を埋めた仮 layer を resolveLayer() で
   // 解決し、at (開始秒) を求める。
-  const tempLayer: Item[] = items.map(
+  const tempLayer: Item[] = flatItems.map(
     (item, index) =>
       ({ ...item, duration: durations[index].positionDuration }) as Item,
   );
@@ -485,9 +547,11 @@ export const narration = async (
   const speechEntries: Speech[] = [];
   const bandInputs: { start: number; speechEnd: number; captionEnd: number }[] =
     [];
+  // index ごとの発話 layer への実際の掲載区間 (figure() の括りの境界の計算に使う)。
+  const emittedSpans: { at: number; duration: number }[] = [];
 
   resolvedItems.forEach((resolved, index) => {
-    const original = items[index];
+    const original = flatItems[index];
 
     if (isGroup(original.node)) {
       throw new Error("narration の item に塊 (group) は置けません");
@@ -522,6 +586,8 @@ export const narration = async (
             },
       );
 
+      emittedSpans.push({ at: resolved.at, duration: positionDuration });
+
       return;
     }
 
@@ -547,6 +613,8 @@ export const narration = async (
         }),
         source: original,
       });
+
+      emittedSpans.push({ at: resolved.at, duration: positionDuration });
 
       return;
     }
@@ -574,7 +642,8 @@ export const narration = async (
     });
 
     // speech は line() item ごと (渡した順) に積む。at は発話 layer の item
-    // と同じ絶対開始秒、duration は実際に音声が鳴る秒数 (cacheDuration と
+    // と同じ、塊 (narration() が返す GroupNode) の先頭からの秒。duration は
+    // 実際に音声が鳴る秒数 (cacheDuration と
     // captionDuration の小さい方。#39 の立ち絵の口パクに使う。duration を
     // 明示して字幕を実尺より短く切ったときに、口パクが無音のまま続くのを
     // 防ぐ、#3)。
@@ -596,6 +665,8 @@ export const narration = async (
       ),
       source: original,
     });
+
+    emittedSpans.push({ at: resolved.at, duration: captionDuration });
   });
 
   const spans = computeBandSpans(bandInputs, bandTiming);
@@ -609,5 +680,59 @@ export const narration = async (
     }),
   );
 
-  return { layers: [bandLayer, speechLayer], speech: speechEntries };
+  // 括りごとに立ち絵の item を 1 つ作る。範囲は「最初の行の開始 − lead」
+  // 〜「最後の行の字幕の終端 + tail」(figureGroupRanges は flatItems の
+  // 出現順、= 時間順。resolveLayer が時間順を強制するため)。
+  let previousFigureEnd: number | undefined;
+  const figureLayer: Item[] = figureGroupRanges.map(
+    ({ start, end, group: figureGroup }, groupIndex) => {
+      const groupNumber = groupIndex + 1;
+      const lead = figureGroup.options.lead ?? characterTiming.lead;
+      const tail = figureGroup.options.tail ?? characterTiming.tail;
+      const at = emittedSpans[start].at - lead;
+      const lastSpan = emittedSpans[end];
+      const figureEnd = lastSpan.at + lastSpan.duration + tail;
+
+      if (at < 0) {
+        throw new Error(
+          `narration: 立ち絵の括り (${groupNumber} 個目) の開始が塊の先頭より前になります (lead を減らすか行を後ろにずらしてください)`,
+        );
+      }
+
+      if (
+        previousFigureEnd !== undefined &&
+        toFrame(at, fps) < toFrame(previousFigureEnd, fps)
+      ) {
+        throw new Error(
+          `narration: 立ち絵の括り (${groupNumber} 個目) が前の括りと重なります`,
+        );
+      }
+
+      previousFigureEnd = figureEnd;
+
+      const node = figureNode(figureGroup.character, {
+        expression: figureGroup.options.expression,
+        speech: speechEntries,
+        side: figureGroup.options.side,
+      });
+      const duration = figureEnd - at;
+
+      return figureGroup.options.in !== undefined ||
+        figureGroup.options.out !== undefined
+        ? fade(node, {
+            at,
+            duration,
+            in: figureGroup.options.in,
+            out: figureGroup.options.out,
+          })
+        : cut(node, { at, duration });
+    },
+  );
+
+  const layers: Layer[] =
+    figureLayer.length > 0
+      ? [figureLayer, bandLayer, speechLayer]
+      : [bandLayer, speechLayer];
+
+  return { ...group(layers), speech: speechEntries };
 };

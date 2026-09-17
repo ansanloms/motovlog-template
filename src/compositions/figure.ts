@@ -1,14 +1,17 @@
-// timeline.ts が立ち絵 (目パチ・口パク・表情) を書くための DSL (ADR-0011)。
+// timeline.ts が立ち絵 (目パチ・口パク・表情) を書くための DSL (ADR-0011,
+// ADR-0014)。
 //
-// 書き手は figure(character, { expression?, speech, side? }) を cut()/fade()
-// の node に渡す。character は characters/<name>.ts の character() の戻り値
-// (line() の by に渡したのと同じ参照)、speech は narration() の戻り値の
-// `speech` (発話ごとの絶対開始秒・実尺・口パクデータ・by・expression)。
-// side は枠を置く側 (既定 left、right は章の区切りのみ)。figure() は speech
-// のうち by が自分の character と同一のものだけを使う。
-// figure() は sample() (src/effects) で包んだ SampleNode を返し、Stage が
-// 毎フレーム render を呼んで目・口・表情の絵を選び直す。narration.ts と
-// 同じく effects と components の両方を import できる層 (compositions) に
+// 書き手は narration() の入力配列に figure(character, { side?, in?, out?,
+// lead?, tail?, expression? }, items) の戻り値 (FigureGroup、発話の行の
+// 括り) を item と混ぜて置く。narration() が括りごとに立ち絵の item を 1 つ
+// 組み立て、立ち絵 layer に置く (ADR-0014)。character は characters/<name>.ts
+// の character() の戻り値 (line() の by に渡したのと同じ参照)。
+//
+// 立ち絵の実体 (SampleNode) を組み立てるのは figureNode() で、narration()
+// だけが呼ぶ (ADR-0014 の禁止事項により、この関数は compositions/index.ts
+// からは公開しない)。sample() (src/effects) で包んだ SampleNode を返し、
+// Stage が毎フレーム render を呼んで目・口・表情の絵を選び直す。narration.ts
+// と同じく effects と components の両方を import できる層 (compositions) に
 // 置く。
 //
 // figureLayers(character, expression?) は静止画 (サムネイル等) 用の入口。
@@ -25,7 +28,7 @@ import { fps } from "../theme/timing.ts";
 import type { LipsyncEntry } from "../voice/cache.ts";
 import { isEyesLayer, isMouthLayer } from "./character.ts";
 import type { Character, FigureLayer, MouthKey } from "./character.ts";
-import type { Speech } from "./narration.ts";
+import type { NarrationItem, Speech } from "./narration.ts";
 
 export type { MouthKey } from "./character.ts";
 
@@ -316,18 +319,20 @@ export const figureLayers = (
 
 /**
  * 立ち絵の SampleNode を組み立てる。cut()/fade() の node に渡すこと。
- * expression は初期の表情名 (省略時は expressions の最初のキー)。
- * expressions に無ければ throw する (`Object.hasOwn()` で検査し、
- * "toString" 等の prototype のキーを通さない、#11)。speech は narration() の
- * 戻り値の speech をそのまま渡してよい (このキャラクター宛以外は figure()
- * が無視する)。表情ごとの画像パスは呼び出し時に 1 度だけ staticFile() を
- * 掛けておき (resolveFigureLayer())、Stage が毎フレーム呼ぶ render は、
- * 動画先頭からの絶対秒 (absolute) と item の開始の絶対秒 (itemStart =
- * absolute - seconds) で目パチ (isBlinking())・口パク (mouthAt())・表情
- * (expressionAt()) を選び、layerSources() で選んだ URL を Figure に固定
- * props (layers) として渡すだけにする。
+ * narration() だけが figure() の括りから呼ぶ (ADR-0014、この関数自体は
+ * compositions/index.ts から公開しない)。expression は初期の表情名
+ * (省略時は expressions の最初のキー)。expressions に無ければ throw する
+ * (`Object.hasOwn()` で検査し、"toString" 等の prototype のキーを通さない、
+ * #11)。speech は narration() の戻り値の speech をそのまま渡してよい
+ * (このキャラクター宛以外は figureNode() が無視する)。表情ごとの画像パスは
+ * 呼び出し時に 1 度だけ staticFile() を掛けておき (resolveFigureLayer())、
+ * Stage が毎フレーム呼ぶ render は、動画先頭からの絶対秒 (absolute) と
+ * item の開始の絶対秒 (itemStart = absolute - seconds) で目パチ
+ * (isBlinking())・口パク (mouthAt())・表情 (expressionAt()) を選び、
+ * layerSources() で選んだ URL を Figure に固定 props (layers) として渡す
+ * だけにする。
  */
-export const figure = (
+export const figureNode = (
   character: Character,
   options: {
     /**
@@ -336,7 +341,7 @@ export const figure = (
      * の開始でその表情に戻し、以降は item 内の line() が切り替える。
      */
     readonly expression?: string;
-    /** narration() の戻り値の speech。このキャラクター宛以外は figure() が無視する。 */
+    /** narration() の戻り値の speech。このキャラクター宛以外は figureNode() が無視する。 */
     readonly speech: readonly Speech[];
     /** 枠を置く側。省略時は left (right は章の区切りのみ)。 */
     readonly side?: "left" | "right";
@@ -345,7 +350,7 @@ export const figure = (
   const initial = resolveExpressionName(
     character,
     options.expression,
-    "figure",
+    "figureNode",
   );
   const explicit = options.expression !== undefined;
 
@@ -375,4 +380,70 @@ export const figure = (
 
     return createElement(Figure, { layers: sources, side: options.side });
   });
+};
+
+/** figure() に渡すオプション。 */
+export type FigureGroupOptions = {
+  /** 枠を置く側。省略時は left (right は章の区切りのみ)。 */
+  readonly side?: "left" | "right";
+  /** フェードインの尺 (秒)。in・out のどちらかを指定すると fade()、どちらも無ければ cut() で立ち絵 layer に置く。 */
+  readonly in?: number;
+  /** フェードアウトの尺 (秒)。 */
+  readonly out?: number;
+  /** 括りの先頭の行より前に立ち絵を出す秒数。省略時は theme の characterTiming.lead。 */
+  readonly lead?: number;
+  /** 括りの末尾の行の字幕の終端より後に立ち絵を残す秒数。省略時は theme の characterTiming.tail。 */
+  readonly tail?: number;
+  /**
+   * 初期の表情名。省略時は直近の line() の表情を item をまたいで引き継ぐ
+   * (指定が無ければ expressions の最初のキー)。明示時はその括りの開始で
+   * その表情に戻し、以降は括り内の line() が切り替える (figureNode() の
+   * expression と同じ規則)。
+   */
+  readonly expression?: string;
+};
+
+/**
+ * figure() が返す括り。narration() の入力配列に item と混ぜて置く
+ * (ADR-0014)。narration() だけが消費する。
+ */
+export type FigureGroup = {
+  readonly kind: "figureGroup";
+  readonly character: Character;
+  readonly options: FigureGroupOptions;
+  readonly items: readonly NarrationItem[];
+};
+
+/** value が figure() の戻り値 (FigureGroup) かどうかを判定する。 */
+export const isFigureGroup = (value: unknown): value is FigureGroup =>
+  typeof value === "object" &&
+  value !== null &&
+  (value as { kind?: unknown }).kind === "figureGroup";
+
+/**
+ * 発話の行 (items) を character の立ち絵の括りにまとめる。narration() の
+ * 入力配列に item と混ぜて置くこと (narration() 以外の書き手は消費しない)。
+ * narration() は items を配列の順のまま平らにして解決し、括りごとに立ち絵の
+ * item を 1 つ作って立ち絵 layer に置く (位置は「括りの最初の行の開始 −
+ * lead」、終端は「括りの最後の行の字幕の終端 + tail」。lead・tail の既定値は
+ * theme の characterTiming.lead・characterTiming.tail、ADR-0014)。items が
+ * 空なら throw する。
+ */
+export const figure = (
+  character: Character,
+  options: FigureGroupOptions,
+  items: readonly NarrationItem[],
+): FigureGroup => {
+  if (items.length === 0) {
+    throw new Error("figure: items が空です");
+  }
+
+  for (const key of ["lead", "tail", "in", "out"] as const) {
+    const value = options[key];
+    if (value !== undefined && (!Number.isFinite(value) || value < 0)) {
+      throw new Error(`figure: ${key} が不正です (${value})`);
+    }
+  }
+
+  return { kind: "figureGroup", character, options, items };
 };

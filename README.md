@@ -225,7 +225,7 @@ export default timeline([[cut(chapter1, { at: 0 })]]);
 | `ending(props)`        | ED。`title`・`subtitle`・`date`・`distance`・`ridingTime`・`routes`・`credits`                                                                                                                                                        |
 | `subtitleBand({})`     | 字幕下の暗がり (props は無いが引数は要る、通常は `narration()` が組むので直接は使わない)                                                                                                                                              |
 
-立ち絵の `figure()` は要素ファクトリではなく `line()`・`narration()` と同じ `motovlog-template/compositions` に置く (「立ち絵」参照。effects の `sample()` を使うため)。サムネ・OP の絵の `thumbnail(props)` も同じ入口に置く (`photo`・`badge`・`title` (文字列、または改行として結合される文字列の配列)・`by` (`character()` の戻り値、表情は `expressions` の最初のキー、か `{ character, expression? }` の形で表情を明示する) を受け、`character()` の表情名の解決 (`figureLayers()`) を伴うため、ADR-0011 の禁止事項により components 単体では書けない)。
+立ち絵の `figure()` は要素ファクトリではなく `line()`・`narration()` と同じ `motovlog-template/compositions` に置く (「立ち絵」参照。`narration()` が括りから作る立ち絵の item は effects の `sample()` を使うため)。サムネ・OP の絵の `thumbnail(props)` も同じ入口に置く (`photo`・`badge`・`title` (文字列、または改行として結合される文字列の配列)・`by` (`character()` の戻り値、表情は `expressions` の最初のキー、か `{ character, expression? }` の形で表情を明示する) を受け、`character()` の表情名の解決 (`figureLayers()`) を伴うため、ADR-0011 の禁止事項により components 単体では書けない)。
 
 `volume` は一定値 (数値、0 以上 1 以下) または折れ線 (`{ at, volume }[]`、各点の `volume` も 0 以上 1 以下) で指定する。`at` は要素の再生開始 (`trimBefore` 適用後) からの秒で、点の間は線形補間する。最初の点より前は最初の点の値、最後の点より後は最後の点の値でクランプする。省略時は 1。`audio()` の `loop` と折れ線を併用しても `at` は周回をまたいだ通算秒として扱う (`loopVolumeCurveBehavior="extend"`)。
 
@@ -235,62 +235,69 @@ export default timeline([[cut(chapter1, { at: 0 })]]);
 
 ### 発話
 
-セリフ (発話) は `motovlog-template/compositions` が公開する `line()`・`narration()` で書く ([ADR-0010](docs/adr/0010-build-narration-timeline-with-hashed-voice-cache.md), [ADR-0011](docs/adr/0011-draw-figure-from-character-presets-linked-by-speech.md))。字幕・下部の暗がり・セリフ音声をまとめて組み立てるため、要素ファクトリ (`subtitleBand`) を直接 layer に置く必要はない。
+セリフ (発話) は `motovlog-template/compositions` が公開する `line()`・`narration()` で書く ([ADR-0010](docs/adr/0010-build-narration-timeline-with-hashed-voice-cache.md), [ADR-0011](docs/adr/0011-draw-figure-from-character-presets-linked-by-speech.md), [ADR-0014](docs/adr/0014-nest-timeline-groups-and-place-narration-as-group.md))。字幕・下部の暗がり・セリフ音声・立ち絵をまとめて組み立てるため、要素ファクトリ (`subtitleBand`) や `figure()` の立ち絵 item を直接 layer に置く必要はない。
+
+`narration()` は塊 (`group()` と同じ `GroupNode`、「塊 (group)」参照) を返す。`cut(n, { at })`・`fade(n, { at, in, out })` で他の item と同じように layer に置く。行の `at`/`after`/省略はこの塊の先頭からの相対秒として解決する (`clip1` の 2 秒後に置く、他の塊の中に入れる等、位置指定は他の node と同じ)。`frame()` の黒落ちを使う場合はその layer より下に置く。
 
 ```ts
-import { sample } from "../../characters/sample.ts";
-import { line, narration } from "../../src/compositions/index.ts";
+import { figure, line, narration } from "../../src/compositions/index.ts";
 
 const n = await narration([
-  cut(
-    line({ text: "{磐梯吾妻|ばんだいあづま}スカイラインを登る。", by: sample }),
-    { at: 8 },
-  ),
-  cut(
-    line({
-      text: "今日は雲が多いけど、風は無い。",
-      by: { character: sample, expression: "sweat" },
-      voice: { speed: 0.9 },
-    }),
-    { after: 0.5 },
-  ),
+  figure(sample, { in: 0.4, out: 0.4 }, [
+    cut(
+      line({
+        text: "{磐梯吾妻|ばんだいあづま}スカイラインを登る。",
+        by: sample,
+      }),
+      { at: 8 },
+    ),
+    cut(
+      line({
+        text: "今日は雲が多いけど、風は無い。",
+        by: { character: sample, expression: "sweat" },
+        voice: { speed: 0.9 },
+      }),
+      { after: 0.5 },
+    ),
+  ]),
 ]);
 
 export default timeline([
-  // ...走行映像・OP・章タイトル・立ち絵等の layer
-  ...n.layers,
+  // ...走行映像・OP・章タイトル等の layer
+  fade(n, { at: 0, in: 0.4 }),
 ]);
 ```
 
 - `line({ text, reading?, voice?, by? })` の `text` は文字列リテラル (`{漢字|よみ}` の記法で読みを添えられる)、またはそれらの配列 (字幕の改行として結合される。読みには影響しない)。字幕には `text` を、合成には `reading` (省略時は `text`) を使う。`{漢字|よみ}` はどちらか片側が空・`|` が無い・入れ子や非対称の括弧 (閉じ忘れ・開き忘れ) だと throw する (配列の場合は結合した文字列で検査する)。
 - `reading` は合成に渡す文 (`text` と同じ書式、`{漢字|よみ}` を書ける。`text` と同じく配列可)。文字列リテラルで書く。空文字は throw する (声無しは `voice: null` で書く)。`voice: null` と `reading` を同時に指定しても throw する (声無しの行に `reading` は意味を持たないため)。
-- `by` は `characters/<name>.ts` の `character()` の戻り値の参照 (表情は現在の表情を維持) か、`{ character, expression? }` の形 (表情を明示する)。指定すると `narration()` の `speech` にその `character` の参照が乗り、`figure()` (「立ち絵」) が自分宛の発話を選ぶのに使う。
+- `by` は `characters/<name>.ts` の `character()` の戻り値の参照 (表情は現在の表情を維持) か、`{ character, expression? }` の形 (表情を明示する)。指定すると `narration()` の `speech` にその `character` の参照が乗り、`figure()` (「立ち絵」) の括りに含めるとその立ち絵が自分宛の発話を選ぶのに使う。
 - `voice` の実効値は利用側の既定話者 (`theme/index.ts` の `narrator`) ← `by.voice` ← `line()` 自身の `voice` の順で上書きした値になる。差分だけを書く (例: `{ speed: 0.9 }`)。`voice: null` を渡すと声無し (wav・lipsync を作らない) になり、`cut()`/`fade()` の `duration` の明示が必須になる (字幕の尺 = `duration`)。声の無い字幕は `line({ text, voice: null })` を `duration` を明示した項目として `narration()` に置いて書く。`text`・`reading`・`voice`・`by` は watcher (`npm run dev`) が静的に読むため、リテラルの他は `theme/index.ts` からの import・spread・同じファイルの const・プロパティアクセスに限られる (`voice: null` はリテラルとしてそのまま読める)。`by` は識別子、または `{ character, expression? }` の形のオブジェクトリテラル (`character` は識別子、`expression` は文字列リテラル) に限る (詳細は [ADR-0010](docs/adr/0010-build-narration-timeline-with-hashed-voice-cache.md), [ADR-0011](docs/adr/0011-draw-figure-from-character-presets-linked-by-speech.md))。
-- `by.expression` は `character` の `expressions` のキー (文字列リテラル)。指定すると、この発話の開始と同時に立ち絵の表情がそのキーに切り替わり、次に `expression` を指定する自分宛の発話まで維持する (詳細は「立ち絵」)。`voice: null` の項目でも `by` は書け、表情の切り替えだけ効く (口パクは付かない)。
+- `by.expression` は `character` の `expressions` のキー (文字列リテラル)。指定すると、この発話の開始と同時に立ち絵の表情がそのキーに切り替わり、次に `expression` を指定する自分宛の発話まで維持する (詳細は「立ち絵」)。この引き継ぎは同じ `narration()` の呼び出し (1 つの塊) の中に限り、別の `narration()` の呼び出しをまたいでは引き継がない (新しい塊は初期の表情から始まる)。`voice: null` の項目でも `by` は書け、表情の切り替えだけ効く (口パクは付かない)。
 - `cut()` の `duration` を省いた item は `narration()` にだけ渡せる。位置は `at`/`after`/省略のいずれかで指定し、`after` は前の発話の音声の終わりからの間隔 (秒) になる。
-- `narration(items, options?)` は `{ layers: [暗がり layer, 発話 layer], speech }` を返す。`speech` は `line()` item ごと (渡した順) に、音声の絶対開始秒・実尺・口パクデータ・`by`・`expression` を持ち、`figure()` (「立ち絵」) が読む。timeline.ts では `layers` と `speech` を分けて書く (`...n.layers` を timeline の layer に、`n.speech` を `figure()` に渡す)。`options.slug` は省略でき、既定は `REMOTION_PROJECT` の解決 (Composition の既定 props と同じ、`app/config.ts` の `defaultProject` に落ちる)。サンプルをコピーして project を作るときに書き換え忘れないよう、通常は省略してよい (明示すれば上書きできる)。暗がりの出し引きは発話の並びから自動で計算され、書き手は書かない。
-- `narration()` に渡した `cut(line(...), { ... })` の入力 item を const に取っておくと、他の layer から `start(item, offset?)` / `end(item, offset?)` でその発話を参照できる (`item` に `until` は指定できない)。`end()` は発話 layer の item の終端 (字幕の尺の終端) を指す。
+- `narration()` の入力配列には `line()` の item に加え、`figure()` (「立ち絵」) が返す立ち絵の括りを item と混ぜて置ける。括りの中の行は配列の順のまま平らにして解決するため、`at`/`after`/省略や `after` の連鎖は行を直接書いたのと同じに振る舞う (括りの後ろに続く行は括りの最後の行から続く)。括りごとに立ち絵の item を 1 つ作り、暗がり・発話より下の立ち絵 layer に積む (詳細は「立ち絵」)。
+- `narration(items, options?)` は塊 (`GroupNode`) に `speech` を加えた値を返す。内部 layer は下から立ち絵 layer (括りを渡した場合のみ)・暗がり layer・発話 layer の順。`speech` は `line()` item ごと (渡した順) に、音声の絶対開始秒・実尺・口パクデータ・`by`・`expression` を持つ (いずれも塊の先頭からの秒)。`options.slug` は省略でき、既定は `REMOTION_PROJECT` の解決 (Composition の既定 props と同じ、`app/config.ts` の `defaultProject` に落ちる)。サンプルをコピーして project を作るときに書き換え忘れないよう、通常は省略してよい (明示すれば上書きできる)。暗がりの出し引きは発話の並びから自動で計算され、書き手は書かない。
+- `narration()` に渡した `cut(line(...), { ... })` の入力 item を const に取っておくと、他の layer から `start(item, offset?)` / `end(item, offset?)` でその発話を参照できる (`item` に `until` は指定できない)。`end()` は発話 layer の item の終端 (字幕の尺の終端) を指す。塊 (`narration()` の戻り値) を `cut()`/`fade()` で置いた後も、外側の layer から同じ規則で参照できる (「塊 (group)」参照)。
 - `narration()` は発話の音声キャッシュを待つため、timeline.ts 側は `const n = await narration(...)` の top-level await で受ける。`timeline()` 自体は同期のまま。
 
 project の選択は環境変数 `REMOTION_PROJECT` (slug) で行い、`.env` に書く。Remotion CLI は `.env` の値をシェルの環境変数より優先するため、`REMOTION_PROJECT=<slug> npx remotion studio` の形で渡しても `.env` に書かれた project が読まれる (2026-09-11 実測)。音声キャッシュを生成する `scripts/voice.ts` は Remotion CLI を通さずシェルの環境変数が効くため、`.env` と違う slug をシェルで渡すと、音声の生成先と render の読み先がずれる。未設定・空なら `app/config.ts` の `defaultProject` (同梱の設定ではサンプル project `00000000-sample`) を読む。VOICEVOX ENGINE の URL は環境変数 `VOICEVOX_URL` で渡す (`.env` に書く)。`npm run dev` は未設定でも起動できるが、その間は発話の音声キャッシュを生成しない。`npm run render` は未設定だと非 0 で終了する。composition の props (`--props` や Studio の props パネル) で `slug` を上書きすると、読み込む timeline.ts は変わるが `narration()` の既定の読み先 (`REMOTION_PROJECT`) は変わらないため食い違う ([ADR-0010](docs/adr/0010-build-narration-timeline-with-hashed-voice-cache.md))。
 
 ### 立ち絵
 
-立ち絵 (話者のキャラクター絵) の目パチ・口パク・表情は `motovlog-template/compositions` が公開する `character()` と `figure()` で書く ([ADR-0011](docs/adr/0011-draw-figure-from-character-presets-linked-by-speech.md))。
+立ち絵 (話者のキャラクター絵) の目パチ・口パク・表情は `motovlog-template/compositions` が公開する `character()` と `figure()` で書く ([ADR-0011](docs/adr/0011-draw-figure-from-character-presets-linked-by-speech.md), [ADR-0014](docs/adr/0014-nest-timeline-groups-and-place-narration-as-group.md))。
 
 キャラクターの定義は project をまたいで使い回すため `characters/<name>.ts` (リポジトリルート、`projects/` の隣) に置き、`character({ voice?, expressions })` で組み立てて export する。`voice` はこのキャラクターの既定の声質差分 (省略時は `theme/index.ts` の既定話者のまま)。`expressions` は表情名から画像レイヤーの列 (下から上に重ねる順) への対応で、レイヤーは次の 3 種を混ぜて書ける。
 
 - 静止画 (文字列)。体・腕・眉・小物・顔色効果等、パスは `public/` 相対。
-- 目 `{ eyes: { open, closed } }`。`figure()` が目パチで開閉を切り替える。
-- 口 `{ mouth: { a, i, u, e, o, n } }`。`figure()` が口パクで母音を切り替える (`n` は無音・撥音・子音の隙間)。
+- 目 `{ eyes: { open, closed } }`。立ち絵が目パチで開閉を切り替える。
+- 口 `{ mouth: { a, i, u, e, o, n } }`。立ち絵が口パクで母音を切り替える (`n` は無音・撥音・子音の隙間)。
 
 画像はすべて同一キャンバスの PNG または SVG とし、`character()`・`figure()` は座標計算をしない。SVG は幅と高さを持つ形で書き出す ([ADR-0011](docs/adr/0011-draw-figure-from-character-presets-linked-by-speech.md))。素材の切り出し (PSD からのレイヤー書き出し、例えば `psd-tools` を使う) はこのテンプレートの外で行い、`public/assets/characters/<name>/` に置く (第三者素材は既定でコミットしない、「ディレクトリ構成」)。同梱の `characters/sample.ts` は、パーツを単色の図形で描いた SVG の placeholder (`public/assets/characters/sample/`) を参照する。自分のキャラクターを用意するまではこれを差し替え先の雛形として使う。
 
-timeline.ts では `figure(character, { expression?, speech, side? })` を `cut()`/`fade()` の node として立ち絵 layer に置く。`character` は `characters/<name>.ts` の戻り値の参照 (`line()` の `by` に渡したのと同じもの)、`speech` は `narration()` の戻り値の `speech` をそのまま渡してよい (`figure()` が `by` が自分と同じ発話だけを使う)。`expression` は初期の表情名 (省略時は `expressions` の最初のキー)。`side` は `"left"` (既定) か `"right"`。右へ移すのは章の区切りでのみ、1 本 2 回まで (T&M「画面配置」)。
+立ち絵は `figure(character, { side?, in?, out?, lead?, tail?, expression? })` で発話の行を括り、`narration()` の入力配列に item と混ぜて置く (ADR-0014、上の「発話」の例を参照)。`character` は `characters/<name>.ts` の戻り値の参照 (`line()` の `by` に渡したのと同じもの)。`narration()` は括りの中の行を配列の順のまま平らにして解決し、括りごとに立ち絵の item を 1 つ作って立ち絵 layer (暗がり・発話より下) に置く。位置は「括りの最初の行の開始 − `lead`」、終端は「括りの最後の行の字幕の終端 + `tail`」とする。`lead`・`tail` の既定値は theme の `characterTiming.lead`・`characterTiming.tail`。位置が塊の先頭より前になる、または前の括りと重なると throw する。`in`/`out` のどちらかを指定すると `fade()`、どちらも無ければ `cut()` で立ち絵 layer に置く。`expression` は初期の表情名 (省略時は `expressions` の最初のキー、または直近の発話の表情を引き継ぐ)。`side` は `"left"` (既定) か `"right"`。右へ移すのは章の区切りでのみ、1 本 2 回まで (T&M「画面配置」)。
 
-- 口の形は発話中の口パクデータから母音ごとに選び、発話の外は口を閉じる (`n`)。目パチは theme の `characterTiming` (周期と閉眼の秒数) に従い、動画先頭からの絶対秒で位相を決める (item を分割しても目パチはずれない)。
-- 表情の切り替えは 2 通りある。1 つは `line()` の `by.expression` (発話に伴う切り替え、上の「発話」参照)。もう 1 つは `figure()` の item を分けて `expression` オプションを変えること (発話と無関係な切り替え)。
-- 立ち絵を一時的に隠す (章タイトル中等) には、`figure()` の item を分けてその区間を空ける。尺は `duration` の代わりに `until: end(line, 0.5)` 等で、発話の終端に合わせて指定できる ([ADR-0009](docs/adr/0009-add-transition-frame-and-anchor-to-timeline.md))。
+- 口の形は発話中の口パクデータから母音ごとに選び、発話の外は口を閉じる (`n`)。目パチは theme の `characterTiming` (周期と閉眼の秒数) に従い、その立ち絵 item が属する塊 (`narration()` の塊、さらに外の塊に置いた場合はその塊) の先頭からの秒で位相を決める (`sample()` の `absolute` が塊相対になるため、ADR-0014。塊をまたいだ位相の同期はできない)。
+- 表情の切り替えは 2 通りある。1 つは `line()` の `by.expression` (発話に伴う切り替え、上の「発話」参照)。もう 1 つは `figure()` の括りを分けて `expression` オプションを変えること (発話と無関係な切り替え)。
+- 立ち絵を一時的に隠す (章タイトル中等) には、その区間の行を `figure()` の括りに含めない (括りの外の行にする)。
 
 ## 未実装
 
