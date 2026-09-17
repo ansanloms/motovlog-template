@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import type { GroupNode } from "./group.ts";
 import type { SampleNode } from "./sample.ts";
 
 /**
@@ -74,55 +75,73 @@ export type Span =
       readonly duration?: never;
     };
 
+/** duration も until も持たない (span を省いた) 印。ADR-0014 参照。 */
+type NoSpan = { readonly duration?: never; readonly until?: never };
+
+/**
+ * cut()/fade() の node と span (duration/until) の組。node が塊
+ * (GroupNode) のときだけ span を省略できる (ADR-0014、省略時は塊の内容の
+ * 尺になる)。NonGroupNode は塊以外で node に渡せる型 (cut() は
+ * ReactNode | SampleNode、fade() はさらに FrameMarker も含む)。
+ */
+type NodeSpan<NonGroupNode> =
+  | ({ readonly node: NonGroupNode } & Span)
+  | ({ readonly node: GroupNode } & (Span | NoSpan));
+
 /** fade() が組み立てるアイテム。node をフェードイン/アウトで重ねる。 */
-export type FadeItem = Placement &
-  Span & {
-    readonly kind: "fade";
-    /** 表示する要素。frame() (FrameMarker) や sample() (SampleNode) も渡せる。 */
-    readonly node: ReactNode | FrameMarker | SampleNode;
-    /** フェードインの尺 (秒)。0 ならフェードなし。 */
-    readonly in: number;
-    /** フェードアウトの尺 (秒)。0 ならフェードなし。 */
-    readonly out: number;
-    /**
-     * narration() が入力 item から作った item が指す、元の入力 item
-     * (narration() に渡した item 自体)。resolveLayer() は解決結果を
-     * source にも登録し、start()/end() で元の item を参照できるようにする。
-     * narration() 以外の書き手は指定しない。
-     */
-    readonly source?: Item | PendingCutItem;
-  };
+export type FadeItem = Placement & {
+  readonly kind: "fade";
+  /** フェードインの尺 (秒)。0 ならフェードなし。 */
+  readonly in: number;
+  /** フェードアウトの尺 (秒)。0 ならフェードなし。 */
+  readonly out: number;
+  /**
+   * narration() が入力 item から作った item が指す、元の入力 item
+   * (narration() に渡した item 自体)。resolveLayer() は解決結果を
+   * source にも登録し、start()/end() で元の item を参照できるようにする。
+   * narration() 以外の書き手は指定しない。
+   */
+  readonly source?: Item | PendingCutItem;
+} & NodeSpan<ReactNode | FrameMarker | SampleNode>;
 
 /** cut() が組み立てるアイテム。node をフェード無しで重ねる。 */
-export type CutItem = Placement &
-  Span & {
-    readonly kind: "cut";
-    /** 表示する要素。sample() (SampleNode) も渡せる。 */
-    readonly node: ReactNode | SampleNode;
-    /**
-     * narration() が入力 item から作った item が指す、元の入力 item
-     * (narration() に渡した item 自体)。resolveLayer() は解決結果を
-     * source にも登録し、start()/end() で元の item を参照できるようにする。
-     * narration() 以外の書き手は指定しない。
-     */
-    readonly source?: Item | PendingCutItem;
-  };
+export type CutItem = Placement & {
+  readonly kind: "cut";
+  /**
+   * narration() が入力 item から作った item が指す、元の入力 item
+   * (narration() に渡した item 自体)。resolveLayer() は解決結果を
+   * source にも登録し、start()/end() で元の item を参照できるようにする。
+   * narration() 以外の書き手は指定しない。
+   */
+  readonly source?: Item | PendingCutItem;
+} & NodeSpan<ReactNode | SampleNode>;
 
 /**
  * cut() が duration も until も省いて組み立てるアイテム。narration() が
  * 発話の実尺で duration を埋めてから layer に置くための中間形で、Item には
- * 含めない (Layer に直接置くと型エラーになる)。
+ * 含めない (Layer に直接置くと型エラーになる)。node が塊 (GroupNode) の
+ * ときは span を省いても CutItem になる (ADR-0014) ため、PendingCutItem は
+ * 塊以外の node に限る。
  */
-export type PendingCutItem = Omit<CutItem, "duration" | "until"> & {
-  readonly duration?: undefined;
-  readonly until?: undefined;
-};
+export type PendingCutItem = Placement & {
+  readonly kind: "cut";
+  readonly node: ReactNode | SampleNode;
+  readonly source?: Item | PendingCutItem;
+} & NoSpan;
 
 /** timeline() に渡す入力アイテムの列 (位置は at / after / 省略のいずれか)。 */
 export type Item = FadeItem | CutItem;
 
 /** layer (時間が重ならない item の列。item と item の間に Transition を置ける)。 */
 export type Layer = readonly (Item | Transition)[];
+
+/**
+ * group() (塊) の、解決済みの内部 layers。node が GroupNode の
+ * ResolvedItem だけが持つ (Stage が内部 layer を描画する入り口)。
+ */
+export type ResolvedGroup = {
+  readonly layers: readonly ResolvedLayer[];
+};
 
 /** `at`・`duration` が解決済みの FadeItem (timeline() の戻り値 `layers` の要素)。 */
 export type ResolvedFadeItem = Omit<
@@ -134,6 +153,8 @@ export type ResolvedFadeItem = Omit<
   readonly duration: number;
   /** 直前からの遷移 (crossfade)。無ければ undefined。 */
   readonly transitionIn?: Transition;
+  /** node が塊 (GroupNode) のときの、解決済みの内部 layers。 */
+  readonly group?: ResolvedGroup;
 };
 
 /** `at`・`duration` が解決済みの CutItem (timeline() の戻り値 `layers` の要素)。 */
@@ -146,6 +167,8 @@ export type ResolvedCutItem = Omit<
   readonly duration: number;
   /** 直前からの遷移 (crossfade)。無ければ undefined。 */
   readonly transitionIn?: Transition;
+  /** node が塊 (GroupNode) のときの、解決済みの内部 layers。 */
+  readonly group?: ResolvedGroup;
 };
 
 /** timeline() の戻り値の `layers` に入る、`at` が解決済みのアイテム。 */

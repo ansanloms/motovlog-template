@@ -3,7 +3,15 @@ import { staticFile } from "remotion";
 import { describe, expect, it, vi } from "vitest";
 import { annotation } from "../components/index.tsx";
 import { Line } from "../components/Line.tsx";
-import { cut, end, fade, frame, start, timeline } from "../effects/index.ts";
+import {
+  cut,
+  end,
+  fade,
+  frame,
+  group,
+  start,
+  timeline,
+} from "../effects/index.ts";
 import type { CutItem, FadeItem } from "../effects/index.ts";
 import { bandTiming, subtitleTiming } from "../theme/index.ts";
 import type { LipsyncEntry, VoiceCache, VoiceOptions } from "../voice/cache.ts";
@@ -176,6 +184,18 @@ describe("narration", () => {
         { isStudio: () => false },
       ),
     ).rejects.toThrow(/narration の item に until は指定できません/);
+  });
+
+  it("item の node に塊 (group) を渡すと throw する", async () => {
+    const g = group([[cut(line({ text: "A" }), { at: 0, duration: 1 })]]);
+
+    await expect(
+      narration(
+        [cut(g, { at: 0 })],
+        { slug: "sample" },
+        { isStudio: () => false },
+      ),
+    ).rejects.toThrow(/narration の item に塊 \(group\) は置けません/);
   });
 
   it("発話 layer の line() item は source として渡した入力 item 自体を持つ", async () => {

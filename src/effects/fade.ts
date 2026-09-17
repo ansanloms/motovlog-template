@@ -1,10 +1,14 @@
 import type { ReactNode } from "react";
+import type { GroupNode } from "./group.ts";
 import type { SampleNode } from "./sample.ts";
 import type { FadeItem, FrameMarker, Placement, Span } from "./types.ts";
 
-/** fade() に渡すオプション。 */
-type FadeOptions = Placement &
-  Span & {
+/**
+ * fade() に渡すオプション。node が塊 (GroupNode) のときだけ duration/until
+ * を省略できる (ADR-0014、省略時は塊の内容の尺になる)。
+ */
+type FadeOptions<Node> = Placement &
+  (Node extends GroupNode ? Partial<Span> : Span) & {
     /** フェードインの尺 (秒)。既定は 0 (フェードなし)。 */
     in?: number;
     /** フェードアウトの尺 (秒)。既定は 0 (フェードなし)。 */
@@ -21,11 +25,14 @@ type FadeOptions = Placement &
  * item は duration がここでは決まらないため、この検査は timeline() の
  * resolveLayer が開始位置と until を解決した後に行う。node には frame()
  * (FrameMarker、合成結果への効果) や sample() (SampleNode、Stage が
- * 毎フレーム render を呼ぶ) も渡せる。
+ * 毎フレーム render を呼ぶ)、group() (GroupNode、塊) も渡せる (この場合は
+ * duration/until を省略でき、塊の内容の尺になる。ADR-0014)。
  */
-export const fade = (
-  node: ReactNode | FrameMarker | SampleNode,
-  options: FadeOptions,
+export const fade = <
+  Node extends ReactNode | FrameMarker | SampleNode | GroupNode,
+>(
+  node: Node,
+  options: FadeOptions<Node>,
 ): FadeItem => {
   const {
     at,

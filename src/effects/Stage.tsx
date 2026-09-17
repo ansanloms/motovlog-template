@@ -16,6 +16,7 @@ import type {
   FrameMarker,
   ResolvedFadeItem,
   ResolvedItem,
+  ResolvedLayer,
   Timeline,
 } from "./types.ts";
 
@@ -32,41 +33,58 @@ const isFrameItem = (
   item.kind === "fade" && isFrame(item.node);
 
 /**
- * Timeline の layers を下 (index 0) から積み、layer 内の item を
- * `<Sequence>` として並べる描画部品。fade はフェード付きの
- * `<AbsoluteFill>`、cut はフェード無しの `<AbsoluteFill>` に変換する。
- * `crossfade` で直前と繋がる item は、その内側を `<FadeLayer>` で包み
- * 遷移区間の opacity を 0 から 1 に上げる (fade の場合は FadeLayer の外側
- * に置き、乗算にする)。`frame()` を含む layer は、それより下の layer の
- * 合成結果を `<FrameEffects>` で包む (AviUtl のフレームバッファ型)。
- * `sample()` の item は `<Sampled>` が毎フレーム render を呼ぶ。動画の
- * ドメイン (章・写真・ED 等) は知らず、ReactNode と秒だけを扱う。
+ * Timeline の layers (最上位、または塊 (GroupNode) の内部 layers) を下
+ * (index 0) から積み、layer 内の item を `<Sequence>` として並べる。fade は
+ * フェード付きの `<AbsoluteFill>`、cut はフェード無しの `<AbsoluteFill>` に
+ * 変換する。`crossfade` で直前と繋がる item は、その内側を `<FadeLayer>` で
+ * 包み遷移区間の opacity を 0 から 1 に上げる (fade の場合は FadeLayer の
+ * 外側に置き、乗算にする)。`frame()` を含む layer は、それより下の layer の
+ * 合成結果を `<FrameEffects>` で包む (AviUtl のフレームバッファ型。塊の中に
+ * `frame()` は置けない (resolveLayer が throw する) ため、groupFrom !== 0
+ * の呼び出しでは現れない)。`sample()` の item は `<Sampled>` が毎フレーム
+ * render を呼ぶ。塊 (`item.group`) の item は、内部 layers を再帰的に同じ
+ * 関数で描く。
+ *
+ * item.at・item.duration は常に動画先頭からの絶対秒で持つ (塊の中の item も
+ * 同じ)。groupFrom はこの layers の原点 (最上位なら 0、塊の内部ならその塊
+ * 自身の絶対 from) の絶対フレームで、`<Sequence>` の from は絶対フレームを
+ * 求めた後に groupFrom を引いて相対化する (二重の丸めを避けるため、秒を
+ * 直接引かず、フレームに丸めた後に引く)。`sample()` の `from` も同じ相対値を
+ * 渡すことで、Sequence の入れ子で `useCurrentFrame()` が塊の先頭からの
+ * 0 起点になる Remotion の挙動と揃い、`SampleTime.absolute` が「item が
+ * 属する塊 (最上位なら動画) の先頭からの秒」になる。
  */
-export const Stage: React.FC<Props> = ({ timeline }) => {
-  const { fps } = timeline;
-
+const renderLayers = (
+  layers: readonly ResolvedLayer[],
+  fps: number,
+  groupFrom: number,
+): React.ReactNode => {
   let below: React.ReactNode = null;
 
-  timeline.layers.forEach((layer, layerIndex) => {
+  layers.forEach((layer, layerIndex) => {
     const frameItems = layer.filter(isFrameItem);
     const nodeItems = layer.filter((item) => !isFrameItem(item));
 
     const content = (
       <>
         {nodeItems.map((item, itemIndex) => {
-          const { from, durationInFrames } = toFrameSpan(
+          const { from: absoluteFrom, durationInFrames } = toFrameSpan(
             item.at,
             item.duration,
             fps,
           );
+          const from = absoluteFrom - groupFrom;
 
           const rawNode = item.node;
 
-          const node: React.ReactNode = isSample(rawNode) ? (
-            <Sampled render={rawNode.render} from={from} fps={fps} />
-          ) : (
-            (rawNode as React.ReactNode)
-          );
+          const node: React.ReactNode =
+            item.group !== undefined ? (
+              renderLayers(item.group.layers, fps, absoluteFrom)
+            ) : isSample(rawNode) ? (
+              <Sampled render={rawNode.render} from={from} fps={fps} />
+            ) : (
+              (rawNode as React.ReactNode)
+            );
 
           const body =
             item.kind === "fade" ? (
@@ -126,10 +144,20 @@ export const Stage: React.FC<Props> = ({ timeline }) => {
     );
   });
 
+  return below;
+};
+
+/**
+ * timeline() が組み立てた Timeline を描画する。実体は renderLayers() で、
+ * 動画のドメイン (章・写真・ED 等) は知らず、ReactNode と秒だけを扱う。
+ */
+export const Stage: React.FC<Props> = ({ timeline }) => {
+  const { fps } = timeline;
+
   return (
     <ThemeRoot>
       <AbsoluteFill style={{ backgroundColor: getSetup().theme.palette.black }}>
-        {below}
+        {renderLayers(timeline.layers, fps, 0)}
       </AbsoluteFill>
     </ThemeRoot>
   );

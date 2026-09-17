@@ -4,6 +4,7 @@ export { cut } from "./cut.ts";
 export { fade } from "./fade.ts";
 export { frame, isFrame } from "./frame.ts";
 export { fadeOpacity, toFrame, toFrameSpan } from "./frames.ts";
+export { group, isGroup } from "./group.ts";
 export { isSample, sample } from "./sample.ts";
 export { Stage } from "./Stage.tsx";
 export {
@@ -22,9 +23,11 @@ export type {
   PendingCutItem,
   ResolvedCutItem,
   ResolvedFadeItem,
+  ResolvedGroup,
   ResolvedItem,
   ResolvedLayer,
   Timeline,
   Transition,
 } from "./types.ts";
+export type { GroupNode } from "./group.ts";
 export type { SampleNode, SampleTime } from "./sample.ts";

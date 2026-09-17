@@ -7,7 +7,11 @@ import type { ReactNode } from "react";
 export type SampleTime = {
   /** item の開始からの秒 (Sequence 内のフレーム / fps)。 */
   readonly seconds: number;
-  /** 動画先頭からの絶対秒 ((from + frame) / fps)。 */
+  /**
+   * item が属する塊 (最上位なら動画) の先頭からの秒
+   * ((from + frame) / fps)。塊の中の item では塊の先頭が原点になり、動画
+   * 先頭からの絶対秒ではない (塊をまたぐ時刻の比較はできない)。
+   */
   readonly absolute: number;
   /** Sequence 内のフレーム番号 (0 起点)。 */
   readonly frame: number;

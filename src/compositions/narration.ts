@@ -40,7 +40,7 @@ import { subtitleBand } from "../components/index.tsx";
 import { Line } from "../components/Line.tsx";
 import type { TextLines } from "../components/text.ts";
 import { joinLines } from "../components/text.ts";
-import { cut, fade, isFrame, resolveLayer } from "../effects/index.ts";
+import { cut, fade, isFrame, isGroup, resolveLayer } from "../effects/index.ts";
 import type {
   CutItem,
   FadeItem,
@@ -408,12 +408,20 @@ export const narration = async (
     if (isFrame(item.node)) {
       throw new Error("narration: frame() は narration() の item に置けません");
     }
+
+    if (isGroup(item.node)) {
+      throw new Error("narration の item に塊 (group) は置けません");
+    }
   });
 
   const resolvedDeps: NarrationDeps = { ...defaultDeps, ...deps };
   const slug = options.slug ?? resolveProjectSlug(process.env.REMOTION_PROJECT);
 
   const resolvedItems$ = items.map(async (item, index) => {
+    if (isGroup(item.node)) {
+      throw new Error("narration の item に塊 (group) は置けません");
+    }
+
     const speech = linePropsOf(item.node);
 
     if (speech) {
@@ -479,9 +487,14 @@ export const narration = async (
     [];
 
   resolvedItems.forEach((resolved, index) => {
-    const speech = linePropsOf(items[index].node);
-    const { key, cacheDuration, positionDuration, lipsync } = durations[index];
     const original = items[index];
+
+    if (isGroup(original.node)) {
+      throw new Error("narration の item に塊 (group) は置けません");
+    }
+
+    const speech = linePropsOf(original.node);
+    const { key, cacheDuration, positionDuration, lipsync } = durations[index];
 
     if (!speech) {
       // line() 以外は音声が無く、発話 layer には元の node をそのまま残す。
