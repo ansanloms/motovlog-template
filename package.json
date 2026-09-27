@@ -47,7 +47,7 @@
     "@remotion/whisper-webgpu": "4.0.529",
     "@types/node": "26.6.1",
     "@types/react": "19.3.0",
-    "@types/web": "0.0.356",
+    "@types/web": "0.0.357",
     "eslint": "9.19.0",
     "prettier": "3.9.6",
     "react": "19.3.0",
