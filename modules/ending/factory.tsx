@@ -1,5 +1,5 @@
 import React from "react";
-import { Ending } from "../../src/components/Ending.tsx";
+import { Ending } from "./Ending.tsx";
 
 /** Ending の要素ファクトリ。 */
 export const ending = (props: React.ComponentProps<typeof Ending>) => (
