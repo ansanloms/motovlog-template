@@ -30,6 +30,7 @@ lib の見た目のコンポーネントは `src/components/` に平らに置か
 2. npm workspaces で module ごとにパッケージを分ける — 却下。npm 11.19.0・node 24.20.0 で実測した。root が workspace の package に依存している lib を利用側が `github:` 参照で取り込むと、npm はその package を registry で解決しようとし、`E404` で install 自体が失敗する。依存を外すと install は通るが、workspace の package は利用側の `node_modules/<name>` に展開されず、lib の `exports` の subpath 経由でしか届かない。workspaces にしても利用側から見える形は今と同じ subpath になり、Remotion のバンドラと CSS Modules の検証をやり直すコストだけが増える。
 3. `src/effects`・`src/compositions` も `modules/` に移す — 却下。これらはコンポーネントではなく層の DSL で、[ADR-0006](./0006-write-timeline-as-effects-dsl.md) と [ADR-0012](./0012-split-template-library-from-consumer.md) の層の規則がディレクトリ単位で書かれている。移しても 1 か所にまとまるファイルが増えず、層の境界の検査を書き直すことになる。
 4. 現状の `src/components/` を保つ — 却下。コンポーネント間の依存と共有部品への依存が区別されず、Driver 2 を満たさない。
+5. `Video` を `modules/core/` に移し、`modules/photo-showcase/` が `modules/video/` を import する例外を作らない — 却下。`video` は `motovlog/modules/video` として独立した公開面と要素ファクトリ (`video()`) を持つ、それ自体が公開 module である。`modules/core/` はコンポーネントではない共有部品 (`text.ts`・`volume.ts`・`previewSrc.ts`・`fadeGain.ts`) の置き場であり、1 行の import 例外を避けるためにコンポーネントを core に持ち上げると、その境界が曖昧になる。
 
 ## Decision
 
@@ -79,7 +80,7 @@ lib の見た目のコンポーネントは `src/components/` に平らに置か
 ### 依存の規則
 
 - `src/components/**` に課していた ESLint の規則 (effects を import しない、`remotion` から import できる名前を限る、`@remotion/media` 以外の `@remotion/*` を import しない、利用側を import しない) を `modules/**` にも課す。加えて `modules/**` は compositions を import しない。
-- `modules/<name>/` が import してよい他の module は `modules/core/` だけとする。例外は、上の置く基準に記録した `photo-showcase` から `video` への依存だけとする。`modules/core/` は他の module を import しない。
+- `modules/<name>/` が import してよい他の module は `modules/core/` だけとする。例外は、上の置く基準に記録した `photo-showcase` から `video` への依存だけとする。`modules/video/` は `modules/core/` 以外を import しないため、この例外で循環にはならない。`modules/core/` は他の module を import しない。
 - 利用側 (`app/`・`theme/`・`projects/`) が import してよい module のファイルは `modules/<name>/index.ts` だけとする。`characters/<name>.ts` は module を import しない。
 
 ## Consequences
@@ -94,7 +95,8 @@ lib の見た目のコンポーネントは `src/components/` に平らに置か
 
 - 公開面が `motovlog/components` と `motovlog/modules/<name>` の 2 通りになり、同じ要素ファクトリを 2 つの経路で import できる。
 - module 間の依存の規則は、module の名前ごとに ESLint の設定ブロックを生成して検査する。module を足すと設定が増え、規則は import 文の文字列の前方一致による近似になる。
-- 他の module の部品を使いたい場合は、その部品を `modules/core/` に移すか、例外として ADR に記録する必要がある。
+- 他の module の部品を使いたい場合は、原則としてその部品を `modules/core/` に移す。個別の import 例外は増やさず、増やすときは ADR に記録する。
+- 例外の一覧 (`eslint.config.mjs` の `MODULE_IMPORT_EXCEPTIONS`) に循環検知は無い。ESLint は module ごとに設定ブロックを生成して片方向だけを検査するため、逆方向の例外 (`video` → `photo-showcase`) を足しても lint では検出できない。循環を防ぐ歯止めはレビューとこの ADR であり、一覧は 1 件に保つ。
 
 ### 禁止事項
 

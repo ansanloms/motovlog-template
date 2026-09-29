@@ -96,18 +96,56 @@ const MODULE_NAMES = fs
   .map((entry) => entry.name);
 
 /**
+ * module 間の import 禁止の既定 (modules/core 以外は禁止) を破る例外
+ * (ADR-0016)。PhotoShowcase が走行映像の Video を枠に重ねて合成するため、
+ * modules/photo-showcase/ だけ modules/video/ への依存を例外として許可する。
+ * modules/video/ は modules/core/ 以外を import しないため、この例外を
+ * 加えても循環 import にはならない。他の module で同種の要求が出ても、
+ * 原則は部品を modules/core/ に移すことで対応し、ここには増やさない。
+ */
+const MODULE_IMPORT_EXCEPTIONS = {
+  "photo-showcase": ["video"],
+};
+
+/**
+ * 他の module の import 禁止に対する ESLint エラーメッセージを組み立てる。
+ * name が "core" なら core 用の文言、allowed (MODULE_IMPORT_EXCEPTIONS) が
+ * あればその例外を書き添えた文言、無ければ既定の文言を返す。
+ */
+const buildOthersMessage = (name, allowed) => {
+  if (name === "core") {
+    return "modules/core は他の module を import しない (ADR-0016)。";
+  }
+
+  if (allowed.length > 0) {
+    const allowedModules = allowed
+      .map((other) => `modules/${other}`)
+      .join("・");
+
+    return `modules/${name} が import してよい他の module は modules/core と ${allowedModules} だけ (ADR-0016)。`;
+  }
+
+  return "modules/<name> が import してよい他の module は modules/core だけ (ADR-0016)。";
+};
+
+/**
  * module ごとの設定ブロック (ADR-0016)。modules/<name>/<file> は
  * src/components/** と同じ規則に加え、compositions と、modules/core 以外の
  * 他の module を import しない (modules/core は他の module を一切 import
- * しない)。
+ * しない)。MODULE_IMPORT_EXCEPTIONS に列挙した module だけ、そこに挙げた
+ * 他の module への依存も許す。
  *
  * module の中は 1 階層 (modules/<name>/<file>) を前提にし、利用側へ戻る up は
  * "../../"、他の module は "../<other>" で判定する。module の中に
  * サブディレクトリを足したら、そこにも対応する patterns を足すこと。
  */
 const MODULE_BLOCKS = MODULE_NAMES.map((name) => {
+  const allowed = MODULE_IMPORT_EXCEPTIONS[name] ?? [];
   const others = MODULE_NAMES.filter(
-    (other) => other !== name && (name === "core" || other !== "core"),
+    (other) =>
+      other !== name &&
+      (name === "core" || other !== "core") &&
+      !allowed.includes(other),
   );
 
   return {
@@ -141,10 +179,7 @@ const MODULE_BLOCKS = MODULE_NAMES.map((name) => {
                       `**/modules/${other}`,
                       `**/modules/${other}/**`,
                     ]),
-                    message:
-                      name === "core"
-                        ? "modules/core は他の module を import しない (ADR-0016)。"
-                        : "modules/<name> が import してよい他の module は modules/core だけ (ADR-0016)。",
+                    message: buildOthersMessage(name, allowed),
                   },
                 ]),
           ],

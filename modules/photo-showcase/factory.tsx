@@ -1,5 +1,5 @@
 import React from "react";
-import { PhotoShowcase } from "../../src/components/PhotoShowcase.tsx";
+import { PhotoShowcase } from "./PhotoShowcase.tsx";
 
 /** PhotoShowcase の要素ファクトリ。 */
 export const photoShowcase = (

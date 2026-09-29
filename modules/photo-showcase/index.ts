@@ -1,3 +1,3 @@
-export { PhotoShowcase } from "../../src/components/PhotoShowcase.tsx";
-export type { PhotoVideo } from "../../src/components/PhotoShowcase.tsx";
+export { PhotoShowcase } from "./PhotoShowcase.tsx";
+export type { PhotoVideo } from "./PhotoShowcase.tsx";
 export { photoShowcase } from "./factory.tsx";
