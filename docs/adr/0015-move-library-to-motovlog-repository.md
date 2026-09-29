@@ -1,7 +1,7 @@
 ---
 status: accepted
 date: 2026-09-30T00:00:00Z
-refs: [2, 11, 12, 14]
+refs: [2, 12, 16]
 tags: [repository, package, boundary]
 ---
 
