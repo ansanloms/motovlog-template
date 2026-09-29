@@ -90,7 +90,7 @@ const makeTmpDir = (): string => {
  * dir/node_modules/<name> を lib のリポジトリルート (REPO_ROOT) への symlink
  * にする。bare specifier (外部リポジトリからの依存) のテストで、Node の解決
  * (createRequire().resolve()) が node_modules 経由で package.json の exports
- * を辿れるようにする。name は package.json の name (motovlog-template) と
+ * を辿れるようにする。name は package.json の name (motovlog) と
  * 一致しなくてよい (specifierIsLibModule() は解決先のファイルで判定するため、
  * npm alias 相当の名前でも通ることを確かめるのに使う)。
  */
@@ -152,11 +152,11 @@ describe("extractLines", () => {
     });
   });
 
-  it("bare specifier (motovlog-template/compositions) からの import も line() と見なす", async () => {
+  it("bare specifier (motovlog/compositions) からの import も line() と見なす", async () => {
     const dir = makeTmpDir();
-    linkPackage(dir, "motovlog-template");
+    linkPackage(dir, "motovlog");
     const timelinePath = path.join(dir, "timeline.ts");
-    const source = `import { line } from "motovlog-template/compositions";\nline({ text: "こんにちは" });`;
+    const source = `import { line } from "motovlog/compositions";\nline({ text: "こんにちは" });`;
     fs.writeFileSync(timelinePath, source);
 
     await expect(extractLines(source, timelinePath)).resolves.toEqual({
@@ -165,11 +165,11 @@ describe("extractLines", () => {
     });
   });
 
-  it("bare specifier (motovlog-template) からの import も line() と見なす", async () => {
+  it("bare specifier (motovlog) からの import も line() と見なす", async () => {
     const dir = makeTmpDir();
-    linkPackage(dir, "motovlog-template");
+    linkPackage(dir, "motovlog");
     const timelinePath = path.join(dir, "timeline.ts");
-    const source = `import { line } from "motovlog-template";\nline({ text: "こんにちは" });`;
+    const source = `import { line } from "motovlog";\nline({ text: "こんにちは" });`;
     fs.writeFileSync(timelinePath, source);
 
     await expect(extractLines(source, timelinePath)).resolves.toEqual({
@@ -217,7 +217,7 @@ describe("extractLines", () => {
   it("bare specifier の character() も by の voice として読む", async () => {
     const timelinePath = setupProject(
       `
-        import { character } from "motovlog-template/compositions";
+        import { character } from "motovlog/compositions";
         const hero = character({
           voice: { speaker: 13 },
           expressions: { normal: [] },
@@ -225,7 +225,7 @@ describe("extractLines", () => {
         line({ text: "a", by: hero });
       `,
       {},
-      { linkPackages: ["motovlog-template"] },
+      { linkPackages: ["motovlog"] },
     );
     const source = fs.readFileSync(timelinePath, "utf-8");
 
@@ -235,10 +235,10 @@ describe("extractLines", () => {
     });
   });
 
-  it("bare specifier (motovlog-template/compositions/character) から import した character() を同じファイルの const で呼ぶ", async () => {
+  it("bare specifier (motovlog/compositions/character) から import した character() を同じファイルの const で呼ぶ", async () => {
     const timelinePath = setupProject(
       `
-        import { character } from "motovlog-template/compositions/character";
+        import { character } from "motovlog/compositions/character";
         const hero = character({
           voice: { speaker: 13 },
           expressions: { normal: [] },
@@ -246,7 +246,7 @@ describe("extractLines", () => {
         line({ text: "a", by: hero });
       `,
       {},
-      { linkPackages: ["motovlog-template"] },
+      { linkPackages: ["motovlog"] },
     );
     const source = fs.readFileSync(timelinePath, "utf-8");
 

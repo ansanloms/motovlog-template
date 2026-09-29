@@ -3,7 +3,7 @@ import React from "react";
 import { useVideoConfig } from "remotion";
 import { displayText } from "../voice/reading.ts";
 import { Subtitle } from "./Subtitle.tsx";
-import { useVolumeProp } from "./volume.ts";
+import { useVolumeProp } from "../../modules/core/volume.ts";
 
 /** Line が受け取るもの。 */
 type Props = {

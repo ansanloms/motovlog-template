@@ -98,7 +98,7 @@ export const configure = (setup: Setup): void => {
 export const getSetup = (): Setup => {
   if (current === undefined) {
     throw new Error(
-      "motovlog-template が未設定です。利用側の入口 (app/index.ts) で configure({ theme, loadTimeline, defaultProject }) を呼んでください。",
+      "motovlog が未設定です。利用側の入口 (app/index.ts) で configure({ theme, loadTimeline, defaultProject }) を呼んでください。",
     );
   }
 

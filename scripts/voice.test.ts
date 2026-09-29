@@ -43,7 +43,7 @@ describe("noLinesWarning", () => {
 
     expect(warning).toContain("発話 (line()) が 0 件でした");
     expect(warning).toContain("src/compositions/index.ts");
-    expect(warning).toContain("motovlog-template/compositions");
+    expect(warning).toContain("motovlog/compositions");
   });
 
   it("lineCount が 1 件以上なら何も返さない (発話の無い project はエラーにしない)", () => {

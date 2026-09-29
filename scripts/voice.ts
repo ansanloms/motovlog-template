@@ -164,7 +164,7 @@ export const noLinesWarning = (
   silentCount: number,
 ): string | undefined =>
   lineCount + silentCount === 0
-    ? "warn: 発話 (line()) が 0 件でした。timeline.ts の import が lib の入口 (src/compositions/index.ts か motovlog-template/compositions) を指しているか確認してください"
+    ? "warn: 発話 (line()) が 0 件でした。timeline.ts の import が lib の入口 (src/compositions/index.ts か motovlog/compositions) を指しているか確認してください"
     : undefined;
 
 const runOnce = async (slug: string, voicevoxUrl: string): Promise<void> => {

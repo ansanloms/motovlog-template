@@ -1,6 +1,8 @@
-# motovlog-template
+# motovlog
 
-Remotion でモトブログ動画を作るためのライブラリ (lib) と、その利用側の一式。動画 1 本 = 1 project とし、timeline の定義 (TypeScript) と素材からレンダリングする。lib は動画を作る機能だけを持ち、色・話者・project の定義・キャラクター・素材は利用側が持つ ([ADR-0012](docs/adr/0012-split-template-library-from-consumer.md))。設計上の決定は `docs/adr/` にある。
+Remotion でモトブログ動画を作るためのライブラリ (lib)。動画 1 本 = 1 project とし、timeline の定義 (TypeScript) と素材からレンダリングする。lib は動画を作る機能だけを持ち、色・話者・project の定義・キャラクター・素材は利用側が持つ ([ADR-0012](docs/adr/0012-split-template-library-from-consumer.md))。設計上の決定は `docs/adr/` にある。
+
+実際の動画の project は別の利用側リポジトリで管理し、このリポジトリには lib と、テスト・CI・build の fixture として使う利用側の骨格 (サンプル project) だけを置く ([ADR-0015](docs/adr/0015-move-library-to-motovlog-repository.md))。
 
 ## 前提
 
@@ -9,14 +11,15 @@ Remotion でモトブログ動画を作るためのライブラリ (lib) と、�
 
 ## ディレクトリ構成
 
-([ADR-0002](docs/adr/0002-project-directory-layout.md)・[ADR-0012](docs/adr/0012-split-template-library-from-consumer.md) の要約)
+([ADR-0002](docs/adr/0002-project-directory-layout.md)・[ADR-0012](docs/adr/0012-split-template-library-from-consumer.md)・[ADR-0016](docs/adr/0016-split-components-into-modules.md) の要約)
 
-lib (動画を作る機能) は次の 2 つ。
+lib (動画を作る機能) は次の 3 つ。
 
-- `src/`: 演出の DSL・コンポーネント・compositions・配置と秒数のトークン
+- `src/`: 演出の DSL (effects)・compositions・配置と秒数のトークン・音声と project の読み込み
+- `modules/`: 見た目のコンポーネント。`modules/<name>/` にコンポーネント・CSS Module・要素ファクトリ・テストをまとめる。`modules/core/` は module 間で共有する部品 (文字列の結合・音量・Studio 用プロキシの解決等) を持つ。`modules/<name>/` が import してよい他の module は `modules/core/` だけ
 - `scripts/`: 音声生成・素材の変換・Studio の起動
 
-利用側 (動画 1 本ごとの値) は次のとおり。
+利用側 (動画 1 本ごとの値) は次のとおり。このリポジトリではサンプル project の骨格として置いている。
 
 - `app/index.ts`: Remotion の入口。`configure()` で利用側の値を lib に渡し、`registerRoot()` を呼ぶ
 - `app/config.ts`: `theme` と `defaultProject` (既定の slug)。音声生成の watcher (Node) も読むため Remotion を import しない
@@ -26,26 +29,27 @@ lib (動画を作る機能) は次の 2 つ。
 - `public/projects/<slug>/`: 動画固有の素材 (変換済み素材・Studio 用プロキシ・セリフ音声等)。コミットしない
 - `public/assets/<種別>/`: 共通素材。`bgm`・`se`・`characters/<name>`・`fonts`。既定でコミットしない。再配布できる自作素材は `.gitignore` の否定パターンで明示してコミットする
 - `remotion.config.ts`: Remotion の設定。`Config.setEntryPoint("./app/index.ts")` で入口を指す
-- `<slug>` は `YYYYMMDD-<name>` (例: `20260813-jododaira`)。同梱のサンプルだけ `00000000-sample` を使う
+- `<slug>` は `YYYYMMDD-<name>` (日付 8 桁・ハイフン・kebab-case の名前)。同梱のサンプルだけ `00000000-sample` を使う
 
-利用側から lib を import してよいのは次の 5 つの入口だけで、それ以外の `src/` 配下を import すると ESLint が落とす。
+利用側から lib を import してよいのは次の 5 つの入口と、各 module の入口 (`modules/<name>/index.ts`) だけで、それ以外の `src/`・`modules/` 配下を import すると ESLint が落とす。
 
-| 入口                             | 実体                        | 主な中身                                                                 |
-| -------------------------------- | --------------------------- | ------------------------------------------------------------------------ |
-| `motovlog-template`              | `src/index.ts`              | `configure`・`RemotionRoot`・`Motovlog` と、下の 4 つの再 export         |
-| `motovlog-template/effects`      | `src/effects/index.ts`      | `timeline`・`cut`・`fade`・`crossfade`・`frame`・`start`・`end`・`group` |
-| `motovlog-template/components`   | `src/components/index.tsx`  | 要素ファクトリ (`video`・`audio`・`chapter`・`ending` 等)                |
-| `motovlog-template/compositions` | `src/compositions/index.ts` | `line`・`narration`・`character`・`figure`・`thumbnail`                  |
-| `motovlog-template/theme`        | `src/theme/index.ts`        | 配置と秒数のトークン (`chapterTiming`・`characterTiming`・`fps` 等)      |
+| 入口                      | 実体                        | 主な中身                                                                                                     |
+| ------------------------- | --------------------------- | ------------------------------------------------------------------------------------------------------------ |
+| `motovlog`                | `src/index.ts`              | `configure`・`RemotionRoot`・`Motovlog` と、下の 4 つの再 export                                             |
+| `motovlog/effects`        | `src/effects/index.ts`      | `timeline`・`cut`・`fade`・`crossfade`・`frame`・`start`・`end`・`group`                                     |
+| `motovlog/components`     | `src/components/index.tsx`  | 要素ファクトリ (`video`・`audio`・`chapter`・`ending` 等)                                                    |
+| `motovlog/compositions`   | `src/compositions/index.ts` | `line`・`narration`・`character`・`figure`・`thumbnail`                                                      |
+| `motovlog/theme`          | `src/theme/index.ts`        | 配置と秒数のトークン (`chapterTiming`・`characterTiming`・`fps` 等)                                          |
+| `motovlog/modules/<name>` | `modules/<name>/index.ts`   | module ごとのコンポーネントと要素ファクトリ (`motovlog/components` はこれらの要素ファクトリを再 export する) |
 
 このリポジトリの中の利用側ファイルは、同じ 5 つの入口を相対パス (`../../src/effects/index.ts` 等) で import する。外部のリポジトリから依存として使う手順は「外部のリポジトリから使う」にある。
 
 ## 外部のリポジトリから使う
 
-`motovlog-template` は npm レジストリには publish しない (`private: true`)。外部のリポジトリからは GitHub 参照で依存に入れる ([ADR-0012](docs/adr/0012-split-template-library-from-consumer.md))。
+`motovlog` は npm レジストリには publish しない (`private: true`)。外部のリポジトリからは GitHub 参照で依存に入れる ([ADR-0012](docs/adr/0012-split-template-library-from-consumer.md))。
 
 ```sh
-npm install github:ansanloms/motovlog-template
+npm install github:ansanloms/motovlog
 ```
 
 `peerDependencies` (`remotion`・`@remotion/cli`・`@remotion/google-fonts`・`@remotion/media`・`react`・`react-dom`) は利用側の `dependencies` に同じバージョンで入れる。加えて `tsx`・`typescript`・`@types/react`・`@types/node`・`@types/web` を `devDependencies` に入れる (`tsx` は lib の実行時 `dependencies` にも入っているが、利用側の TypeScript の解決には別途要る)。
@@ -66,20 +70,21 @@ npm install github:ansanloms/motovlog-template
 
 TypeScript 5.9 には Temporal の型が無いため、`temporal-polyfill/global` が実行時にグローバルへ入れる `Temporal` の型を参照する 1 行だけの `.d.ts` を利用側にも置く (`tsconfig.json` の既定の include に入る場所であれば、パスは上記でなくてよい)。lib の同等のファイル (`src/temporal.d.ts`) は `node_modules` 内にあり、tsc の既定の include には入らないため、利用側で別途持つ必要がある。
 
-import は、このリポジトリ内の相対パスの代わりに bare specifier (5 入口 + `characters/<name>.ts` 用の 1 つ) を使う。
+import は、このリポジトリ内の相対パスの代わりに bare specifier (5 入口 + `characters/<name>.ts` 用の 1 つ + module ごとの入口) を使う。
 
-| このリポジトリ内の相対パス                                          | 外部からの import                          |
-| ------------------------------------------------------------------- | ------------------------------------------ |
-| `../../src/index.ts`                                                | `motovlog-template`                        |
-| `../../src/effects/index.ts`                                        | `motovlog-template/effects`                |
-| `../../src/components/index.tsx`                                    | `motovlog-template/components`             |
-| `../../src/compositions/index.ts`                                   | `motovlog-template/compositions`           |
-| `../../src/theme/index.ts`                                          | `motovlog-template/theme`                  |
-| `../../src/compositions/character.ts` (`characters/<name>.ts` 限定) | `motovlog-template/compositions/character` |
+| このリポジトリ内の相対パス                                          | 外部からの import                 |
+| ------------------------------------------------------------------- | --------------------------------- |
+| `../../src/index.ts`                                                | `motovlog`                        |
+| `../../src/effects/index.ts`                                        | `motovlog/effects`                |
+| `../../src/components/index.tsx`                                    | `motovlog/components`             |
+| `../../src/compositions/index.ts`                                   | `motovlog/compositions`           |
+| `../../src/theme/index.ts`                                          | `motovlog/theme`                  |
+| `../../src/compositions/character.ts` (`characters/<name>.ts` 限定) | `motovlog/compositions/character` |
+| `../../modules/<name>/index.ts`                                     | `motovlog/modules/<name>`         |
 
-`characters/<name>.ts` だけは 5 入口ではなく `motovlog-template/compositions/character` を直に import する (`character()` の実体、`package.json` の `exports` の `./compositions/character`)。理由は [ADR-0012](docs/adr/0012-split-template-library-from-consumer.md) の禁止事項と同じで、5 入口は `figure()`・`line()` 伝いに CSS Modules を辿るため、素の Node から import する音声生成の watcher がこのファイルを読めなくなる。
+`characters/<name>.ts` だけは 5 入口ではなく `motovlog/compositions/character` を直に import する (`character()` の実体、`package.json` の `exports` の `./compositions/character`)。理由は [ADR-0012](docs/adr/0012-split-template-library-from-consumer.md) の禁止事項と同じで、5 入口は `figure()`・`line()` 伝いに CSS Modules を辿るため、素の Node から import する音声生成の watcher がこのファイルを読めなくなる。
 
-依存として入った `motovlog-template` は `tsx scripts/<name>.ts` を直接叩けないため、次のコマンドを `bin` として使う。
+依存として入った `motovlog` は `tsx scripts/<name>.ts` を直接叩けないため、次のコマンドを `bin` として使う。
 
 | コマンド                                        | 相当する lib 内の呼び出し                                                      |
 | ----------------------------------------------- | ------------------------------------------------------------------------------ |
@@ -137,11 +142,9 @@ BGM (`assets/bgm/m1.wav`) が無い場合は、サンプルの BGM layer (layer 
 
 素材を置けば Studio と render が動く (`REMOTION_PROJECT` は未設定でよく、既定でこのサンプルを読む)。
 
-`projects/20260813-jododaira/` は実際の走行から起こした project で、サンプルと違い第三者制作の立ち絵を使う `characters/ryusei.ts` を参照する。立ち絵 (`public/assets/characters/ryusei/`) と走行映像・写真はコミットしていないため、これらが手元に無い環境ではこの project を render できない。
-
 ## timeline.ts の書き方
 
-timeline 定義は `projects/<slug>/timeline.ts` が `export default` する、`motovlog-template/effects` の関数 (`timeline`・`fade`・`cut`) の呼び出しで書く ([ADR-0006](docs/adr/0006-write-timeline-as-effects-dsl.md))。
+timeline 定義は `projects/<slug>/timeline.ts` が `export default` する、`motovlog/effects` の関数 (`timeline`・`fade`・`cut`) の呼び出しで書く ([ADR-0006](docs/adr/0006-write-timeline-as-effects-dsl.md))。
 
 ```ts
 import { staticFile } from "remotion";
@@ -181,7 +184,7 @@ export default timeline([
 
 OP・ED の尺は動画ごとに timeline.ts で決める (上の例の `duration: 4.8, in: 0.4` のように直値で書く)。
 
-`timeline(layers, options?)` の `layers` は layer (item の配列) の配列。layer は z 順を表し、配列の後ろが上に重なる。layer 内の item は時間が重ならず、時間順に並べる (`crossfade` の遷移の尺だけ重なるのが唯一の例外)。`options` は `width`・`height` のみ (既定 1920×1080)。fps は project ごとに指定せず、`motovlog-template/theme` の `fps` を使う。
+`timeline(layers, options?)` の `layers` は layer (item の配列) の配列。layer は z 順を表し、配列の後ろが上に重なる。layer 内の item は時間が重ならず、時間順に並べる (`crossfade` の遷移の尺だけ重なるのが唯一の例外)。`options` は `width`・`height` のみ (既定 1920×1080)。fps は project ごとに指定せず、`motovlog/theme` の `fps` を使う。
 
 layer 内の item の位置は次のいずれかで指定する。
 
@@ -211,7 +214,7 @@ export default timeline([[cut(chapter1, { at: 0 })]]);
 
 塊の外の item は `start(item)`/`end(item)` で塊の中の item を参照できる (依存関係の順で解決するのは `timeline()` と同じ)。逆に塊の中の item が塊の外の item を参照すると throw する (`timeline: ... 塊の中の item は塊の外の item を参照できません`)。塊の中に `frame()` は置けない (合成結果への効果は最上位の layer に置く)。塊は入れ子にできる。`sample()` の `absolute` (`SampleTime.absolute`) は「item が属する塊 (最上位なら動画) の先頭からの秒」になるため、塊をまたいだ時刻の比較はできない。
 
-要素は `motovlog-template/components` が公開する要素ファクトリで組み立てる。各ファクトリは対応するコンポーネントと同じ props を受け、フレーム依存の値は持たない。
+要素は `motovlog/components` が公開する要素ファクトリで組み立てる。各ファクトリは対応するコンポーネントと同じ props を受け、フレーム依存の値は持たない。
 
 | ファクトリ             | 内容                                                                                                                                                                                                                                                                                                                               |
 | ---------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -223,17 +226,17 @@ export default timeline([[cut(chapter1, { at: 0 })]]);
 | `ending(props)`        | ED。`title`・`subtitle`・`date`・`distance`・`ridingTime`・`routes`・`credits`                                                                                                                                                                                                                                                     |
 | `subtitleBand({})`     | 字幕下の暗がり (props は無いが引数は要る、通常は `narration()` が組むので直接は使わない)                                                                                                                                                                                                                                           |
 
-立ち絵の `figure()` は要素ファクトリではなく `line()`・`narration()` と同じ `motovlog-template/compositions` に置く (「立ち絵」参照。`narration()` が括りから作る立ち絵の item は effects の `sample()` を使うため)。サムネ・OP の絵の `thumbnail(props)` も同じ入口に置く (`photo`・`badge`・`title` (文字列、または改行として結合される文字列の配列)・`by` (`character()` の戻り値、表情は `expressions` の最初のキー、か `{ character, expression? }` の形で表情を明示する) を受け、`character()` の表情名の解決 (`figureLayers()`) を伴うため、ADR-0011 の禁止事項により components 単体では書けない)。
+立ち絵の `figure()` は要素ファクトリではなく `line()`・`narration()` と同じ `motovlog/compositions` に置く (「立ち絵」参照。`narration()` が括りから作る立ち絵の item は effects の `sample()` を使うため)。サムネ・OP の絵の `thumbnail(props)` も同じ入口に置く (`photo`・`badge`・`title` (文字列、または改行として結合される文字列の配列)・`by` (`character()` の戻り値、表情は `expressions` の最初のキー、か `{ character, expression? }` の形で表情を明示する) を受け、`character()` の表情名の解決 (`figureLayers()`) を伴うため、ADR-0011 の禁止事項により components 単体では書けない)。
 
 `volume` は一定値 (数値、0 以上 1 以下) または折れ線 (`{ at, volume }[]`、各点の `volume` も 0 以上 1 以下) で指定する。`at` は要素の再生開始 (`trimBefore` 適用後) からの秒で、点の間は線形補間する。最初の点より前は最初の点の値、最後の点より後は最後の点の値でクランプする。省略時は 1。`audio()` の `loop` と折れ線を併用しても `at` は周回をまたいだ通算秒として扱う (`loopVolumeCurveBehavior="extend"`)。
 
 `fade()` は既定では不透明度にだけ効き、音には効かない。`audio: true` を付けると in/out と同じ区間で 0 から 1 へ動く音量の率 (音は両端で無音に届く) を下にある要素 (`video()`・`audio()`・発話) の音量にも掛ける。`crossfade()` も既定では不透明度にだけ効き、重なり区間は両方の要素の音がそのまま重なる。`audio: true` を付けると重なり区間の音を等パワー曲線で交差させる。音だけを別の形で動かすときは `volume` の折れ線で書く。
 
-見た目 (色・書体・配置) は `docs/design/tone-and-manner.md` ([ADR-0004](docs/adr/0004-define-tone-and-manner.md)) で固定する。配置のトークンと演出の秒数 (`chapterTiming`・`characterTiming` 等) は `motovlog-template/theme` の定数を使い、カラーパレットは利用側の `theme/index.ts` が持つ ([ADR-0012](docs/adr/0012-split-template-library-from-consumer.md))。timeline.ts にはこれらの値をハードコードせず theme を import する ([ADR-0005](docs/adr/0005-fix-look-in-theme-not-timeline.md))。OP・ED の尺だけは動画ごとに timeline.ts で決める。
+見た目 (色・書体・配置) は `docs/design/tone-and-manner.md` ([ADR-0004](docs/adr/0004-define-tone-and-manner.md)) で固定する。配置のトークンと演出の秒数 (`chapterTiming`・`characterTiming` 等) は `motovlog/theme` の定数を使い、カラーパレットは利用側の `theme/index.ts` が持つ ([ADR-0012](docs/adr/0012-split-template-library-from-consumer.md))。timeline.ts にはこれらの値をハードコードせず theme を import する ([ADR-0005](docs/adr/0005-fix-look-in-theme-not-timeline.md))。OP・ED の尺だけは動画ごとに timeline.ts で決める。
 
 ### 発話
 
-セリフ (発話) は `motovlog-template/compositions` が公開する `line()`・`narration()` で書く ([ADR-0010](docs/adr/0010-build-narration-timeline-with-hashed-voice-cache.md), [ADR-0011](docs/adr/0011-draw-figure-from-character-presets-linked-by-speech.md), [ADR-0014](docs/adr/0014-nest-timeline-groups-and-place-narration-as-group.md))。字幕・下部の暗がり・セリフ音声・立ち絵をまとめて組み立てるため、要素ファクトリ (`subtitleBand`) や `figure()` の立ち絵 item を直接 layer に置く必要はない。
+セリフ (発話) は `motovlog/compositions` が公開する `line()`・`narration()` で書く ([ADR-0010](docs/adr/0010-build-narration-timeline-with-hashed-voice-cache.md), [ADR-0011](docs/adr/0011-draw-figure-from-character-presets-linked-by-speech.md), [ADR-0014](docs/adr/0014-nest-timeline-groups-and-place-narration-as-group.md))。字幕・下部の暗がり・セリフ音声・立ち絵をまとめて組み立てるため、要素ファクトリ (`subtitleBand`) や `figure()` の立ち絵 item を直接 layer に置く必要はない。
 
 `narration()` は塊 (`group()` と同じ `GroupNode`、「塊 (group)」参照) を返す。`cut(n, { at })`・`fade(n, { at, in, out })` で他の item と同じように layer に置く。行の `at`/`after`/省略はこの塊の先頭からの相対秒として解決する (`clip1` の 2 秒後に置く、他の塊の中に入れる等、位置指定は他の node と同じ)。`frame()` の黒落ちを使う場合はその layer より下に置く。
 
@@ -281,7 +284,7 @@ project の選択は環境変数 `REMOTION_PROJECT` (slug) で行い、`.env` �
 
 ### 立ち絵
 
-立ち絵 (話者のキャラクター絵) の目パチ・口パク・表情は `motovlog-template/compositions` が公開する `character()` と `figure()` で書く ([ADR-0011](docs/adr/0011-draw-figure-from-character-presets-linked-by-speech.md), [ADR-0014](docs/adr/0014-nest-timeline-groups-and-place-narration-as-group.md))。
+立ち絵 (話者のキャラクター絵) の目パチ・口パク・表情は `motovlog/compositions` が公開する `character()` と `figure()` で書く ([ADR-0011](docs/adr/0011-draw-figure-from-character-presets-linked-by-speech.md), [ADR-0014](docs/adr/0014-nest-timeline-groups-and-place-narration-as-group.md))。
 
 キャラクターの定義は project をまたいで使い回すため `characters/<name>.ts` (リポジトリルート、`projects/` の隣) に置き、`character({ voice?, expressions })` で組み立てて export する。`voice` はこのキャラクターの既定の声質差分 (省略時は `theme/index.ts` の既定話者のまま)。`expressions` は表情名から画像レイヤーの列 (下から上に重ねる順) への対応で、レイヤーは次の 3 種を混ぜて書ける。
 
@@ -326,7 +329,7 @@ ED・サムネ用フレームの絵は要素ファクトリで置けるが、ED 
 変換済み素材に加えて `public/projects/<slug>/<basename>.preview.mp4` (Studio 用プロキシ) を作る ([ADR-0013](docs/adr/0013-add-preview-proxy-for-studio.md))。`npm run dev` (Remotion Studio) はこのプロキシを読み、`remotion render` は変換済み素材 (本体) を読む。
 
 - プロキシは変換済み素材から生成する H.264 で、既定は 540p。`.env` の `PREVIEW_HEIGHT` (2 以上の偶数) で解像度を変えられる。`npm run dev` と同じく `npm run convert` も `.env` を読む。
-- 既に変換済み素材だけがある project にプロキシを追加するときは、変換済み素材自身を入力にして `npm run convert` を再実行する。例: `npm run convert -- 20260813-jododaira public/projects/20260813-jododaira/*.mp4`。この glob は生成済みのプロキシ (`*.preview.mp4`) も拾うが、`.preview.mp4` で終わる入力は convert がスキップするため、そのまま再実行して構わない。
+- 既に変換済み素材だけがある project にプロキシを追加するときは、変換済み素材自身を入力にして `npm run convert` を再実行する。例: `npm run convert -- 00000000-sample public/projects/00000000-sample/*.mp4`。この glob は生成済みのプロキシ (`*.preview.mp4`) も拾うが、`.preview.mp4` で終わる入力は convert がスキップするため、そのまま再実行して構わない。
 
 ## コーディング規約
 

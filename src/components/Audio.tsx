@@ -1,7 +1,7 @@
 import { Audio as MediaAudio } from "@remotion/media";
 import React from "react";
 import { useVideoConfig } from "remotion";
-import { useVolumeProp, type Volume } from "./volume.ts";
+import { useVolumeProp, type Volume } from "../../modules/core/volume.ts";
 
 /** Audio が受け取るもの。 */
 type Props = {

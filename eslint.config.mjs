@@ -1,4 +1,5 @@
 import { config } from "@remotion/eslint-config-flat";
+import fs from "node:fs";
 import pkg from "./package.json" with { type: "json" };
 
 /**
@@ -48,6 +49,107 @@ const SRC_DEPTHS = [1, 2, 3].map((depth) => {
       "no-restricted-imports": [
         "error",
         { patterns: noConsumerImports("../".repeat(depth)) },
+      ],
+    },
+  };
+});
+
+/**
+ * 見た目のコンポーネント (src/components/**・modules/**) に共通の patterns。
+ * timeline の配線 (effects・compositions) と remotion のフレーム API・媒体要素
+ * を持たない。
+ */
+const componentPatterns = [
+  {
+    group: ["@remotion/*", "!@remotion/media"],
+    message:
+      "components は @remotion/media 以外の @remotion のパッケージを import しない。",
+  },
+  {
+    group: ["**/effects/**"],
+    message: "components は effects を import しない。",
+  },
+];
+
+/** 見た目のコンポーネントに共通の paths (remotion から import できる名前)。 */
+const componentPaths = [
+  {
+    name: "remotion",
+    allowImportNames: [
+      "AbsoluteFill",
+      "Img",
+      "useVideoConfig",
+      "useRemotionEnvironment",
+    ],
+    message:
+      "components は remotion の AbsoluteFill・Img・useVideoConfig・useRemotionEnvironment と @remotion/media 以外を import しない (useCurrentFrame 等のフレーム API・レンダリング制御を持たない)。",
+  },
+];
+
+/**
+ * modules/ 直下の module 名 (ADR-0016)。module ごとに「他の module を import
+ * しない」設定ブロックを作るため、設定の読み込み時にディレクトリを列挙する。
+ */
+const MODULE_NAMES = fs
+  .readdirSync(new URL("./modules/", import.meta.url), { withFileTypes: true })
+  .filter((entry) => entry.isDirectory())
+  .map((entry) => entry.name);
+
+/**
+ * module ごとの設定ブロック (ADR-0016)。modules/<name>/<file> は
+ * src/components/** と同じ規則に加え、compositions と、modules/core 以外の
+ * 他の module を import しない (modules/core は他の module を一切 import
+ * しない)。
+ *
+ * module の中は 1 階層 (modules/<name>/<file>) を前提にし、利用側へ戻る up は
+ * "../../"、他の module は "../<other>" で判定する。module の中に
+ * サブディレクトリを足したら、そこにも対応する patterns を足すこと。
+ */
+const MODULE_BLOCKS = MODULE_NAMES.map((name) => {
+  const others = MODULE_NAMES.filter(
+    (other) => other !== name && (name === "core" || other !== "core"),
+  );
+
+  return {
+    files: [`modules/${name}/**`],
+    rules: {
+      "no-restricted-imports": [
+        "error",
+        {
+          patterns: [
+            ...noConsumerImports("../../"),
+            ...componentPatterns,
+            {
+              group: ["**/compositions/**"],
+              message: "modules は compositions を import しない (ADR-0016)。",
+            },
+            {
+              // src/components/index.tsx は全 module の要素ファクトリを
+              // 再 export するため、経由すると他の module の import 禁止を
+              // すり抜け、循環 import にもなる。
+              group: ["**/src/components/index.tsx"],
+              message:
+                "modules は src/components/index.tsx (全 module の再 export) を import しない (ADR-0016)。",
+            },
+            ...(others.length === 0
+              ? []
+              : [
+                  {
+                    group: others.flatMap((other) => [
+                      `../${other}`,
+                      `../${other}/**`,
+                      `**/modules/${other}`,
+                      `**/modules/${other}/**`,
+                    ]),
+                    message:
+                      name === "core"
+                        ? "modules/core は他の module を import しない (ADR-0016)。"
+                        : "modules/<name> が import してよい他の module は modules/core だけ (ADR-0016)。",
+                  },
+                ]),
+          ],
+          paths: componentPaths,
+        },
       ],
     },
   };
@@ -114,41 +216,20 @@ export default [
   ...SRC_DEPTHS,
   {
     // components は見た目だけを描く。timeline の配線と remotion のフレーム
-    // API・媒体要素は持たない。
+    // API・媒体要素は持たない。modules/** にも同じ規則を課す (下の
+    // MODULE_BLOCKS、ADR-0016)。
     files: ["src/components/**"],
     rules: {
       "no-restricted-imports": [
         "error",
         {
-          patterns: [
-            ...noConsumerImports("../../"),
-            {
-              group: ["@remotion/*", "!@remotion/media"],
-              message:
-                "components は @remotion/media 以外の @remotion のパッケージを import しない。",
-            },
-            {
-              group: ["**/effects/**"],
-              message: "components は effects を import しない。",
-            },
-          ],
-          paths: [
-            {
-              name: "remotion",
-              allowImportNames: [
-                "AbsoluteFill",
-                "Img",
-                "useVideoConfig",
-                "useRemotionEnvironment",
-              ],
-              message:
-                "components は remotion の AbsoluteFill・Img・useVideoConfig・useRemotionEnvironment と @remotion/media 以外を import しない (useCurrentFrame 等のフレーム API・レンダリング制御を持たない)。",
-            },
-          ],
+          patterns: [...noConsumerImports("../../"), ...componentPatterns],
+          paths: componentPaths,
         },
       ],
     },
   },
+  ...MODULE_BLOCKS,
   {
     // effects は演出の術だけを持つ。動画のドメイン (章・写真・ED 等) は知らない。
     files: ["src/effects/**"],
@@ -167,6 +248,17 @@ export default [
               message:
                 "effects は動画の型 (components・compositions・projects) を知らない。",
             },
+            {
+              // effects が読んでよい module は共有部品の modules/core だけ
+              // (Stage が fadeGain の context を置くため、ADR-0016)。
+              group: [
+                "**/modules/**",
+                "!**/modules/core/",
+                "!**/modules/core/**",
+              ],
+              message:
+                "effects が import してよい module は modules/core だけ (ADR-0016)。",
+            },
           ],
         },
       ],
@@ -174,7 +266,7 @@ export default [
   },
   {
     // 利用側 (app・theme・projects) は lib の公開面 (package.json の exports と
-    // 同じ 5 入口) だけを見る (ADR-0012)。characters/** の制限は下のブロックに
+    // 同じ 5 入口と modules/<name>/index.ts) だけを見る (ADR-0012・ADR-0016)。characters/** の制限は下のブロックに
     // まとめて書く (flat config は同じ rule を後のブロックが置き換えるため)。
     files: ["app/**", "theme/**", "projects/**"],
     rules: {
@@ -198,6 +290,20 @@ export default [
               message:
                 "利用側は lib の 5 入口 (src/index.ts・src/effects/index.ts・src/components/index.tsx・src/compositions/index.ts・src/theme/index.ts) だけを import する (ADR-0012)。",
             },
+            {
+              // src と同じく gitignore 構文。module のディレクトリを戻して
+              // から中身を入れ直し、入口の index.ts だけを許す。
+              group: [
+                "**/modules/**",
+                "!**/modules/*/",
+                "**/modules/*/*",
+                "!**/modules/*/index.ts",
+                // bare specifier の公開経路 (exports の "./modules/*") は許す。
+                `!${pkg.name}/modules/*`,
+              ],
+              message:
+                "利用側が import してよい module のファイルは modules/<name>/index.ts だけ (ADR-0016)。",
+            },
           ],
         },
       ],
@@ -218,7 +324,7 @@ export default [
               // characters/<name>.ts が lib から import してよいのは
               // src/compositions/character.ts だけ (ADR-0011・ADR-0012)。
               // 5 入口 (src/index.ts・src/compositions/index.ts 等) と bare
-              // specifier (motovlog-template) は、figure()・line() 経由で
+              // specifier (motovlog) は、figure()・line() 経由で
               // src/components と CSS Modules を辿るため素の Node から
               // import できなくなり、watcher (scripts/voice/extract.ts) が
               // line().by の voice を読めなくなる。
@@ -252,6 +358,11 @@ export default [
               group: ["**/effects/**"],
               message:
                 "characters/<name>.ts は src/effects を import しない (ADR-0011)。",
+            },
+            {
+              group: ["**/modules/**"],
+              message:
+                "characters/<name>.ts は modules を import しない (ADR-0011・ADR-0016)。",
             },
             {
               group: ["*.css", "**/*.module.css"],

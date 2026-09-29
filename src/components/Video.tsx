@@ -1,8 +1,8 @@
 import { Video as MediaVideo } from "@remotion/media";
 import React from "react";
 import { useRemotionEnvironment, useVideoConfig } from "remotion";
-import { previewSrc } from "./previewSrc.ts";
-import { useVolumeProp, type Volume } from "./volume.ts";
+import { previewSrc } from "../../modules/core/previewSrc.ts";
+import { useVolumeProp, type Volume } from "../../modules/core/volume.ts";
 
 /** Video が受け取るもの。 */
 type Props = {
