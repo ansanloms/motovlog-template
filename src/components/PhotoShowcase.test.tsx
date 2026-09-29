@@ -3,7 +3,7 @@ import { isValidElement } from "react";
 import { describe, expect, it } from "vitest";
 import { photoShowcase } from "./index.tsx";
 import { PhotoShowcase } from "./PhotoShowcase.tsx";
-import { Video } from "./Video.tsx";
+import { Video } from "../../modules/video/index.ts";
 
 /** 未知の値を ReactElement に絞り込む (要素で無ければ throw)。 */
 const asElement = (node: unknown): ReactElement => {

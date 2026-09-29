@@ -1,5 +1,5 @@
 import React from "react";
-import { Audio } from "../../src/components/Audio.tsx";
+import { Audio } from "./Audio.tsx";
 import { assertVolume } from "../core/index.ts";
 
 /** Audio の要素ファクトリ。不正な volume はここで throw する。 */

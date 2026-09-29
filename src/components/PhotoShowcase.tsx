@@ -1,7 +1,9 @@
 import React from "react";
 import { AbsoluteFill, Img } from "remotion";
 import styles from "./PhotoShowcase.module.css";
-import { Video } from "./Video.tsx";
+// PhotoShowcase は modules/photo-showcase/ へ移設予定で、そのときは
+// ../video/index.ts から読む。移設までの間だけの暫定 import (ADR-0016)。
+import { Video } from "../../modules/video/index.ts";
 
 /** 写真紹介の枠に置く短い動画。音は出さない (常に無音)。 */
 export type PhotoVideo = {
