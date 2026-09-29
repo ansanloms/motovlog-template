@@ -1,4 +1,4 @@
-// キャラクター「龍星」の立ち絵定義 (ADR-0011)。character() が返す値を
+// キャラクター「龍星」の立ち絵定義 (motovlog の ADR-0011)。character() が返す値を
 // timeline.ts の line() の by、figure() の第 1 引数にそのまま渡す (identity
 // が結び付けの唯一の手段)。
 //
@@ -8,24 +8,23 @@
 //
 // PNG は同一キャンバスの書き出しとし、public/assets/characters/ryusei/ に
 // 置く (座標はどのレイヤーも共通で、figure() は座標計算をしない)。素材の
-// 切り出し (PSD からの書き出し) はこのテンプレートの外で行う
+// 切り出し (PSD からの書き出し) はこのリポジトリの外で行う
 // (psd-tools 等)。第三者の立ち絵素材は公開リポジトリにコミットしない
-// ([ADR-0002](../docs/adr/0002-project-directory-layout.md))。
+// (motovlog の ADR-0002)。
 //
 // voice はこのキャラクターの既定の声質で、line() 自身の voice がこれを
-// 上書きする (src/voice/key.ts の mergeVoice())。
+// 上書きする (motovlog の src/voice/key.ts の mergeVoice())。
 //
 // このファイルは Node からそのまま import できる純粋な値のモジュールに
-// 保つこと (remotion・CSS・src/components は import しない。
-// scripts/voice/extract.ts の watcher が line().by から voice だけを
-// 読むため)。
+// 保つこと (remotion・CSS・motovlog/components は import しない。
+// motovlog の音声生成の watcher が line().by から voice だけを読むため)。
 
 import {
   character,
   type MouthLayer,
   type EyesLayer,
   type FigureLayer,
-} from "../src/compositions/character.ts";
+} from "motovlog/compositions/character";
 import { narrator } from "../theme/index.ts";
 
 const dir = "assets/characters/ryusei";

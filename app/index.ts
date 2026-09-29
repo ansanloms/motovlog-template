@@ -1,9 +1,10 @@
-// Remotion の入口 (ADR-0012)。remotion.config.ts の setEntryPoint() がこの
-// ファイルを指す。lib (src/) に利用側の値を渡してから composition を登録する。
+// Remotion の入口 (motovlog の ADR-0012)。remotion.config.ts の setEntryPoint()
+// がこのファイルを指す。lib (motovlog) に利用側の値を渡してから composition を
+// 登録する。
 
 import "temporal-polyfill/global";
 import { registerRoot } from "remotion";
-import { configure, RemotionRoot } from "../src/index.ts";
+import { configure, RemotionRoot } from "motovlog";
 import { defaultProject, theme } from "./config.ts";
 
 configure({
