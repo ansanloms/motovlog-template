@@ -2,26 +2,9 @@
 
 import { staticFile } from "remotion";
 import { ryusei } from "../../characters/ryusei.ts";
-import {
-  audio,
-  ending,
-  photoShowcase,
-  video,
-} from "../../src/components/index.tsx";
-import {
-  figure,
-  line,
-  narration,
-  thumbnail,
-} from "../../src/compositions/index.ts";
-import {
-  crossfade,
-  cut,
-  end,
-  fade,
-  start,
-  timeline,
-} from "../../src/effects/index.ts";
+import { audio, ending, photoShowcase, video } from "motovlog/components";
+import { figure, line, narration, thumbnail } from "motovlog/compositions";
+import { crossfade, cut, end, fade, start, timeline } from "motovlog/effects";
 
 const asset = (path: string) =>
   staticFile(`projects/20260813-jododaira/${path}`);

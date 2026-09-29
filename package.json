@@ -1,42 +1,16 @@
 {
   "name": "motovlog-template",
   "version": "1.0.0",
-  "description": "Remotion で車載動画を作るテンプレート",
+  "description": "motovlog で作るモトブログ動画の project",
   "repository": {
     "type": "git",
     "url": "https://github.com/ansanloms/motovlog-template.git"
   },
   "license": "MIT",
   "private": true,
-  "exports": {
-    ".": "./src/index.ts",
-    "./effects": "./src/effects/index.ts",
-    "./components": "./src/components/index.tsx",
-    "./compositions": "./src/compositions/index.ts",
-    "./theme": "./src/theme/index.ts",
-    "./compositions/character": "./src/compositions/character.ts"
-  },
-  "files": [
-    "src",
-    "scripts",
-    "!**/*.test.*"
-  ],
-  "bin": {
-    "motovlog-voice": "scripts/bin/voice.mjs",
-    "motovlog-dev": "scripts/bin/dev.mjs",
-    "motovlog-convert": "scripts/bin/convert.mjs"
-  },
   "dependencies": {
-    "temporal-polyfill": "1.0.5",
-    "tsx": "4.23.13"
-  },
-  "peerDependencies": {
-    "@remotion/cli": "4.0.529",
-    "@remotion/google-fonts": "4.0.529",
-    "@remotion/media": "4.0.529",
-    "react": "19.3.0",
-    "react-dom": "19.3.0",
-    "remotion": "4.0.529"
+    "motovlog": "github:ansanloms/motovlog#f627df412fffc9f7aeaf93a290fb47a7e4ee02ec",
+    "temporal-polyfill": "1.0.5"
   },
   "devDependencies": {
     "@remotion/cli": "4.0.529",
@@ -53,17 +27,15 @@
     "react": "19.3.0",
     "react-dom": "19.3.0",
     "remotion": "4.0.529",
-    "typescript": "5.9.3",
-    "vitest": "5.0.1"
+    "typescript": "5.9.3"
   },
   "scripts": {
-    "dev": "tsx scripts/dev.ts",
+    "dev": "motovlog-dev",
     "build": "remotion bundle",
-    "upgrade": "scripts/remotion-upgrade.sh",
-    "lint": "eslint app theme src test scripts projects characters vitest.config.mts && tsc && prettier --check app theme src test scripts projects characters eslint.config.mjs vitest.config.mts remotion.config.ts",
-    "fix": "eslint --fix app theme src test scripts projects characters vitest.config.mts && prettier --write app theme src test scripts projects characters eslint.config.mjs vitest.config.mts remotion.config.ts",
-    "test": "vitest run",
-    "convert": "tsx scripts/convert-movie.ts",
-    "render": "tsx scripts/voice.ts && remotion render Motovlog"
+    "lint": "eslint app theme projects characters types && tsc && prettier --check app theme projects characters types eslint.config.mjs remotion.config.ts",
+    "fix": "eslint --fix app theme projects characters types && prettier --write app theme projects characters types eslint.config.mjs remotion.config.ts",
+    "convert": "motovlog-convert",
+    "voice": "motovlog-voice",
+    "render": "motovlog-voice && remotion render Motovlog"
   }
 }

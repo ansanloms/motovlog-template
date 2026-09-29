@@ -1,14 +1,14 @@
-// 利用側が持つ見た目と声の値 (ADR-0012)。lib (src/) はこの値を直接 import せず、
-// app/index.ts の configure() 経由で受け取る。layout・timing のトークンは lib の
-// src/theme/ が持つ。
+// 利用側が持つ見た目と声の値 (motovlog の ADR-0012)。lib (motovlog) はこの値を
+// 直接 import せず、app/index.ts の configure() 経由で受け取る。layout・timing の
+// トークンは lib の motovlog/theme が持つ。
 //
 // このファイルは Remotion を import しない。npm run dev / render の前段で動く
-// watcher (scripts/voice.ts) が Node から app/config.ts 経由で読むため。
+// watcher (motovlog-dev・motovlog-voice) が Node から app/config.ts 経由で読むため。
 
-import type { Narrator, Palette, Theme } from "../src/theme/index.ts";
+import type { Narrator, Palette, Theme } from "motovlog/theme";
 
-// T&M「カラー」節 (docs/design/tone-and-manner.md)。design の :root と同名。
-// 値は design と一致させる (CLAUDE.md「Claude Design の同期」)。
+// T&M「カラー」節 (motovlog の docs/design/tone-and-manner.md)。design の :root
+// と同名。
 const palette: Palette = {
   bg: "#0f1a14",
   surface: "#1a2c22",
