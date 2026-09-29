@@ -44,8 +44,7 @@
 import type { ReactNode } from "react";
 import React from "react";
 import { getRemotionEnvironment, staticFile } from "remotion";
-import { subtitleBand } from "../components/index.tsx";
-import { Line } from "../components/Line.tsx";
+import { Line, subtitleBand } from "../../modules/subtitle/index.ts";
 import type { TextLines } from "../../modules/core/text.ts";
 import { joinLines } from "../../modules/core/text.ts";
 import {

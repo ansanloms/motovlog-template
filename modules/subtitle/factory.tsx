@@ -1,5 +1,5 @@
 import React from "react";
-import { SubtitleBand } from "../../src/components/SubtitleBand.tsx";
+import { SubtitleBand } from "./SubtitleBand.tsx";
 
 /** SubtitleBand の要素ファクトリ。 */
 export const subtitleBand = (
