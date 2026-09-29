@@ -1,2 +1,2 @@
-export { Annotation } from "../../src/components/Annotation.tsx";
+export { Annotation } from "./Annotation.tsx";
 export { annotation } from "./factory.tsx";

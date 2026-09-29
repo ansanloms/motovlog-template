@@ -1,5 +1,5 @@
 import React from "react";
-import { Annotation } from "../../src/components/Annotation.tsx";
+import { Annotation } from "./Annotation.tsx";
 
 /** Annotation の要素ファクトリ。 */
 export const annotation = (props: React.ComponentProps<typeof Annotation>) => (
