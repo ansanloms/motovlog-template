@@ -8,7 +8,7 @@
 
 import { createElement } from "react";
 import type { ReactElement } from "react";
-import { Thumbnail } from "../components/Thumbnail.tsx";
+import { Thumbnail } from "../../modules/thumbnail/index.ts";
 import type { TextLines } from "../../modules/core/text.ts";
 import { joinLines } from "../../modules/core/text.ts";
 import { resolveBy } from "./character.ts";
