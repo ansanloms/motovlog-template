@@ -1,5 +1,5 @@
 import React from "react";
-import { Chapter } from "../../src/components/Chapter.tsx";
+import { Chapter } from "./Chapter.tsx";
 import { joinLines } from "../core/index.ts";
 import type { TextLines } from "../core/index.ts";
 

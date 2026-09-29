@@ -1,2 +1,2 @@
-export { Chapter } from "../../src/components/Chapter.tsx";
+export { Chapter } from "./Chapter.tsx";
 export { chapter } from "./factory.tsx";
