@@ -1,4 +1,5 @@
-import { describe, expect, it } from "vitest";
+import { describe, it } from "@std/testing/bdd";
+import { expect } from "@std/expect";
 import { applyGain, assertVolume, toVolumeProp, volumeAt } from "./volume.ts";
 
 describe("volumeAt", () => {
@@ -86,7 +87,7 @@ describe("assertVolume", () => {
       assertVolume([
         { at: 0, volume: 1 },
         { at: 1, volume: -1 },
-      ]),
+      ])
     ).toThrow();
   });
 
@@ -95,14 +96,14 @@ describe("assertVolume", () => {
       assertVolume([
         { at: 1, volume: 1 },
         { at: 1, volume: 0 },
-      ]),
+      ])
     ).toThrow();
 
     expect(() =>
       assertVolume([
         { at: 1, volume: 1 },
         { at: 0, volume: 0 },
-      ]),
+      ])
     ).toThrow();
   });
 
@@ -119,7 +120,7 @@ describe("assertVolume", () => {
       assertVolume([
         { at: 0, volume: 1 },
         { at: 1, volume: 1.1 },
-      ]),
+      ])
     ).toThrow();
   });
 
@@ -129,7 +130,7 @@ describe("assertVolume", () => {
       assertVolume([
         { at: 0, volume: 1 },
         { at: 1, volume: 0 },
-      ]),
+      ])
     ).not.toThrow();
   });
 });

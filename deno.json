@@ -1,0 +1,33 @@
+{
+  "nodeModulesDir": "manual",
+  "compilerOptions": {
+    "jsx": "react-jsx",
+    "jsxImportSource": "react",
+    "lib": ["dom", "dom.iterable", "esnext"]
+  },
+  "imports": {
+    "@std/expect": "jsr:@std/expect@^1.0.20",
+    "@std/testing": "jsr:@std/testing@^1.0.21",
+    "react": "npm:react@19.3.0",
+    "react/": "npm:/react@19.3.0/",
+    "react-dom": "npm:react-dom@19.3.0",
+    "remotion": "npm:remotion@4.0.529",
+    "@remotion/media": "npm:@remotion/media@4.0.529"
+  },
+  "fmt": {
+    "include": ["modules/"]
+  },
+  "lint": {
+    "include": ["modules/"]
+  },
+  "test": {
+    "include": ["modules/**/*.test.ts"]
+  },
+  "tasks": {
+    "check": "deno check modules/",
+    "lint": "deno lint",
+    "fmt": "deno fmt",
+    "fmt:check": "deno fmt --check",
+    "test": "deno test -A"
+  }
+}

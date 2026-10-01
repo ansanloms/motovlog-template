@@ -9,6 +9,14 @@ export default defineConfig({
     // .claude/worktrees/ に置いた別の worktree のテストまで拾ってしまい、
     // そちらの src/setup.ts はこの設定の setupFiles が configure() したものとは
     // 別モジュールになるため、getSetup() が「未設定です」で throw する。
-    exclude: ["**/node_modules/**", "**/.claude/**", "**/dist/**", "**/out/**"],
+    exclude: [
+      "**/node_modules/**",
+      "**/.claude/**",
+      "**/dist/**",
+      "**/out/**",
+      // modules/ の .test.ts は deno test で実行する (ADR-0016)。
+      // CSS Modules を読む .test.tsx は Deno で実行できないため vitest に残す。
+      "modules/**/*.test.ts",
+    ],
   },
 });

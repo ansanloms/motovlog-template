@@ -68,6 +68,10 @@ if [ -n "$mismatches" ]; then
   fi
 fi
 
+# deno.json pins the same npm versions for the Deno tooling over modules/ (ADR-0016).
+# deno.lock is refreshed by the deno tasks that npm run lint runs below.
+sed -i -E "s#\"npm:(/?)(@remotion/[^@/\"]+|remotion)@[^/\"]+#\"npm:\\1\\2@${target}#g" deno.json
+
 found_sha=""
 checked=0
 while IFS= read -r sha; do
