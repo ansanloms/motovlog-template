@@ -16,7 +16,7 @@ Remotion でモトブログ動画を作るためのライブラリ (lib)。動�
 lib (動画を作る機能) は次の 3 つ。
 
 - `src/`: 演出の DSL (effects)・compositions・配置と秒数のトークン・音声と project の読み込み
-- `modules/`: 見た目のコンポーネント。`modules/<name>/` にコンポーネント・CSS Module・要素ファクトリ・テストをまとめる。`modules/core/` は module 間で共有する部品 (文字列の結合・音量・Studio 用プロキシの解決等) を持つ。`modules/<name>/` が import してよい他の module は `modules/core/` だけ
+- `modules/`: npm package 相当の独立した単位。`modules/<name>/` は `index.ts` を入口に持ち、`motovlog/modules/<name>` として公開される。今は見た目のコンポーネント 9 個 (コンポーネント・CSS Module・要素ファクトリ・テストをまとめる) と、module 間で共有する部品を持つ `modules/core/` を置いている。`modules/<name>/` が import してよい他の module は原則 `modules/core/` だけ
 - `scripts/`: 音声生成・素材の変換・Studio の起動
 
 利用側 (動画 1 本ごとの値) は次のとおり。このリポジトリではサンプル project の骨格として置いている。
@@ -33,14 +33,14 @@ lib (動画を作る機能) は次の 3 つ。
 
 利用側から lib を import してよいのは次の 5 つの入口と、各 module の入口 (`modules/<name>/index.ts`) だけで、それ以外の `src/`・`modules/` 配下を import すると ESLint が落とす。
 
-| 入口                      | 実体                        | 主な中身                                                                                                     |
-| ------------------------- | --------------------------- | ------------------------------------------------------------------------------------------------------------ |
-| `motovlog`                | `src/index.ts`              | `configure`・`RemotionRoot`・`Motovlog` と、下の 4 つの再 export                                             |
-| `motovlog/effects`        | `src/effects/index.ts`      | `timeline`・`cut`・`fade`・`crossfade`・`frame`・`start`・`end`・`group`                                     |
-| `motovlog/components`     | `src/components/index.tsx`  | 要素ファクトリ (`video`・`audio`・`chapter`・`ending` 等)                                                    |
-| `motovlog/compositions`   | `src/compositions/index.ts` | `line`・`narration`・`character`・`figure`・`thumbnail`                                                      |
-| `motovlog/theme`          | `src/theme/index.ts`        | 配置と秒数のトークン (`chapterTiming`・`characterTiming`・`fps` 等)                                          |
-| `motovlog/modules/<name>` | `modules/<name>/index.ts`   | module ごとのコンポーネントと要素ファクトリ (`motovlog/components` はこれらの要素ファクトリを再 export する) |
+| 入口                      | 実体                        | 主な中身                                                                                                                                                                                          |
+| ------------------------- | --------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `motovlog`                | `src/index.ts`              | `configure`・`RemotionRoot`・`Motovlog` と、下の 4 つの再 export                                                                                                                                  |
+| `motovlog/effects`        | `src/effects/index.ts`      | `timeline`・`cut`・`fade`・`crossfade`・`frame`・`start`・`end`・`group`                                                                                                                          |
+| `motovlog/components`     | `src/components/index.tsx`  | 要素ファクトリ (`video`・`audio`・`chapter`・`ending` 等)                                                                                                                                         |
+| `motovlog/compositions`   | `src/compositions/index.ts` | `line`・`narration`・`character`・`figure`・`thumbnail`                                                                                                                                           |
+| `motovlog/theme`          | `src/theme/index.ts`        | 配置と秒数のトークン (`chapterTiming`・`characterTiming`・`fps` 等)                                                                                                                               |
+| `motovlog/modules/<name>` | `modules/<name>/index.ts`   | npm package 相当の独立した単位 (今はコンポーネント 9 個と `core`)。コンポーネントの module は要素ファクトリとコンポーネントを出し、`motovlog/components` はこれらの要素ファクトリを再 export する |
 
 このリポジトリの中の利用側ファイルは、同じ 5 つの入口を相対パス (`../../src/effects/index.ts` 等) で import する。外部のリポジトリから依存として使う手順は「外部のリポジトリから使う」にある。
 

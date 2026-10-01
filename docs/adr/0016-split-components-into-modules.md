@@ -1,6 +1,6 @@
 ---
 status: accepted
-date: 2026-09-30T00:00:00Z
+date: 2026-10-01T00:00:00Z
 refs: [6, 11, 12, 14, 15]
 tags: [layout, package, components, boundary]
 ---
@@ -26,16 +26,31 @@ lib の見た目のコンポーネントは `src/components/` に平らに置か
 
 ## Considered Options
 
-1. `src/components/` の中身だけを `modules/<name>/` に分け、共有部品を `modules/core/` に置き、単一の `package.json` の `exports` に `./modules/*` を足す — 採用。コンポーネント単位でファイルがまとまり、依存の規則を ESLint で書ける。パッケージの構成とバンドラの設定は変わらない。
-2. npm workspaces で module ごとにパッケージを分ける — 却下。約 1365 行のコードのために、Remotion のバンドラが workspace のパッケージと CSS Modules を解決するか、パッケージの自己参照が通るかを検証し直す必要があり、コストが見合わない。
+1. `modules/<name>/` を npm package 相当の独立した単位とし、単一の `package.json` の `exports` の `./modules/*` で公開する。初回はコンポーネントと共有部品 `modules/core/` を置く — 採用。コンポーネント単位でファイルがまとまり、依存の規則を ESLint で書ける。パッケージの構成とバンドラの設定は変わらない。
+2. npm workspaces で module ごとにパッケージを分ける — 却下。npm 11.19.0・node 24.20.0 で実測した。root が workspace の package に依存している lib を利用側が `github:` 参照で取り込むと、npm はその package を registry で解決しようとし、`E404` で install 自体が失敗する。依存を外すと install は通るが、workspace の package は利用側の `node_modules/<name>` に展開されず、lib の `exports` の subpath 経由でしか届かない。workspaces にしても利用側から見える形は今と同じ subpath になり、Remotion のバンドラと CSS Modules の検証をやり直すコストだけが増える。
 3. `src/effects`・`src/compositions` も `modules/` に移す — 却下。これらはコンポーネントではなく層の DSL で、[ADR-0006](./0006-write-timeline-as-effects-dsl.md) と [ADR-0012](./0012-split-template-library-from-consumer.md) の層の規則がディレクトリ単位で書かれている。移しても 1 か所にまとまるファイルが増えず、層の境界の検査を書き直すことになる。
 4. 現状の `src/components/` を保つ — 却下。コンポーネント間の依存と共有部品への依存が区別されず、Driver 2 を満たさない。
 
 ## Decision
 
+### modules/ の定義
+
+- `modules/<name>/` は `index.ts` を入口に持ち、`package.json` の `exports` の `./modules/*` で `motovlog/modules/<name>` として公開される独立した単位 (npm package 相当) とする。コンポーネント専用のディレクトリではなく、コンポーネント以外の単位も置ける。
+- `package.json` は 1 つのまま管理し、npm workspaces にはしない。
+- 初回に置くのは、見た目のコンポーネント 9 個 (`chapter`・`ending`・`photo-showcase`・`thumbnail`・`figure`・`subtitle`・`annotation`・`video`・`audio`) と、共有部品の `core` とする。
+
+### modules/ に置く基準
+
+`modules/<name>/` に置く単位は、次をすべて満たす。
+
+- 公開面は自分の `index.ts` だけとする。
+- 依存は `modules/core/` と、ESLint の規則で許した外部パッケージ (`react`・`remotion`・`@remotion/media`) に限る。例外は `photo-showcase` から `video` への依存 1 件だけとする。理由: 写真紹介が短い動画を走行映像と同じ `Video` で描く。
+- project (利用側) を知らない。
+- `src/` の層の DSL (`effects`・`compositions`・`theme`・`voice`・`project`) は `modules/` に移さない。移すときは別の ADR で決める。
+
 ### 配置
 
-- `src/components/` の中身を `modules/` に移す。`src/effects`・`src/compositions`・`src/theme`・`src/voice`・`src/project` は `src/` に残す。
+- `src/components/` の中身を `modules/` に移す。
 - `modules/core/` に module 間で共有する部品を置く。`src/fadeGain.ts` と、`src/components/` の `text.ts`・`volume.ts`・`previewSrc.ts` とそのテストをここに置く。
 - 次の module を置く。
 
@@ -64,7 +79,7 @@ lib の見た目のコンポーネントは `src/components/` に平らに置か
 ### 依存の規則
 
 - `src/components/**` に課していた ESLint の規則 (effects を import しない、`remotion` から import できる名前を限る、`@remotion/media` 以外の `@remotion/*` を import しない、利用側を import しない) を `modules/**` にも課す。加えて `modules/**` は compositions を import しない。
-- `modules/<name>/` が import してよい他の module は `modules/core/` だけとする。`modules/core/` は他の module を import しない。
+- `modules/<name>/` が import してよい他の module は `modules/core/` だけとする。例外は、上の置く基準に記録した `photo-showcase` から `video` への依存だけとする。`modules/core/` は他の module を import しない。
 - 利用側 (`app/`・`theme/`・`projects/`) が import してよい module のファイルは `modules/<name>/index.ts` だけとする。`characters/<name>.ts` は module を import しない。
 
 ## Consequences
@@ -79,11 +94,11 @@ lib の見た目のコンポーネントは `src/components/` に平らに置か
 
 - 公開面が `motovlog/components` と `motovlog/modules/<name>` の 2 通りになり、同じ要素ファクトリを 2 つの経路で import できる。
 - module 間の依存の規則は、module の名前ごとに ESLint の設定ブロックを生成して検査する。module を足すと設定が増え、規則は import 文の文字列の前方一致による近似になる。
-- 他の module のコンポーネントを使いたい場合 (例: 写真紹介が走行映像の `Video` を使う) は、その部品を `modules/core/` に移すか、依存の規則を見直す必要がある。
+- 他の module の部品を使いたい場合は、その部品を `modules/core/` に移すか、例外として ADR に記録する必要がある。
 
 ### 禁止事項
 
-- `modules/<name>/` が `modules/core/` 以外の module を import すること。
+- `modules/<name>/` が `modules/core/` 以外の module を import すること (`photo-showcase` から `video` への依存を除く)。
 - `modules/core/` が他の module を import すること。
 - `modules/**` が `src/components/index.tsx` を import すること。理由: 全 module の要素ファクトリを再 export するため、経由すると他の module への依存と循環 import が生じる。
 - `modules/**` が `src/effects`・`src/compositions`・利用側 (`app/`・`theme/`・`projects/`・`characters/`) を import すること。
@@ -100,3 +115,4 @@ lib の見た目のコンポーネントは `src/components/` に平らに置か
 ## References
 
 - 2026-09-30 の計画承認: `src/components/` の中身だけを `modules/<name>/` に分け、共有部品を `modules/core/` に置く。npm workspaces は使わず、`package.json` の `exports` に `./modules/*` を足す。`src/effects` と `src/compositions` は `src/` に残す。
+- 2026-10-01 の所有者の決定: `modules/` はコンポーネント専用ではなく npm package 相当の独立した単位を置く場所とし、コンポーネント以外の単位も後から置ける。名前は `modules/` のままとし、npm workspaces は使わない。npm workspaces の却下理由の実測 (npm 11.19.0・node 24.20.0) は、この決定と同時に共有された結果である。
