@@ -1,0 +1,12 @@
+{
+  "name": "@motovlog/subtitle",
+  "version": "0.0.0",
+  "exports": "./index.ts",
+  "imports": {
+    "react": "npm:react@19.3.0",
+    "react/": "npm:/react@19.3.0/"
+  },
+  "tasks": {
+    "check": "deno check index.ts"
+  }
+}

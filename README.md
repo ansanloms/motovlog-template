@@ -14,13 +14,25 @@ Remotion でモトブログ動画を作るためのライブラリ (lib) と、�
 
 | 対象                   | Deno (`deno task ...`)                                                      | Node (`npm run ...`)                                                |
 | ---------------------- | --------------------------------------------------------------------------- | ------------------------------------------------------------------- |
-| 型検査                 | `check` (`modules/`)                                                        | `lint` の `tsc` (リポジトリ全体。`modules/**/*.test.ts` を除く)     |
+| 型検査                 | `check` (各 module の `index.ts`)                                           | `lint` の `tsc` (リポジトリ全体。`modules/**/*.test.ts` を除く)     |
 | lint                   | `lint` (`modules/`)                                                         | `lint` の ESLint (`modules/` を含む。層と module の境界の規則)      |
 | 整形                   | `fmt`・`fmt:check` (`modules/`)                                             | `lint`・`fix` の prettier (`modules/` を除く)                       |
 | テスト                 | `test` (`modules/**/*.test.ts`、`@std/testing/bdd` と `@std/expect` で書く) | `test` (vitest。`modules/**/*.test.tsx` と `modules/` 以外のテスト) |
 | bundle・render・Studio | なし                                                                        | `build`・`render`・`dev`                                            |
 
 `npm run lint` は最後に `npm run lint:deno` (Deno の `check`・`lint`・`fmt:check`・`test`) を実行し、`npm run fix` は最後に `deno task fmt` を実行する。CSS Modules を読むテストは Deno で実行できないため、`.test.tsx` として vitest に置く。
+
+`modules/<name>/` は Deno の workspace の member で、それぞれ自分の `deno.json` (`name`・`exports`・`imports`・`tasks`) を持つ。module 単位で検査するときは、その module のディレクトリで次を実行する。
+
+```sh
+cd modules/<name>
+deno task check   # deno check index.ts
+deno lint
+deno fmt --check
+deno test -A      # *.test.ts を持つ module だけ (無い module では "No test modules found" で失敗する)
+```
+
+root からは `deno task --members check` で全 module の `check` を実行できる (root の `deno task check` と同じ)。`deno task -f @motovlog/<name> check` で 1 つの module に絞れる。
 
 ## ディレクトリ構成
 

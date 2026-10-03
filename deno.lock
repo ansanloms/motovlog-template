@@ -3145,14 +3145,6 @@
     }
   },
   "workspace": {
-    "dependencies": [
-      "jsr:@std/expect@^1.0.20",
-      "jsr:@std/testing@^1.0.21",
-      "npm:@remotion/media@4.0.529",
-      "npm:react-dom@19.3.0",
-      "npm:react@19.3.0",
-      "npm:remotion@4.0.529"
-    ],
     "packageJson": {
       "dependencies": [
         "npm:@remotion/cli@4.0.529",
@@ -3174,6 +3166,50 @@
         "npm:typescript@5.9.3",
         "npm:vitest@5.0.1"
       ]
+    },
+    "members": {
+      "modules/annotation": {
+        "dependencies": [
+          "npm:react@19.3.0"
+        ]
+      },
+      "modules/audio": {
+        "dependencies": [
+          "npm:react@19.3.0"
+        ]
+      },
+      "modules/chapter": {
+        "dependencies": [
+          "npm:react@19.3.0"
+        ]
+      },
+      "modules/core": {
+        "dependencies": [
+          "jsr:@std/expect@^1.0.20",
+          "jsr:@std/testing@^1.0.21",
+          "npm:react@19.3.0"
+        ]
+      },
+      "modules/ending": {
+        "dependencies": [
+          "npm:react@19.3.0"
+        ]
+      },
+      "modules/photo-showcase": {
+        "dependencies": [
+          "npm:react@19.3.0"
+        ]
+      },
+      "modules/subtitle": {
+        "dependencies": [
+          "npm:react@19.3.0"
+        ]
+      },
+      "modules/video": {
+        "dependencies": [
+          "npm:react@19.3.0"
+        ]
+      }
     }
   }
 }

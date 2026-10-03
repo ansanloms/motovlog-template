@@ -1,0 +1,15 @@
+{
+  "name": "@motovlog/core",
+  "version": "0.0.0",
+  "exports": "./index.ts",
+  "imports": {
+    "@std/expect": "jsr:@std/expect@^1.0.20",
+    "@std/testing": "jsr:@std/testing@^1.0.21",
+    "react": "npm:react@19.3.0",
+    "react/": "npm:/react@19.3.0/"
+  },
+  "tasks": {
+    "check": "deno check index.ts",
+    "test": "deno test -A"
+  }
+}

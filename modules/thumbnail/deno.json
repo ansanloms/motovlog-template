@@ -1,0 +1,8 @@
+{
+  "name": "@motovlog/thumbnail",
+  "version": "0.0.0",
+  "exports": "./index.ts",
+  "tasks": {
+    "check": "deno check index.ts"
+  }
+}
