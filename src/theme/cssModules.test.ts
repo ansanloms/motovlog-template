@@ -10,7 +10,14 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 
-const srcDir = path.join(path.dirname(fileURLToPath(import.meta.url)), "..");
+const rootDir = path.join(
+  path.dirname(fileURLToPath(import.meta.url)),
+  "..",
+  "..",
+);
+
+// CSS Modules を置くディレクトリ。コンポーネントは modules/ にある (ADR-0015)。
+const scanDirs = ["src", "modules"].map((dir) => path.join(rootDir, dir));
 
 type CssModuleImport = {
   tsxFile: string;
@@ -18,7 +25,7 @@ type CssModuleImport = {
   cssFile: string;
 };
 
-// src 配下の *.tsx を再帰的に集める。
+// dir 配下の *.tsx を再帰的に集める。
 const findTsxFiles = (dir: string): string[] => {
   return fs.readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
     const entryPath = path.join(dir, entry.name);
@@ -83,7 +90,7 @@ const findDefinedClasses = (cssFile: string): string[] => {
   return [...new Set([...content.matchAll(pattern)].map((match) => match[1]))];
 };
 
-const tsxFiles = findTsxFiles(srcDir);
+const tsxFiles = scanDirs.flatMap(findTsxFiles);
 const cssModuleImports = findCssModuleImports(tsxFiles);
 
 describe("CSS Modules のクラス名参照", () => {
@@ -93,8 +100,8 @@ describe("CSS Modules のクラス名参照", () => {
   });
 
   for (const { tsxFile, ident, cssFile } of cssModuleImports) {
-    const tsxName = path.relative(srcDir, tsxFile);
-    const cssName = path.relative(srcDir, cssFile);
+    const tsxName = path.relative(rootDir, tsxFile);
+    const cssName = path.relative(rootDir, cssFile);
     const referencedKeys = findReferencedKeys(tsxFile, ident);
     const definedClasses = findDefinedClasses(cssFile);
 
