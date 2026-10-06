@@ -97,7 +97,7 @@ const resolveBareSpecifier = (
 
 /**
  * import の specifier が lib のファイル (moduleRealpaths) に解決されるか
- * どうかを見る。package 名 (motovlog 等) との文字列一致ではなく
+ * どうかを見る。package 名 (motovlog-template 等) との文字列一致ではなく
  * 解決先のファイルで判定する。npm alias・fork・改名した依存でも、実体が
  * lib のファイルであれば判定が壊れないようにするため。
  *

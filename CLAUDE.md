@@ -1,4 +1,4 @@
-# CLAUDE.md (motovlog)
+# CLAUDE.md (motovlog-template)
 
 ## skill の導入
 

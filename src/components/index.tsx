@@ -1,5 +1,5 @@
 // timeline.ts から各コンポーネントを関数呼び出しで並べるための要素ファクトリ
-// の入口。実体は modules/<name>/ に置き (ADR-0016)、ここは互換のための
+// の入口。実体は modules/<name>/ に置き (ADR-0015)、ここは互換のための
 // 再エクスポートだけを持つ (package.json の exports の "./components")。
 // thumbnail() は表情名の解決を伴うため src/compositions/thumbnail.ts に置く
 // (ADR-0011)。

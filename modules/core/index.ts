@@ -1,4 +1,4 @@
-// modules の共有部品 (ADR-0016)。各 modules/<name> はここだけを経由して
+// modules の共有部品 (ADR-0015)。各 modules/<name> はここだけを経由して
 // 他の module と部品を共有する。
 export { FadeGainContext, useFadeGain } from "./fadeGain.ts";
 export { previewSrc } from "./previewSrc.ts";

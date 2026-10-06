@@ -1,5 +1,5 @@
 // compositions の公開面 (ADR-0012)。利用側の timeline.ts はこのファイルか
-// motovlog/compositions 経由でだけ compositions を import する。
+// motovlog-template/compositions 経由でだけ compositions を import する。
 // effects (演出の術) と components (見た目) と違い、compositions は動画の
 // ドメイン (発話・立ち絵・サムネ) を組み立てる層。
 //

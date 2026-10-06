@@ -87,7 +87,7 @@ const componentPaths = [
 ];
 
 /**
- * modules/ 直下の module 名 (ADR-0016)。module ごとに「他の module を import
+ * modules/ 直下の module 名 (ADR-0015)。module ごとに「他の module を import
  * しない」設定ブロックを作るため、設定の読み込み時にディレクトリを列挙する。
  */
 const MODULE_NAMES = fs
@@ -97,7 +97,7 @@ const MODULE_NAMES = fs
 
 /**
  * module 間の import 禁止の既定 (modules/core 以外は禁止) を破る例外
- * (ADR-0016)。PhotoShowcase が走行映像の Video を枠に重ねて合成するため、
+ * (ADR-0015)。PhotoShowcase が走行映像の Video を枠に重ねて合成するため、
  * modules/photo-showcase/ だけ modules/video/ への依存を例外として許可する。
  * modules/video/ は modules/core/ 以外を import しないため、この例外を
  * 加えても循環 import にはならない。他の module で同種の要求が出ても、
@@ -114,7 +114,7 @@ const MODULE_IMPORT_EXCEPTIONS = {
  */
 const buildOthersMessage = (name, allowed) => {
   if (name === "core") {
-    return "modules/core は他の module を import しない (ADR-0016)。";
+    return "modules/core は他の module を import しない (ADR-0015)。";
   }
 
   if (allowed.length > 0) {
@@ -122,14 +122,14 @@ const buildOthersMessage = (name, allowed) => {
       .map((other) => `modules/${other}`)
       .join("・");
 
-    return `modules/${name} が import してよい他の module は modules/core と ${allowedModules} だけ (ADR-0016)。`;
+    return `modules/${name} が import してよい他の module は modules/core と ${allowedModules} だけ (ADR-0015)。`;
   }
 
-  return "modules/<name> が import してよい他の module は modules/core だけ (ADR-0016)。";
+  return "modules/<name> が import してよい他の module は modules/core だけ (ADR-0015)。";
 };
 
 /**
- * module ごとの設定ブロック (ADR-0016)。modules/<name>/<file> は
+ * module ごとの設定ブロック (ADR-0015)。modules/<name>/<file> は
  * src/components/** と同じ規則に加え、compositions と、modules/core 以外の
  * 他の module を import しない (modules/core は他の module を一切 import
  * しない)。MODULE_IMPORT_EXCEPTIONS に列挙した module だけ、そこに挙げた
@@ -159,7 +159,7 @@ const MODULE_BLOCKS = MODULE_NAMES.map((name) => {
             ...componentPatterns,
             {
               group: ["**/compositions/**"],
-              message: "modules は compositions を import しない (ADR-0016)。",
+              message: "modules は compositions を import しない (ADR-0015)。",
             },
             {
               // src/components/index.tsx は全 module の要素ファクトリを
@@ -167,7 +167,7 @@ const MODULE_BLOCKS = MODULE_NAMES.map((name) => {
               // すり抜け、循環 import にもなる。
               group: ["**/src/components/index.tsx"],
               message:
-                "modules は src/components/index.tsx (全 module の再 export) を import しない (ADR-0016)。",
+                "modules は src/components/index.tsx (全 module の再 export) を import しない (ADR-0015)。",
             },
             ...(others.length === 0
               ? []
@@ -252,7 +252,7 @@ export default [
   {
     // components は見た目だけを描く。timeline の配線と remotion のフレーム
     // API・媒体要素は持たない。modules/** にも同じ規則を課す (下の
-    // MODULE_BLOCKS、ADR-0016)。
+    // MODULE_BLOCKS、ADR-0015)。
     files: ["src/components/**"],
     rules: {
       "no-restricted-imports": [
@@ -285,14 +285,14 @@ export default [
             },
             {
               // effects が読んでよい module は共有部品の modules/core だけ
-              // (Stage が fadeGain の context を置くため、ADR-0016)。
+              // (Stage が fadeGain の context を置くため、ADR-0015)。
               group: [
                 "**/modules/**",
                 "!**/modules/core/",
                 "!**/modules/core/**",
               ],
               message:
-                "effects が import してよい module は modules/core だけ (ADR-0016)。",
+                "effects が import してよい module は modules/core だけ (ADR-0015)。",
             },
           ],
         },
@@ -301,7 +301,7 @@ export default [
   },
   {
     // 利用側 (app・theme・projects) は lib の公開面 (package.json の exports と
-    // 同じ 5 入口と modules/<name>/index.ts) だけを見る (ADR-0012・ADR-0016)。characters/** の制限は下のブロックに
+    // 同じ 5 入口と modules/<name>/index.ts) だけを見る (ADR-0012・ADR-0015)。characters/** の制限は下のブロックに
     // まとめて書く (flat config は同じ rule を後のブロックが置き換えるため)。
     files: ["app/**", "theme/**", "projects/**"],
     rules: {
@@ -337,7 +337,7 @@ export default [
                 `!${pkg.name}/modules/*`,
               ],
               message:
-                "利用側が import してよい module のファイルは modules/<name>/index.ts だけ (ADR-0016)。",
+                "利用側が import してよい module のファイルは modules/<name>/index.ts だけ (ADR-0015)。",
             },
           ],
         },
@@ -359,7 +359,7 @@ export default [
               // characters/<name>.ts が lib から import してよいのは
               // src/compositions/character.ts だけ (ADR-0011・ADR-0012)。
               // 5 入口 (src/index.ts・src/compositions/index.ts 等) と bare
-              // specifier (motovlog) は、figure()・line() 経由で
+              // specifier (motovlog-template) は、figure()・line() 経由で
               // src/components と CSS Modules を辿るため素の Node から
               // import できなくなり、watcher (scripts/voice/extract.ts) が
               // line().by の voice を読めなくなる。
@@ -397,7 +397,7 @@ export default [
             {
               group: ["**/modules/**"],
               message:
-                "characters/<name>.ts は modules を import しない (ADR-0011・ADR-0016)。",
+                "characters/<name>.ts は modules を import しない (ADR-0011・ADR-0015)。",
             },
             {
               group: ["*.css", "**/*.module.css"],

@@ -1,10 +1,10 @@
 {
-  "name": "motovlog",
+  "name": "motovlog-template",
   "version": "1.0.0",
-  "description": "Remotion で車載動画を作るライブラリ",
+  "description": "Remotion で車載動画を作るテンプレート",
   "repository": {
     "type": "git",
-    "url": "https://github.com/ansanloms/motovlog.git"
+    "url": "https://github.com/ansanloms/motovlog-template.git"
   },
   "license": "MIT",
   "private": true,
