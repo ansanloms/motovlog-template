@@ -27,7 +27,7 @@ ESLint は [ADR-0012](./0012-split-template-library-from-consumer.md) と [ADR-0
 - `nodeModulesDir` を member の `deno.json` に書くと `"nodeModulesDir" field can only be specified in the workspace root deno.json file` の警告が出る。
 - root の `fmt`・`lint`・`test` の `include` を外すと、root で引数なしに実行した `deno fmt`・`deno lint`・`deno test` がリポジトリ全体を対象にする。
 - member の `deno.json` に `name` と `exports` を書くと、`deno lint` に `jsr` タグの規則 (`no-slow-types`・`verbatim-module-syntax`) が加わり、`modules/` に 15 件の指摘が出る。root の `lint.rules.tags` を `["recommended"]` にすると 0 件に戻る。
-- member は root の `tasks` を引き継ぐ。`test` を持たない member で `deno task test` を実行すると root の `test` が走る。root の `test` を `deno task --members test` にすると、`test` を持たない member が root の `test` を呼び返し、終わらなくなる。`check` を持たない member を置いた場合も、root の `check` (`deno task --members check`) が同じく終わらなくなる。
+- member は root の `tasks` を引き継ぐ。`test` を持たない member で `deno task test` を実行すると root の `test` が走る。root の `check`・`lint`・`fmt:check`・`test` を `deno task --members` にすると、その task を持たない member が root の task を呼び返し、終わらなくなる。
 - テストファイルの無い member で `deno test -A` を実行すると `error: No test modules found` で終了コード 1 になる。
 
 ## Decision Drivers
@@ -50,7 +50,7 @@ ESLint は [ADR-0012](./0012-split-template-library-from-consumer.md) と [ADR-0
 - `modules/` の型検査を、各 member の `deno task check` (`deno check index.ts`) で行う。root の `deno task check` は `deno task --members check` で全 member の `check` を実行する。
 - `modules/` の lint を `deno lint`、整形を `deno fmt` で行う。lint の規則は root の `lint.rules.tags` で `recommended` に固定する。理由: member が `name` と `exports` を持つと `jsr` タグの規則が加わるが、`modules/` は JSR に publish しない。
 - `modules/**/*.test.ts` (CSS Modules を読まないテスト) を `deno test` で実行する。テストは `@std/testing/bdd` と `@std/expect` で書く。
-- root の `deno task test` は、root の `test.include` に従う `deno test -A` とする。`deno task --members test` にはしない。理由: `test` を持たない member が root の `test` を引き継ぎ、呼び出しが終わらなくなる。
+- 全 member が同じ 4 つの task (`check`・`lint`・`fmt:check`・`test`) を持つことを前提に、root の `check`・`lint`・`fmt:check`・`test` は `deno task --members` で回す。task を持たない member があると root の task を呼び返して止まらなくなるため、module を足すときは 4 つの task を必ず置く。テストの無い member は `--permit-no-files` で成功にする。
 - root の `test.exclude` で `modules/**/*.test.tsx` を外す。理由: 外さないと root の `deno test -A` が CSS Modules を読む `.test.tsx` (`modules/photo-showcase/PhotoShowcase.test.tsx`) まで読み込み、`*.module.css` の import で失敗する。
 - root の `tasks` (`check`・`lint`・`fmt`・`fmt:check`・`test`) を `npm run lint` と `npm run fix` から呼ぶ。
 
@@ -59,7 +59,7 @@ ESLint は [ADR-0012](./0012-split-template-library-from-consumer.md) と [ADR-0
 - root の `deno.json` を workspace とし、`"workspace": ["./modules/*"]` で `modules/<name>/` をすべて member にする。
 - 各 member は自分の `deno.json` を module の manifest として持つ。`name` は `@motovlog/<name>`、`version` は `0.0.0`、`exports` は `./index.ts` とする。
 - 依存は member の `deno.json` の `imports` に書く。その member のファイルが import する外部パッケージだけを書き、root の `imports` には書かない。
-- 各 member の `tasks` には `check` (`deno check index.ts`) を必ず置く。`*.test.ts` を持つ member だけが `test` (`deno test -A`) を置く。理由: `check` を持たない member があると、root の `check` (`deno task --members check`) をその member が引き継いで呼び返す。
+- 各 member の `tasks` には `check` (`deno check index.ts`)・`lint` (`deno lint`)・`fmt:check` (`deno fmt --check`)・`test` (`deno test -A --permit-no-files`) を必ず置く。理由: task を持たない member があると、root の task (`deno task --members <task>`) をその member が引き継いで呼び返す。
 - root の `deno.json` は `nodeModulesDir`・`compilerOptions`・`fmt`/`lint`/`test` の `include` を持つ。理由: `nodeModulesDir` は workspace の root にしか書けず、`include` が無いと root で引数なしに実行した `deno fmt`・`deno lint`・`deno test` がリポジトリ全体を対象にする。
 - member 間の import は相対パス (`../core/index.ts`) のまま書き、`@motovlog/<name>` の名前で import しない。理由: Remotion のバンドラ (Rspack) と `tsc` は `deno.json` を読まず、このリポジトリには `@motovlog/<name>` を解決する設定が無い。
 - `deno.lock` は root に 1 つだけ置く。Deno は member ごとの依存を、その中の member の節に記録する。
@@ -93,14 +93,14 @@ ESLint は [ADR-0012](./0012-split-template-library-from-consumer.md) と [ADR-0
 - 整形のツールがディレクトリで分かれる。`modules/` は `deno fmt`、それ以外は prettier である。
 - `src/` 等から `modules/` へ移すテストは、`.test.ts` であれば `@std/testing/bdd` と `@std/expect` に書き換える必要がある。
 - Remotion 等の依存を更新するときは、`package.json` と各 member の `deno.json` のバージョンを揃える必要がある。
-- module を足すときは、その module の `deno.json` (`name`・`exports`・`imports`・`tasks.check`) も書く必要がある。
+- module を足すときは、その module の `deno.json` (`name`・`exports`・`imports`・`tasks` の 4 つ) も書く必要がある。
 
 ### 禁止事項
 
 - `modules/**/*.test.ts` を vitest で書くこと、または CSS Modules を読むテストを `.test.ts` として置くこと。
 - `deno.json` の `imports` に `package.json` と異なるバージョンを書くこと。
 - member 間の import を `@motovlog/<name>` の名前で書くこと。
-- `check` を持たない member を置くこと、または root の `test` を `deno task --members test` にすること。
+- member の 4 つの task (`check`・`lint`・`fmt:check`・`test`) を省くこと。
 - member の `deno.json` に `nodeModulesDir` を書くこと。
 - `modules/` に対する ESLint の境界の規則を、Deno の lint で置き換えたとして外すこと。
 - `modules/` を prettier で整形すること。

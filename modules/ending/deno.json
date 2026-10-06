@@ -11,6 +11,8 @@
   },
   "tasks": {
     "check": "deno check index.ts",
-    "test": "deno test -A"
+    "lint": "deno lint",
+    "fmt:check": "deno fmt --check",
+    "test": "deno test -A --permit-no-files"
   }
 }

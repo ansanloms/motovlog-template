@@ -13,7 +13,8 @@
     "include": ["modules/"],
     "rules": {
       "tags": ["recommended"]
-    }
+    },
+    "plugins": ["jsr:@aireone/deno-lint-curly"]
   },
   "test": {
     "include": ["modules/**/*.test.ts"],
@@ -21,9 +22,9 @@
   },
   "tasks": {
     "check": "deno task --members check",
-    "lint": "deno lint",
+    "lint": "deno task --members lint",
     "fmt": "deno fmt",
-    "fmt:check": "deno fmt --check",
-    "test": "deno test -A"
+    "fmt:check": "deno task --members fmt:check",
+    "test": "deno task --members test"
   }
 }

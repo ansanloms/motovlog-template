@@ -20,19 +20,19 @@ Remotion でモトブログ動画を作るためのライブラリ (lib) と、�
 | テスト                 | `test` (`modules/**/*.test.ts`、`@std/testing/bdd` と `@std/expect` で書く) | `test` (vitest。`modules/**/*.test.tsx` と `modules/` 以外のテスト) |
 | bundle・render・Studio | なし                                                                        | `build`・`render`・`dev`                                            |
 
-`npm run lint` は最後に `npm run lint:deno` (Deno の `check`・`lint`・`fmt:check`・`test`) を実行し、`npm run fix` は最後に `deno task fmt` を実行する。CSS Modules を読むテストは Deno で実行できないため、`.test.tsx` として vitest に置く。
+`npm run lint` は最後に `npm run lint:deno` (Deno の `check`・`lint`・`fmt:check`・`test`) を実行し、`npm run fix` は最後に `deno task fmt` を実行する。CSS Modules を読むテストは Deno で実行できないため、`.test.tsx` として vitest に置く。 CI は module ごとに matrix job (`modules`) で member の 4 つの task を実行し、lint job は Node 側 (`npm run lint:node`) だけを見る。
 
-`modules/<name>/` は Deno の workspace の member で、それぞれ自分の `deno.json` (`name`・`exports`・`imports`・`tasks`) を持つ。module 単位で検査するときは、その module のディレクトリで次を実行する。
+`modules/<name>/` は Deno の workspace の member で、それぞれ自分の `deno.json` (`name`・`exports`・`imports`・`tasks`) を持ち、`tasks` には `check`・`lint`・`fmt:check`・`test` の 4 つを置く。module 単位で検査するときは、その module のディレクトリで次を実行する。
 
 ```sh
 cd modules/<name>
-deno task check   # deno check index.ts
-deno lint
-deno fmt --check
-deno test -A      # *.test.ts を持つ module だけ (無い module では "No test modules found" で失敗する)
+deno task check      # deno check index.ts
+deno task lint       # deno lint (recommended + @aireone/deno-lint-curly)
+deno task fmt:check  # deno fmt --check
+deno task test       # deno test -A --permit-no-files (テストの無い module でも成功する)
 ```
 
-root からは `deno task --members check` で全 module の `check` を実行できる (root の `deno task check` と同じ)。`deno task -f @motovlog/<name> check` で 1 つの module に絞れる。
+root の `deno task check`・`lint`・`fmt:check`・`test` は `deno task --members` で全 module の同名の task を実行する。`deno task -f @motovlog/<name> check` で 1 つの module に絞れる。
 
 ## ディレクトリ構成
 
