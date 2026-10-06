@@ -3170,17 +3170,21 @@
     "members": {
       "modules/annotation": {
         "dependencies": [
-          "npm:react@19.3.0"
+          "npm:react@19.3.0",
+          "npm:remotion@4.0.529"
         ]
       },
       "modules/audio": {
         "dependencies": [
-          "npm:react@19.3.0"
+          "npm:@remotion/media@4.0.529",
+          "npm:react@19.3.0",
+          "npm:remotion@4.0.529"
         ]
       },
       "modules/chapter": {
         "dependencies": [
-          "npm:react@19.3.0"
+          "npm:react@19.3.0",
+          "npm:remotion@4.0.529"
         ]
       },
       "modules/core": {
@@ -3192,22 +3196,42 @@
       },
       "modules/ending": {
         "dependencies": [
-          "npm:react@19.3.0"
+          "jsr:@std/expect@^1.0.20",
+          "jsr:@std/testing@^1.0.21",
+          "npm:react@19.3.0",
+          "npm:remotion@4.0.529"
+        ]
+      },
+      "modules/figure": {
+        "dependencies": [
+          "npm:react@19.3.0",
+          "npm:remotion@4.0.529"
         ]
       },
       "modules/photo-showcase": {
         "dependencies": [
-          "npm:react@19.3.0"
+          "npm:react@19.3.0",
+          "npm:remotion@4.0.529"
         ]
       },
       "modules/subtitle": {
         "dependencies": [
-          "npm:react@19.3.0"
+          "npm:@remotion/media@4.0.529",
+          "npm:react@19.3.0",
+          "npm:remotion@4.0.529"
+        ]
+      },
+      "modules/thumbnail": {
+        "dependencies": [
+          "npm:react@19.3.0",
+          "npm:remotion@4.0.529"
         ]
       },
       "modules/video": {
         "dependencies": [
-          "npm:react@19.3.0"
+          "npm:@remotion/media@4.0.529",
+          "npm:react@19.3.0",
+          "npm:remotion@4.0.529"
         ]
       }
     }

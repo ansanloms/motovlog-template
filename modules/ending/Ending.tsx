@@ -4,6 +4,12 @@ import styles from "./Ending.module.css";
 import { formatDateRange, formatRidingTime } from "./endingFormat.ts";
 import type { DateRange } from "./endingFormat.ts";
 
+/**
+ * 経路の地名の間に置く区切り。前後の空白も表示に含める。JSX のテキストに
+ * 直接書くと deno fmt が前後の空白を削るため、定数として式で埋め込む。
+ */
+const ROUTE_SEPARATOR = " → ";
+
 /** Ending が受け取るもの。 */
 type Props = {
   /** 上段左の文字列 (例 "RIDE LOG")。`>` のプロンプト記号は component が付ける。 */
@@ -61,7 +67,9 @@ export const Ending: React.FC<Props> = ({
           <div className={styles.route}>
             {routes.map((place, index) => (
               <React.Fragment key={`${place}-${index}`}>
-                {index > 0 ? <span className={styles.arrow}> → </span> : null}
+                {index > 0
+                  ? <span className={styles.arrow}>{ROUTE_SEPARATOR}</span>
+                  : null}
                 {place}
               </React.Fragment>
             ))}

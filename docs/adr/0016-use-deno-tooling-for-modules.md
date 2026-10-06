@@ -51,6 +51,7 @@ ESLint は [ADR-0012](./0012-split-template-library-from-consumer.md) と [ADR-0
 - `modules/` の lint を `deno lint`、整形を `deno fmt` で行う。lint の規則は root の `lint.rules.tags` で `recommended` に固定する。理由: member が `name` と `exports` を持つと `jsr` タグの規則が加わるが、`modules/` は JSR に publish しない。
 - `modules/**/*.test.ts` (CSS Modules を読まないテスト) を `deno test` で実行する。テストは `@std/testing/bdd` と `@std/expect` で書く。
 - root の `deno task test` は、root の `test.include` に従う `deno test -A` とする。`deno task --members test` にはしない。理由: `test` を持たない member が root の `test` を引き継ぎ、呼び出しが終わらなくなる。
+- root の `test.exclude` で `modules/**/*.test.tsx` を外す。理由: 外さないと root の `deno test -A` が CSS Modules を読む `.test.tsx` (`modules/photo-showcase/PhotoShowcase.test.tsx`) まで読み込み、`*.module.css` の import で失敗する。
 - root の `tasks` (`check`・`lint`・`fmt`・`fmt:check`・`test`) を `npm run lint` と `npm run fix` から呼ぶ。
 
 ### workspace の構成

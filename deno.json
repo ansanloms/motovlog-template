@@ -16,7 +16,8 @@
     }
   },
   "test": {
-    "include": ["modules/**/*.test.ts"]
+    "include": ["modules/**/*.test.ts"],
+    "exclude": ["modules/**/*.test.tsx"]
   },
   "tasks": {
     "check": "deno task --members check",

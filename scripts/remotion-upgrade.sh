@@ -69,9 +69,8 @@ if [ -n "$mismatches" ]; then
 fi
 
 # Any remotion / @remotion/* pin in the root or workspace member deno.json files
-# (ADR-0016) must match package.json. No member imports them yet; the rewrite
-# keeps future pins aligned. deno.lock is refreshed by the deno tasks that
-# npm run lint runs below.
+# (ADR-0016) must match package.json. deno.lock is refreshed by the deno tasks
+# that npm run lint runs below.
 sed -i -E "s#\"npm:(/?)(@remotion/[^@/\"]+|remotion)@[^/\"]+#\"npm:\\1\\2@${target}#g" deno.json modules/*/deno.json
 
 found_sha=""
