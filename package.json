@@ -30,7 +30,7 @@
   },
   "dependencies": {
     "temporal-polyfill": "1.0.5",
-    "tsx": "4.23.13"
+    "tsx": "4.23.15"
   },
   "peerDependencies": {
     "@remotion/cli": "4.0.529",
