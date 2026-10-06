@@ -20,7 +20,7 @@ Remotion でモトブログ動画を作るためのライブラリ (lib) と、�
 | テスト                 | `test` (`modules/**/*.test.ts`、`@std/testing/bdd` と `@std/expect` で書く) | `test` (vitest。`modules/**/*.test.tsx` と `modules/` 以外のテスト) |
 | bundle・render・Studio | なし                                                                        | `build`・`render`・`dev`                                            |
 
-`npm run lint` は最後に `npm run lint:deno` (Deno の `check`・`lint`・`fmt:check`・`test`) を実行し、`npm run fix` は最後に `deno task fmt` を実行する。CSS Modules を読むテストは Deno で実行できないため、`.test.tsx` として vitest に置く。
+`npm run lint` は最後に `npm run lint:deno` (Deno の `check`・`lint`・`fmt:check`・`test`) を実行し、`npm run fix` は最後に `deno task fmt` を実行する。CSS Modules を読むテストは Deno で実行できないため、`.test.tsx` として vitest に置く。 CI は module ごとに matrix job (`modules`) を回し、lint job は Node 側 (`npm run lint:node`) だけを見る。
 
 `modules/<name>/` は Deno の workspace の member で、それぞれ自分の `deno.json` (`name`・`exports`・`imports`・`tasks`) を持つ。module 単位で検査するときは、その module のディレクトリで次を実行する。
 
