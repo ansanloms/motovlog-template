@@ -25,6 +25,9 @@ jobs:
       - uses: actions/setup-python@v7
         with:
           python-version: "3.12"
+      - uses: denoland/setup-deno@v2.0.5
+        with:
+          deno-version: "2.9.6"
       - run: npm ci
       - run: pip install apm-cli==0.28.0
       - run: apm --version

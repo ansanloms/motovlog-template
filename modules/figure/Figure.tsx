@@ -19,9 +19,9 @@ type Props = {
 export const Figure: React.FC<Props> = ({ layers, side }) => {
   return (
     <div
-      className={
-        side === "right" ? `${styles.box} ${styles.right}` : styles.box
-      }
+      className={side === "right"
+        ? `${styles.box} ${styles.right}`
+        : styles.box}
     >
       <div className={styles.figure}>
         {layers.map((src, index) => (

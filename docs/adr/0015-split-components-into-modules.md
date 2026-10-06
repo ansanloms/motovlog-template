@@ -1,7 +1,7 @@
 ---
 status: accepted
 date: 2026-10-01T00:00:00Z
-refs: [6, 11, 12, 14]
+refs: [6, 11, 12, 14, 16]
 tags: [layout, package, components, boundary]
 ---
 
@@ -43,6 +43,7 @@ lib の見た目のコンポーネントは `src/components/` に平らに置か
 `modules/<name>/` に置く単位は、次をすべて満たす。
 
 - 公開面は自分の `index.ts` だけとする。
+- 各 module は自分の `deno.json` (name・exports・imports・tasks) を持つ ([ADR-0016](./0016-use-deno-tooling-for-modules.md))。
 - 依存は `modules/core/` と、ESLint の規則で許した外部パッケージ (`react`・`remotion`・`@remotion/media`) に限る。例外は `photo-showcase` から `video` への依存 1 件だけとする。理由: 写真紹介が短い動画を走行映像と同じ `Video` で描く。
 - project (利用側) を知らない。
 - `src/` の層の DSL (`effects`・`compositions`・`theme`・`voice`・`project`) は `modules/` に移さない。移すときは別の ADR で決める。

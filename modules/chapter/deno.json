@@ -1,0 +1,13 @@
+{
+  "name": "@motovlog/chapter",
+  "version": "0.0.0",
+  "exports": "./index.ts",
+  "imports": {
+    "react": "npm:react@19.3.0",
+    "react/": "npm:/react@19.3.0/",
+    "remotion": "npm:remotion@4.0.529"
+  },
+  "tasks": {
+    "check": "deno check index.ts"
+  }
+}

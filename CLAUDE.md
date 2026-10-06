@@ -43,6 +43,10 @@ Remotion のライブラリ仕様 (API・設定・CLI) を調べるときは、�
 
 Claude Code の `/design-sync` skill は、ローカルの React コンポーネント群を Claude Design の design-system プロジェクトへ push するもので、向きが逆 (ローカル → Claude Design) であり対象も design-system プロジェクトに限られる。このプロジェクト (通常プロジェクト、.dc.html のモック) の同期には使わない。
 
+## modules/ の開発ツール
+
+`modules/` の型検査・lint・整形・テストは `deno task check`・`deno task lint`・`deno task fmt` (`fmt:check`)・`deno task test` で行い、`npm run lint` も最後にこれらを呼ぶ ([ADR-0016](docs/adr/0016-use-deno-tooling-for-modules.md))。`modules/**/*.test.ts` は `@std/testing/bdd` と `@std/expect` で書く。CSS Modules を読むテストは Deno で実行できないため、`.test.tsx` として vitest に残す。`modules/` は prettier ではなく `deno fmt` で整形する。ESLint (境界の規則) と `tsc` は `modules/` にもこれまでどおり掛かる。`modules/<name>/` は Deno の workspace の member で、依存は member の `deno.json` の `imports` に書き、root の `deno.json` には書かない。module を足すときは `deno.json` (`name`・`version`・`exports`・`imports`・`tasks.check`) も置く。module 単位の検査は `cd modules/<name>` して `deno task check`・`deno lint`・`deno fmt --check`・`deno test -A` (テストがある module だけ) で行い、root からは `deno task --members check` で全 module を回す。member 間の import は相対パスのまま書く。member の `deno.json` の npm パッケージは `package.json` と同じバージョンに揃える。`npm run upgrade` (`scripts/remotion-upgrade.sh`) は root と member の `deno.json` の `remotion`・`@remotion/*` も同じバージョンに書き換え、`deno.lock` は続く `npm run lint` の `deno task` が更新する。
+
 ## シェルスクリプト
 
 `scripts/` 配下のシェルスクリプトは `shellcheck` を通し、指摘 0 件にしてからコミットする。

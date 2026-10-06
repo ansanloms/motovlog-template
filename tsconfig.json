@@ -14,5 +14,10 @@
     "noUnusedLocals": true,
     "resolveJsonModule": true
   },
-  "exclude": ["remotion.config.ts", "node_modules", "apm_modules"]
+  "exclude": [
+    "remotion.config.ts",
+    "node_modules",
+    "apm_modules",
+    "modules/**/*.test.ts"
+  ]
 }

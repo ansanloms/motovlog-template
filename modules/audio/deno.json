@@ -1,0 +1,14 @@
+{
+  "name": "@motovlog/audio",
+  "version": "0.0.0",
+  "exports": "./index.ts",
+  "imports": {
+    "@remotion/media": "npm:@remotion/media@4.0.529",
+    "react": "npm:react@19.3.0",
+    "react/": "npm:/react@19.3.0/",
+    "remotion": "npm:remotion@4.0.529"
+  },
+  "tasks": {
+    "check": "deno check index.ts"
+  }
+}

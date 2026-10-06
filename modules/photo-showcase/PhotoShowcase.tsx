@@ -55,11 +55,9 @@ export const PhotoShowcase: React.FC<Props> = ({ photos, fit = "cover" }) => {
     <AbsoluteFill>
       <div className={styles.frame} data-fit={fit}>
         {photos.map((photo, index) =>
-          typeof photo === "string" ? (
-            <Img key={index} src={photo} className={styles.cell} />
-          ) : (
-            <PhotoVideoCell key={index} photo={photo} fit={fit} />
-          ),
+          typeof photo === "string"
+            ? <Img key={index} src={photo} className={styles.cell} />
+            : <PhotoVideoCell key={index} photo={photo} fit={fit} />
         )}
       </div>
     </AbsoluteFill>

@@ -1,0 +1,29 @@
+{
+  "nodeModulesDir": "manual",
+  "workspace": ["./modules/*"],
+  "compilerOptions": {
+    "jsx": "react-jsx",
+    "jsxImportSource": "react",
+    "lib": ["dom", "dom.iterable", "esnext"]
+  },
+  "fmt": {
+    "include": ["modules/"]
+  },
+  "lint": {
+    "include": ["modules/"],
+    "rules": {
+      "tags": ["recommended"]
+    }
+  },
+  "test": {
+    "include": ["modules/**/*.test.ts"],
+    "exclude": ["modules/**/*.test.tsx"]
+  },
+  "tasks": {
+    "check": "deno task --members check",
+    "lint": "deno lint",
+    "fmt": "deno fmt",
+    "fmt:check": "deno fmt --check",
+    "test": "deno test -A"
+  }
+}
