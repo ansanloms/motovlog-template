@@ -27,7 +27,7 @@ Remotion でモトブログ動画を作るためのライブラリ (lib) と、�
 ```sh
 cd modules/<name>
 deno task check      # deno check index.ts
-deno task lint       # deno lint
+deno task lint       # deno lint (recommended + @aireone/deno-lint-curly)
 deno task fmt:check  # deno fmt --check
 deno task test       # deno test -A --permit-no-files (テストの無い module でも成功する)
 ```

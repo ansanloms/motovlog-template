@@ -13,7 +13,8 @@
     "include": ["modules/"],
     "rules": {
       "tags": ["recommended"]
-    }
+    },
+    "plugins": ["jsr:@aireone/deno-lint-curly"]
   },
   "test": {
     "include": ["modules/**/*.test.ts"],
