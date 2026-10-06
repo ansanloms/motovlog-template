@@ -68,10 +68,10 @@ if [ -n "$mismatches" ]; then
   fi
 fi
 
-# Any remotion / @remotion/* pin in the root or workspace member deno.json files
-# (ADR-0016) must match package.json. deno.lock is refreshed by the deno tasks
-# that npm run lint runs below.
-sed -i -E "s#\"npm:(/?)(@remotion/[^@/\"]+|remotion)@[^/\"]+#\"npm:\\1\\2@${target}#g" deno.json modules/*/deno.json
+# Remotion is excluded from Dependabot, and the exact pins in the workspace member
+# deno.json files (ADR-0016) must match package.json or deno task check fails,
+# so align them here. The root deno.json has no Remotion pin.
+sed -i -E "s#\"npm:(/?)(@remotion/[^@/\"]+|remotion)@[^/\"]+#\"npm:\\1\\2@${target}#g" modules/*/deno.json
 
 found_sha=""
 checked=0

@@ -60,9 +60,9 @@ ESLint は [ADR-0012](./0012-split-template-library-from-consumer.md) と [ADR-0
 - 各 member は自分の `deno.json` を module の manifest として持つ。`name` は `@motovlog/<name>`、`version` は `0.0.0`、`exports` は `./index.ts` とする。
 - 依存は member の `deno.json` の `imports` に書く。その member のファイルが import する外部パッケージだけを書き、root の `imports` には書かない。
 - 各 member の `tasks` には `check` (`deno check index.ts`)・`lint` (`deno lint`)・`fmt:check` (`deno fmt --check`)・`test` (`deno test -A --permit-no-files`) を必ず置く。理由: task を持たない member があると、root の task (`deno task --members <task>`) をその member が引き継いで呼び返す。
-- root の `deno.json` は `nodeModulesDir`・`compilerOptions`・`fmt`/`lint`/`test` の `include` を持つ。理由: `nodeModulesDir` は workspace の root にしか書けず、`include` が無いと root で引数なしに実行した `deno fmt`・`deno lint`・`deno test` がリポジトリ全体を対象にする。
+- root の `deno.json` は `nodeModulesDir`・`lock`・`compilerOptions`・`fmt`/`lint`/`test` の `include` を持つ。理由: `nodeModulesDir` は workspace の root にしか書けず、`include` が無いと root で引数なしに実行した `deno fmt`・`deno lint`・`deno test` がリポジトリ全体を対象にする。
 - member 間の import は相対パス (`../core/index.ts`) のまま書き、`@motovlog/<name>` の名前で import しない。理由: Remotion のバンドラ (Rspack) と `tsc` は `deno.json` を読まず、このリポジトリには `@motovlog/<name>` を解決する設定が無い。
-- `deno.lock` は root に 1 つだけ置く。Deno は member ごとの依存を、その中の member の節に記録する。
+- `deno.lock` は使わない (`lock: false`)。理由は「依存のバージョン」に書く。
 
 ### Node に残す範囲
 
@@ -76,8 +76,10 @@ ESLint は [ADR-0012](./0012-split-template-library-from-consumer.md) と [ADR-0
 ### 依存のバージョン
 
 - root の `deno.json` の `nodeModulesDir` は `"manual"` とし、npm の依存は `npm ci` が作った `node_modules` から解決する。
-- member の `deno.json` の `imports` に書く npm パッケージ (`react`・`remotion`・`@remotion/media` 等) のバージョンは、`package.json` と同じ版に固定する。
-- `deno.lock` をコミットする。
+- member の npm 依存 (`react`・`remotion`・`@remotion/media` 等) は `package.json` と同じ exact 版で `imports` に書く。理由: `nodeModulesDir: "manual"` では npm 依存が `node_modules` の実体で解決されるため、実体と食い違うと `Could not find a matching package ... in the node_modules directory` で check が落ちる。同期は Dependabot の multi-ecosystem group (react) と `npm run upgrade` (Remotion) が行う。
+- `deno.lock` は使わない (root の `deno.json` の `lock: false`)。理由: npm 依存は `package-lock.json` が固定しており、`deno.lock` は root の npm 依存も記録するため、`package.json` が更新されるたびにずれる。
+- jsr 依存 (`@std/*`) は範囲内で浮く。更新は `deno outdated -r --update` で行う。
+- 依存の更新は Dependabot が行う。react は `npm` と `deno` の entry を multi-ecosystem group (react) にまとめ、`package.json` と member の `deno.json` を同じ PR で上げる。Remotion は Dependabot の対象外で、`npm run upgrade` が `package.json` と member の pin を揃える。
 
 ## Consequences
 
@@ -92,13 +94,14 @@ ESLint は [ADR-0012](./0012-split-template-library-from-consumer.md) と [ADR-0
 - テストの書き方が 2 通りになる。`modules/` の `.test.ts` は `@std/testing/bdd`、`.test.tsx` とそれ以外のディレクトリのテストは vitest で書く。
 - 整形のツールがディレクトリで分かれる。`modules/` は `deno fmt`、それ以外は prettier である。
 - `src/` 等から `modules/` へ移すテストは、`.test.ts` であれば `@std/testing/bdd` と `@std/expect` に書き換える必要がある。
-- Remotion 等の依存を更新するときは、`package.json` と各 member の `deno.json` のバージョンを揃える必要がある。
+- jsr 依存は `deno.lock` で固定されないため、範囲内で新しい版に変わる。
 - module を足すときは、その module の `deno.json` (`name`・`exports`・`imports`・`tasks` の 4 つ) も書く必要がある。
 
 ### 禁止事項
 
 - `modules/**/*.test.ts` を vitest で書くこと、または CSS Modules を読むテストを `.test.ts` として置くこと。
-- `deno.json` の `imports` に `package.json` と異なるバージョンを書くこと。
+- member の npm 依存を `package.json` と違う版で書くこと。
+- `deno.lock` をコミットすること。
 - member 間の import を `@motovlog/<name>` の名前で書くこと。
 - member の 4 つの task (`check`・`lint`・`fmt:check`・`test`) を省くこと。
 - member の `deno.json` に `nodeModulesDir` を書くこと。
@@ -119,3 +122,4 @@ ESLint は [ADR-0012](./0012-split-template-library-from-consumer.md) と [ADR-0
 - 2026-10-01 の deno 2.9.6 での実測 (Context に記載した結果)。
 - 2026-10-03 の所有者の計画承認: `modules/<name>/` を Deno の workspace の member とし、module ごとに `deno.json` (name・exports・imports・tasks) を持たせる。member 間の import は相対パスのまま、`nodeModulesDir` と `include` は root に残す。
 - 2026-10-03 の deno 2.9.6 での実測 (Context に記載した workspace の結果)。`deno task --help` の `--members  Run the task in all workspace members, but not in the workspace root`。
+- 2026-10-06 の所有者の承認: member の npm 依存は exact で `package.json` と揃え、Dependabot の multi-ecosystem group で同時に上げる。`deno.lock` は使わない。
