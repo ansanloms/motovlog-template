@@ -5,22 +5,22 @@ Remotion でモトブログ動画を作るためのライブラリ (lib) と、�
 ## 前提
 
 - Node.js と npm (`npm ci` で依存を入れる)
-- Deno (`modules/` の型検査・lint・整形・テスト。`npm run lint`・`npm run fix` から呼ぶ)
+- Deno (`modules/` の型検査・lint・整形と、全テスト。`npm run lint`・`npm run fix`・`npm test` から呼ぶ)
 - ffmpeg (原本の変換。NVENC を使う場合は NVIDIA GPU。WSL では `/usr/lib/wsl/lib` のライブラリを使う)
 
 ## 開発ツール
 
-`modules/` は Deno、それ以外は Node のツールで検査する ([ADR-0016](docs/adr/0016-use-deno-tooling-for-modules.md))。
+`modules/` は Deno、それ以外は Node のツールで検査する ([ADR-0016](docs/adr/0016-use-deno-tooling-for-modules.md))。テストはすべて Deno で実行する ([ADR-0017](docs/adr/0017-unify-runtime-and-tooling-on-deno.md))。
 
-| 対象                   | Deno (`deno task ...`)                                                      | Node (`npm run ...`)                                                |
-| ---------------------- | --------------------------------------------------------------------------- | ------------------------------------------------------------------- |
-| 型検査                 | `check` (各 module の `index.ts`)                                           | `lint` の `tsc` (リポジトリ全体。`modules/**/*.test.ts` を除く)     |
-| lint                   | `lint` (`modules/`)                                                         | `lint` の ESLint (`modules/` を含む。層と module の境界の規則)      |
-| 整形                   | `fmt`・`fmt:check` (`modules/`)                                             | `lint`・`fix` の prettier (`modules/` を除く)                       |
-| テスト                 | `test` (`modules/**/*.test.ts`、`@std/testing/bdd` と `@std/expect` で書く) | `test` (vitest。`modules/**/*.test.tsx` と `modules/` 以外のテスト) |
-| bundle・render・Studio | なし                                                                        | `build`・`render`・`dev`                                            |
+| 対象                   | Deno (`deno task ...`)                                        | Node (`npm run ...`)                                           |
+| ---------------------- | ------------------------------------------------------------- | -------------------------------------------------------------- |
+| 型検査                 | `check` (各 module の `index.ts`)                             | `lint` の `tsc` (リポジトリ全体。`*.test.ts(x)` を除く)        |
+| lint                   | `lint` (`modules/`)                                           | `lint` の ESLint (`modules/` を含む。層と module の境界の規則) |
+| 整形                   | `fmt`・`fmt:check` (`modules/`)                               | `lint`・`fix` の prettier (`modules/` を除く)                  |
+| テスト                 | `test` (全テスト。`@std/testing/bdd` と `@std/expect` で書く) | `test` (`deno task test` を呼ぶ)                               |
+| bundle・render・Studio | なし                                                          | `build`・`render`・`dev`                                       |
 
-`npm run lint` は最後に `npm run lint:deno` (Deno の `check`・`lint`・`fmt:check`・`test`) を実行し、`npm run fix` は最後に `deno task fmt` を実行する。CSS Modules を読むテストは Deno で実行できないため、`.test.tsx` として vitest に置く。 CI は module ごとに matrix job (`modules`) で member の 4 つの task を実行し、lint job は Node 側 (`npm run lint:node`) だけを見る。
+`npm run lint` は最後に `npm run lint:deno` (Deno の `check`・`lint`・`fmt:check`・`test`) を実行し、`npm run fix` は最後に `deno task fmt` を実行する。テストが読む CSS Modules は、root の `deno.json` の `imports` で `test/cssStub.ts` に差し替える。`configure()` や Temporal が要るテストは先頭で `test/setup.ts` を import する。 CI は module ごとに matrix job (`modules`) で member の 4 つの task を実行し、lint job は Node 側 (`npm run lint:node`) だけを見る。
 
 `modules/<name>/` は Deno の workspace の member で、それぞれ自分の `deno.json` (`name`・`exports`・`imports`・`tasks`) を持ち、`tasks` には `check`・`lint`・`fmt:check`・`test` の 4 つを置く。module 単位で検査するときは、その module のディレクトリで次を実行する。
 

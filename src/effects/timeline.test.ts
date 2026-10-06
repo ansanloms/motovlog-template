@@ -1,4 +1,5 @@
-import { describe, expect, it } from "vitest";
+import { describe, it } from "@std/testing/bdd";
+import { expect } from "@std/expect";
 import { fps } from "../theme/timing.ts";
 import { end, start } from "./anchor.ts";
 import { crossfade } from "./crossfade.ts";
@@ -141,7 +142,7 @@ describe("timeline", () => {
       timeline([
         [cut(null, { duration: 5, at: 11 }), cut(null, { duration: 3, at: 0 })],
       ]),
-    ).toThrowError(/時間順/);
+    ).toThrow(/時間順/);
   });
 
   it("時間順でない絶対指定は throw する (fade)", () => {
@@ -152,7 +153,7 @@ describe("timeline", () => {
           fade(null, { duration: 3, at: 0 }),
         ],
       ]),
-    ).toThrowError(/時間順/);
+    ).toThrow(/時間順/);
   });
 
   it("cursor の丸め誤差 (1.1 + 2.2) の直後に at 3.3 を指定しても通る (cut)", () => {
@@ -192,7 +193,7 @@ describe("timeline", () => {
   });
 
   it("duration が 1 フレーム未満なら throw する", () => {
-    expect(() => timeline([[cut(null, { duration: 0.3 / fps })]])).toThrowError(
+    expect(() => timeline([[cut(null, { duration: 0.3 / fps })]])).toThrow(
       /1 フレームに満たない/,
     );
   });
@@ -200,7 +201,7 @@ describe("timeline", () => {
   it("半フレームの item は位置によっては 1 フレームに満たず throw する", () => {
     expect(() =>
       timeline([[cut(null, { duration: 0.5 / fps, at: 0.6 / fps })]]),
-    ).toThrowError(/1 フレームに満たない/);
+    ).toThrow(/1 フレームに満たない/);
   });
 
   it("同じ duration でも at: 0 なら throw しない", () => {
@@ -703,7 +704,7 @@ describe("timeline: until", () => {
   });
 
   it("until が start より前だと 1 フレームに満たない検査で throw する", () => {
-    expect(() => timeline([[cut(null, { at: 5, until: 4 })]])).toThrowError(
+    expect(() => timeline([[cut(null, { at: 5, until: 4 })]])).toThrow(
       /1 フレームに満たない/,
     );
   });
@@ -736,7 +737,7 @@ describe("timeline: until", () => {
       until: 2,
     } as unknown as CutItem;
 
-    expect(() => timeline([[item]])).toThrowError(
+    expect(() => timeline([[item]])).toThrow(
       /duration と until を同時に指定できません/,
     );
   });
@@ -744,7 +745,7 @@ describe("timeline: until", () => {
   it("duration も until も無い item (leak した PendingCutItem 等) を layer に置くと throw する", () => {
     const pending = cut(null, { at: 8.5 });
 
-    expect(() => timeline([[pending as unknown as CutItem]])).toThrowError(
+    expect(() => timeline([[pending as unknown as CutItem]])).toThrow(
       /duration か until のどちらかが必要です/,
     );
   });
@@ -752,7 +753,7 @@ describe("timeline: until", () => {
   it("fade() の until 指定で in + out が解決後の duration を超えると throw する", () => {
     expect(() =>
       timeline([[fade(null, { at: 0, until: 1, in: 0.6, out: 0.6 })]]),
-    ).toThrowError(/in \(.*\) \+ out \(.*\) が until から求めた duration/);
+    ).toThrow(/in \(.*\) \+ out \(.*\) が until から求めた duration/);
   });
 });
 

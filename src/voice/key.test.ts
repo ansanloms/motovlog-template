@@ -1,4 +1,6 @@
-import { describe, expect, it } from "vitest";
+import "../../test/setup.ts";
+import { describe, it } from "@std/testing/bdd";
+import { expect } from "@std/expect";
 import { linePath, mergeVoice, resolveVoice, voiceKey } from "./key.ts";
 
 describe("voiceKey", () => {

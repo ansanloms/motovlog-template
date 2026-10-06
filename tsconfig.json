@@ -18,6 +18,7 @@
     "remotion.config.ts",
     "node_modules",
     "apm_modules",
-    "modules/**/*.test.ts"
+    "**/*.test.ts",
+    "**/*.test.tsx"
   ]
 }

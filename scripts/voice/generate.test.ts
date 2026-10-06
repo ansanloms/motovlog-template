@@ -1,5 +1,8 @@
+import "../../test/setup.ts";
 import path from "node:path";
-import { describe, expect, it, vi } from "vitest";
+import { describe, it } from "@std/testing/bdd";
+import { expect } from "@std/expect";
+import { assertSpyCalls, spy } from "@std/testing/mock";
 import { linePath, voiceKey } from "../../src/voice/key.ts";
 import { narrator } from "../../theme/index.ts";
 import { generateMissing } from "./generate.ts";
@@ -284,13 +287,13 @@ describe("generateMissing", () => {
       return new Response("not found", { status: 404 });
     }) as typeof fetch;
 
-    const warn = vi.fn();
+    const warn = spy<unknown, [string], void>(() => {});
     deps.warn = warn;
 
     await generateMissing("00000000-sample", [{ text: "こんにちは" }], deps);
 
-    expect(warn).toHaveBeenCalledTimes(1);
-    expect(warn.mock.calls[0][0]).toMatch(/mora 合計と wav の実尺の差/);
+    assertSpyCalls(warn, 1);
+    expect(warn.calls[0].args[0]).toMatch(/mora 合計と wav の実尺の差/);
   });
 
   it("speaker が /speakers に無ければ throw する", async () => {
