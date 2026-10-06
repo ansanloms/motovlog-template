@@ -30,8 +30,9 @@ export const parseConvertArgs = (
 ): { slug: string; inputs: string[] } | null => {
   const separatorIndex = args.indexOf("--");
   const flags = separatorIndex === -1 ? args : args.slice(0, separatorIndex);
-  const positional =
-    separatorIndex === -1 ? args : args.slice(separatorIndex + 1);
+  const positional = separatorIndex === -1
+    ? args
+    : args.slice(separatorIndex + 1);
 
   if (flags.some((arg) => arg === "--help" || arg === "-h")) {
     return null;

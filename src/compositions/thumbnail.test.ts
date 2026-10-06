@@ -76,7 +76,7 @@ describe("thumbnail", () => {
         badge: "#1",
         title: "title",
         by: null as unknown as Parameters<typeof thumbnail>[0]["by"],
-      }),
+      })
     ).toThrow(/by は character\(\) の戻り値か/);
   });
 });

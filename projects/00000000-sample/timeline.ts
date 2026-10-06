@@ -154,7 +154,8 @@ const n = await narration([
   figure(sampleCharacter, { in: 0.2, out: 0.2, lead: 0.6, tail: 5 }, [
     cut(
       line({
-        text: "{磐梯吾妻|ばんだいあづま}スカイラインを登って、\n{浄土平|じょうどだいら}へ向かう。",
+        text:
+          "{磐梯吾妻|ばんだいあづま}スカイラインを登って、\n{浄土平|じょうどだいら}へ向かう。",
         by: sampleCharacter,
       }),
       { at: 8 },

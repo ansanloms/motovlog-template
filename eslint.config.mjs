@@ -19,7 +19,7 @@ import pkg from "./package.json" with { type: "json" };
  * - 深さごとにブロックを列挙する (下の SRC_DEPTHS)。src に列挙より深い階層を
  *   足したら、そこにも対応するブロックを足すこと。
  * - 正規形で書かれた相対パスだけを見る (`./../theme/...` のような書き方は
- *   抜ける)。prettier と既存の書き方が正規形なので、実務上はこれで足りる。
+ *   抜ける)。deno fmt と既存の書き方が正規形なので、実務上はこれで足りる。
  */
 const noConsumerImports = (up) => [
   {
@@ -169,19 +169,17 @@ const MODULE_BLOCKS = MODULE_NAMES.map((name) => {
               message:
                 "modules は src/components/index.tsx (全 module の再 export) を import しない (ADR-0015)。",
             },
-            ...(others.length === 0
-              ? []
-              : [
-                  {
-                    group: others.flatMap((other) => [
-                      `../${other}`,
-                      `../${other}/**`,
-                      `**/modules/${other}`,
-                      `**/modules/${other}/**`,
-                    ]),
-                    message: buildOthersMessage(name, allowed),
-                  },
+            ...(others.length === 0 ? [] : [
+              {
+                group: others.flatMap((other) => [
+                  `../${other}`,
+                  `../${other}/**`,
+                  `**/modules/${other}`,
+                  `**/modules/${other}/**`,
                 ]),
+                message: buildOthersMessage(name, allowed),
+              },
+            ]),
           ],
           paths: componentPaths,
         },

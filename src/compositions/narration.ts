@@ -161,8 +161,9 @@ export const line = (props: LineProps): ReactNode => {
 
   assertReadingNotation(text);
 
-  const reading =
-    props.reading !== undefined ? joinLines(props.reading) : undefined;
+  const reading = props.reading !== undefined
+    ? joinLines(props.reading)
+    : undefined;
 
   if (reading === "") {
     throw new Error(
@@ -575,22 +576,22 @@ export const narration = async (
       speechLayer.push(
         original.kind === "fade"
           ? {
-              kind: "fade",
-              node: original.node,
-              duration: positionDuration,
-              at: resolved.at,
-              in: original.in,
-              out: original.out,
-              audio: original.audio,
-              source: original,
-            }
+            kind: "fade",
+            node: original.node,
+            duration: positionDuration,
+            at: resolved.at,
+            in: original.in,
+            out: original.out,
+            audio: original.audio,
+            source: original,
+          }
           : {
-              kind: "cut",
-              node: original.node,
-              duration: positionDuration,
-              at: resolved.at,
-              source: original,
-            },
+            kind: "cut",
+            node: original.node,
+            duration: positionDuration,
+            at: resolved.at,
+            source: original,
+          },
       );
 
       emittedSpans.push({ at: resolved.at, duration: positionDuration });
@@ -686,7 +687,7 @@ export const narration = async (
       duration: span.duration,
       in: span.fadeIn,
       out: bandTiming.fadeOut,
-    }),
+    })
   );
 
   // 括りごとに立ち絵の item を 1 つ作る。範囲は「最初の行の開始 − lead」
@@ -727,21 +728,20 @@ export const narration = async (
       const duration = figureEnd - at;
 
       return figureGroup.options.in !== undefined ||
-        figureGroup.options.out !== undefined
+          figureGroup.options.out !== undefined
         ? fade(node, {
-            at,
-            duration,
-            in: figureGroup.options.in,
-            out: figureGroup.options.out,
-          })
+          at,
+          duration,
+          in: figureGroup.options.in,
+          out: figureGroup.options.out,
+        })
         : cut(node, { at, duration });
     },
   );
 
-  const layers: Layer[] =
-    figureLayer.length > 0
-      ? [figureLayer, bandLayer, speechLayer]
-      : [bandLayer, speechLayer];
+  const layers: Layer[] = figureLayer.length > 0
+    ? [figureLayer, bandLayer, speechLayer]
+    : [bandLayer, speechLayer];
 
   return { ...group(layers), speech: speechEntries, lines: lineItems };
 };

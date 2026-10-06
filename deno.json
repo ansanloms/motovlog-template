@@ -1,7 +1,9 @@
 {
   "nodeModulesDir": "manual",
   "lock": false,
-  "workspace": ["./modules/*"],
+  "workspace": [
+    "./modules/*"
+  ],
   "imports": {
     "@std/expect": "jsr:@std/expect@^1.0.20",
     "@std/testing": "jsr:@std/testing@^1.0.21",
@@ -17,18 +19,74 @@
   "compilerOptions": {
     "jsx": "react-jsx",
     "jsxImportSource": "react",
-    "lib": ["dom", "dom.iterable", "esnext"],
-    "types": ["npm:@types/node"]
+    "lib": [
+      "dom",
+      "dom.iterable",
+      "esnext"
+    ],
+    "types": [
+      "npm:@types/node"
+    ]
   },
   "fmt": {
-    "include": ["modules/"]
+    "proseWrap": "preserve",
+    "include": [
+      "src/",
+      "app/",
+      "theme/",
+      "characters/",
+      "projects/",
+      "scripts/",
+      "modules/",
+      "test/",
+      "remotion.config.ts",
+      "eslint.config.mjs",
+      "docs/",
+      ".github/",
+      "README.md",
+      "CLAUDE.md",
+      "deno.json"
+    ],
+    "exclude": [
+      "node_modules/",
+      "apm_modules/",
+      ".claude/",
+      "out/",
+      "public/",
+      "docs/design/upstream/",
+      "package-lock.json"
+    ]
   },
   "lint": {
-    "include": ["modules/"],
+    "include": [
+      "src/",
+      "app/",
+      "theme/",
+      "characters/",
+      "projects/",
+      "scripts/",
+      "modules/",
+      "test/",
+      "remotion.config.ts",
+      "eslint.config.mjs"
+    ],
+    "exclude": [
+      "node_modules/",
+      "apm_modules/",
+      ".claude/",
+      "out/",
+      "public/",
+      "docs/design/upstream/",
+      "package-lock.json"
+    ],
     "rules": {
-      "tags": ["recommended"]
+      "tags": [
+        "recommended"
+      ]
     },
-    "plugins": ["jsr:@aireone/deno-lint-curly"]
+    "plugins": [
+      "jsr:@aireone/deno-lint-curly"
+    ]
   },
   "test": {
     "include": [
@@ -41,10 +99,10 @@
     ]
   },
   "tasks": {
-    "check": "deno task --members check",
-    "lint": "deno task --members lint",
+    "check": "deno check src/ app/ theme/ characters/ projects/ scripts/ modules/ test/ remotion.config.ts",
+    "lint": "deno lint",
     "fmt": "deno fmt",
-    "fmt:check": "deno task --members fmt:check",
+    "fmt:check": "deno fmt --check",
     "test": "deno test -A"
   }
 }

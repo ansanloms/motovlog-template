@@ -22,9 +22,9 @@
 
 import {
   character,
-  type MouthLayer,
   type EyesLayer,
   type FigureLayer,
+  type MouthLayer,
 } from "../src/compositions/character.ts";
 import { narrator } from "../theme/index.ts";
 

@@ -58,7 +58,9 @@ const assertTheme = (theme: Theme): void => {
 
   if (badVoices.length > 0) {
     throw new Error(
-      `configure(): theme.narrator の項目が数値ではありません: ${badVoices.join("・")}`,
+      `configure(): theme.narrator の項目が数値ではありません: ${
+        badVoices.join("・")
+      }`,
     );
   }
 
@@ -68,7 +70,9 @@ const assertTheme = (theme: Theme): void => {
 
   if (missingColors.length > 0) {
     throw new Error(
-      `configure(): theme.palette の項目がありません: ${missingColors.join("・")}`,
+      `configure(): theme.palette の項目がありません: ${
+        missingColors.join("・")
+      }`,
     );
   }
 
@@ -78,9 +82,11 @@ const assertTheme = (theme: Theme): void => {
 
   if (badColors.length > 0) {
     throw new Error(
-      `configure(): theme.palette の色は #rrggbb の形で書いてください: ${badColors
-        .map((key) => `${key}=${String(palette[key])}`)
-        .join("・")}`,
+      `configure(): theme.palette の色は #rrggbb の形で書いてください: ${
+        badColors
+          .map((key) => `${key}=${String(palette[key])}`)
+          .join("・")
+      }`,
     );
   }
 };

@@ -48,8 +48,10 @@ export type Character = {
  * line()・thumbnail() の by に渡せる値。character() の参照 (表情は既定) か、
  * `{ character, expression? }` の形 (表情を明示する) のどちらか。
  */
-export type ByRef =
-  Character | { readonly character: Character; readonly expression?: string };
+export type ByRef = Character | {
+  readonly character: Character;
+  readonly expression?: string;
+};
 
 /** layer が EyesLayer かどうかを判定する。 */
 export const isEyesLayer = (layer: FigureLayer): layer is EyesLayer =>

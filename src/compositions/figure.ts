@@ -356,8 +356,8 @@ export const figureNode = (
 
   const ownSpeech = options.speech.filter((s) => s.by === character);
 
-  const resolvedExpressions: Record<string, readonly FigureLayer[]> =
-    Object.fromEntries(
+  const resolvedExpressions: Record<string, readonly FigureLayer[]> = Object
+    .fromEntries(
       Object.entries(character.expressions).map(([name, layers]) => [
         name,
         layers.map(resolveFigureLayer),

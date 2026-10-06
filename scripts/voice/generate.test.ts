@@ -92,27 +92,33 @@ const makeDeps = (
   const renames: [string, string][] = [];
   const existingKeys = overrides.existingKeys ?? new Set<string>();
 
-  const fetchImpl: typeof fetch = async (input) => {
+  const fetchImpl: typeof fetch = (input) => {
     const url = String(input);
 
     if (url.includes("/speakers")) {
-      return new Response(
-        JSON.stringify([{ styles: [{ id: narrator.speaker }] }]),
-        { status: 200 },
+      return Promise.resolve(
+        new Response(
+          JSON.stringify([{ styles: [{ id: narrator.speaker }] }]),
+          { status: 200 },
+        ),
       );
     }
 
     if (url.includes("/audio_query")) {
-      return new Response(JSON.stringify(AUDIO_QUERY), { status: 200 });
+      return Promise.resolve(
+        new Response(JSON.stringify(AUDIO_QUERY), { status: 200 }),
+      );
     }
 
     if (url.includes("/synthesis")) {
       // 0.1 秒 (2400 サンプル @ 24kHz) の wav。query の長さ (0.1 秒) と
       // 一致させ、警告が出ない基準ケースにする。
-      return new Response(new Uint8Array(buildWav(2400)), { status: 200 });
+      return Promise.resolve(
+        new Response(new Uint8Array(buildWav(2400)), { status: 200 }),
+      );
     }
 
-    return new Response("not found", { status: 404 });
+    return Promise.resolve(new Response("not found", { status: 404 }));
   };
 
   return {
@@ -226,7 +232,7 @@ describe("generateMissing", () => {
     const deps = makeDeps();
     let speakerCalls = 0;
     const baseFetch = deps.fetchImpl;
-    deps.fetchImpl = (async (input, init) => {
+    deps.fetchImpl = ((input, init) => {
       if (String(input).includes("/speakers")) {
         speakerCalls++;
       }
@@ -249,7 +255,7 @@ describe("generateMissing", () => {
     const deps = makeDeps({ existingKeys: new Set([key1, key2]) });
     let speakerCalls = 0;
     const baseFetch = deps.fetchImpl;
-    deps.fetchImpl = (async (input, init) => {
+    deps.fetchImpl = ((input, init) => {
       if (String(input).includes("/speakers")) {
         speakerCalls++;
       }
@@ -269,22 +275,28 @@ describe("generateMissing", () => {
   it("wav の実尺と mora 合計の差が 1 フレーム分を超えると warn する", async () => {
     const deps = makeDeps();
     // synthesis の wav を 0.2 秒 (query は 0.1 秒) にして差を作る。
-    deps.fetchImpl = (async (input: RequestInfo | URL) => {
+    deps.fetchImpl = ((input: RequestInfo | URL) => {
       const url = String(input);
 
       if (url.includes("/speakers")) {
-        return new Response(
-          JSON.stringify([{ styles: [{ id: narrator.speaker }] }]),
-          { status: 200 },
+        return Promise.resolve(
+          new Response(
+            JSON.stringify([{ styles: [{ id: narrator.speaker }] }]),
+            { status: 200 },
+          ),
         );
       }
       if (url.includes("/audio_query")) {
-        return new Response(JSON.stringify(AUDIO_QUERY), { status: 200 });
+        return Promise.resolve(
+          new Response(JSON.stringify(AUDIO_QUERY), { status: 200 }),
+        );
       }
       if (url.includes("/synthesis")) {
-        return new Response(new Uint8Array(buildWav(4800)), { status: 200 });
+        return Promise.resolve(
+          new Response(new Uint8Array(buildWav(4800)), { status: 200 }),
+        );
       }
-      return new Response("not found", { status: 404 });
+      return Promise.resolve(new Response("not found", { status: 404 }));
     }) as typeof fetch;
 
     const warn = spy<unknown, [string], void>(() => {});
@@ -298,10 +310,12 @@ describe("generateMissing", () => {
 
   it("speaker が /speakers に無ければ throw する", async () => {
     const deps = makeDeps();
-    deps.fetchImpl = (async () =>
-      new Response(JSON.stringify([{ styles: [{ id: 1 }] }]), {
-        status: 200,
-      })) as typeof fetch;
+    deps.fetchImpl = (() =>
+      Promise.resolve(
+        new Response(JSON.stringify([{ styles: [{ id: 1 }] }]), {
+          status: 200,
+        }),
+      )) as typeof fetch;
 
     await expect(
       generateMissing("00000000-sample", [{ text: "こんにちは" }], deps),

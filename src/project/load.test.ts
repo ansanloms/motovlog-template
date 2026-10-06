@@ -39,15 +39,21 @@ let fetchStub:
   | undefined;
 
 beforeEach(() => {
-  fetchStub = stub(globalThis, "fetch", (async (input: RequestInfo | URL) => {
-    const url = String(input);
+  fetchStub = stub(
+    globalThis,
+    "fetch",
+    ((input: RequestInfo | URL) => {
+      const url = String(input);
 
-    if (url.endsWith(".json")) {
-      return new Response(JSON.stringify(FAKE_VOICE_CACHE), { status: 200 });
-    }
+      if (url.endsWith(".json")) {
+        return Promise.resolve(
+          new Response(JSON.stringify(FAKE_VOICE_CACHE), { status: 200 }),
+        );
+      }
 
-    return new Response("not found", { status: 404 });
-  }) as typeof fetch);
+      return Promise.resolve(new Response("not found", { status: 404 }));
+    }) as typeof fetch,
+  );
 });
 
 afterEach(() => {

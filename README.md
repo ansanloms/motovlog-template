@@ -5,22 +5,22 @@ Remotion でモトブログ動画を作るためのライブラリ (lib) と、�
 ## 前提
 
 - Node.js と npm (`npm ci` で依存を入れる)
-- Deno (`modules/` の型検査・lint・整形と、全テスト。`npm run lint`・`npm run fix`・`npm test` から呼ぶ)
+- Deno (型検査・lint・整形・テスト。`npm run lint`・`npm run fix`・`npm test` から呼ぶ)
 - ffmpeg (原本の変換。NVENC を使う場合は NVIDIA GPU。WSL では `/usr/lib/wsl/lib` のライブラリを使う)
 
 ## 開発ツール
 
-`modules/` は Deno、それ以外は Node のツールで検査する ([ADR-0016](docs/adr/0016-use-deno-tooling-for-modules.md))。テストはすべて Deno で実行する ([ADR-0017](docs/adr/0017-unify-runtime-and-tooling-on-deno.md))。
+型検査・lint・整形・テストは Deno で行う ([ADR-0017](docs/adr/0017-unify-runtime-and-tooling-on-deno.md))。Node に残るのは、層と module の境界を見る ESLint と、Remotion の bundle・render・Studio である。
 
-| 対象                   | Deno (`deno task ...`)                                        | Node (`npm run ...`)                                           |
-| ---------------------- | ------------------------------------------------------------- | -------------------------------------------------------------- |
-| 型検査                 | `check` (各 module の `index.ts`)                             | `lint` の `tsc` (リポジトリ全体。`*.test.ts(x)` を除く)        |
-| lint                   | `lint` (`modules/`)                                           | `lint` の ESLint (`modules/` を含む。層と module の境界の規則) |
-| 整形                   | `fmt`・`fmt:check` (`modules/`)                               | `lint`・`fix` の prettier (`modules/` を除く)                  |
-| テスト                 | `test` (全テスト。`@std/testing/bdd` と `@std/expect` で書く) | `test` (`deno task test` を呼ぶ)                               |
-| bundle・render・Studio | なし                                                          | `build`・`render`・`dev`                                       |
+| 対象                   | Deno (`deno task ...`)                                        | Node (`npm run ...`)                             |
+| ---------------------- | ------------------------------------------------------------- | ------------------------------------------------ |
+| 型検査                 | `check` (リポジトリ全体。テストを含む)                        | なし                                             |
+| lint                   | `lint` (リポジトリ全体)                                       | `lint:node` の ESLint (層と module の境界の規則) |
+| 整形                   | `fmt`・`fmt:check` (コード・markdown・`.github/` の YAML)     | なし                                             |
+| テスト                 | `test` (全テスト。`@std/testing/bdd` と `@std/expect` で書く) | `test` (`deno task test` を呼ぶ)                 |
+| bundle・render・Studio | なし                                                          | `build`・`render`・`dev`                         |
 
-`npm run lint` は最後に `npm run lint:deno` (Deno の `check`・`lint`・`fmt:check`・`test`) を実行し、`npm run fix` は最後に `deno task fmt` を実行する。テストが読む CSS Modules は、root の `deno.json` の `imports` で `test/cssStub.ts` に差し替える。`configure()` や Temporal が要るテストは先頭で `test/setup.ts` を import する。 CI は module ごとに matrix job (`modules`) で member の 4 つの task を実行し、lint job は Node 側 (`npm run lint:node`) だけを見る。
+`npm run lint` は ESLint (`lint:node`) の後に `npm run lint:deno` (Deno の `check`・`lint`・`fmt:check`・`test`) を実行し、`npm run fix` は `eslint --fix` の後に `deno task fmt` を実行する。整形の対象と除外は root の `deno.json` の `fmt` にあり、markdown は `proseWrap: "preserve"` で改行を変えない。`tsconfig.json` は Remotion の CLI とバンドラが読むためだけに置いている。テストが読む CSS Modules は、root の `deno.json` の `imports` で `test/cssStub.ts` に差し替える。`configure()` や Temporal が要るテストは先頭で `test/setup.ts` を import する。CI の lint job は `npm run lint` を実行し、module ごとの matrix job (`modules`) は member の 4 つの task を実行する。
 
 `modules/<name>/` は Deno の workspace の member で、それぞれ自分の `deno.json` (`name`・`exports`・`imports`・`tasks`) を持ち、`tasks` には `check`・`lint`・`fmt:check`・`test` の 4 つを置く。module 単位で検査するときは、その module のディレクトリで次を実行する。
 
@@ -32,7 +32,7 @@ deno task fmt:check  # deno fmt --check
 deno task test       # deno test -A --permit-no-files (テストの無い module でも成功する)
 ```
 
-root の `deno task check`・`lint`・`fmt:check`・`test` は `deno task --members` で全 module の同名の task を実行する。`deno task -f @motovlog/<name> check` で 1 つの module に絞れる。
+root の `deno task check`・`lint`・`fmt:check`・`test` はリポジトリ全体を対象にする。全 module の同名の task をまとめて実行するときは `deno task --members check` のように `--members` を付け、`deno task -f @motovlog/<name> check` で 1 つの module に絞れる。
 
 ## ディレクトリ構成
 
@@ -362,7 +362,7 @@ ED・サムネ用フレームの絵は要素ファクトリで置けるが、ED 
 
 - 相対 import・export・import() には実体のファイルの拡張子 (`.ts`/`.tsx`/`.module.css`/`.json`) を付ける。`../theme` のようなディレクトリ指定は `index.ts` まで書く。
 - 日付と時間は Temporal で表し、`Date` は使わない ([ADR-0007](docs/adr/0007-use-temporal-for-dates-and-times.md))。
-- コミット前に `npm run fix` (ESLint・prettier・`deno fmt` の自動修正) を通す。
+- コミット前に `npm run fix` (ESLint と `deno fmt` の自動修正) を通す。
 
 ## License
 

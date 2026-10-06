@@ -129,12 +129,14 @@ describe("createRunQueue", () => {
 
   it("run が reject しても running が戻り、次の要求は走る (onError にエラーが渡る)", async () => {
     let call = 0;
-    const run = spy(async () => {
+    const run = spy(() => {
       call += 1;
 
       if (call === 1) {
-        throw new Error("boom");
+        return Promise.reject(new Error("boom"));
       }
+
+      return Promise.resolve();
     });
     const onError = spy<unknown, [unknown], void>(() => {});
     const request = createRunQueue(run, 200, onError);

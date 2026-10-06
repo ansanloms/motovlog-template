@@ -81,7 +81,9 @@ export const configureFromConsumer = async (root: string): Promise<void> => {
     // configure() のメッセージは theme のどの項目かまでしか言わない。CLI から
     // は直すファイルが分かった方がよいので、読んだパスを添え直す。
     throw new Error(
-      `${configPath}: ${error instanceof Error ? error.message : String(error)}`,
+      `${configPath}: ${
+        error instanceof Error ? error.message : String(error)
+      }`,
     );
   }
 };
@@ -113,7 +115,7 @@ export const createRunQueue = (
   delayMs: number,
   onError: (error: unknown) => void,
   setTimeoutFn: typeof setTimeout = setTimeout,
-): (() => void) => {
+): () => void => {
   let running = false;
   let rerunRequested = false;
   let debounceTimer: ReturnType<typeof setTimeout> | null = null;

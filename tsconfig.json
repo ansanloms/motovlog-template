@@ -1,24 +1,11 @@
+// 型検査は deno check で行い、tsc は使わない (ADR-0017)。このファイルは Remotion
+// のためだけに置く。@remotion/cli は remotion.config.ts を読むときにこのファイルが
+// 無いと失敗し、@remotion/bundler の esbuild-loader はこの compilerOptions を
+// esbuild の tsconfigRaw として渡す。jsx は JSX の変換方式、target は esbuild が
+// class field の扱い (useDefineForClassFields の既定) を決めるのに使うため残す。
 {
   "compilerOptions": {
     "target": "ES2018",
-    "module": "Preserve",
-    "moduleResolution": "Bundler",
-    "jsx": "react-jsx",
-    "strict": true,
-    "noEmit": true,
-    "allowImportingTsExtensions": true,
-    "lib": ["ES2018", "ES2022.Object"],
-    "esModuleInterop": true,
-    "skipLibCheck": true,
-    "forceConsistentCasingInFileNames": true,
-    "noUnusedLocals": true,
-    "resolveJsonModule": true
-  },
-  "exclude": [
-    "remotion.config.ts",
-    "node_modules",
-    "apm_modules",
-    "**/*.test.ts",
-    "**/*.test.tsx"
-  ]
+    "jsx": "react-jsx"
+  }
 }

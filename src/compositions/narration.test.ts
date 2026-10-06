@@ -37,8 +37,11 @@ const fakeCache = (
 });
 
 /** fetchCacheFor に渡す 1 エントリ分の指定。数値だけなら duration (voice は既定)。 */
-type CacheSpec =
-  number | { duration: number; voice?: VoiceOptions; lipsync?: LipsyncEntry[] };
+type CacheSpec = number | {
+  duration: number;
+  voice?: VoiceOptions;
+  lipsync?: LipsyncEntry[];
+};
 
 /**
  * text ごとの実尺 (voice・lipsync も指定可) から、URL に voiceKey({ text, voice })
@@ -49,23 +52,26 @@ const fetchCacheFor = async (
 ): Promise<typeof fetch> => {
   const entries = await Promise.all(
     Object.entries(durationsByText).map(async ([text, spec]) => {
-      const { duration, voice, lipsync } =
-        typeof spec === "number" ? { duration: spec } : spec;
+      const { duration, voice, lipsync } = typeof spec === "number"
+        ? { duration: spec }
+        : spec;
       const key = await voiceKey({ text, voice });
 
       return [key, fakeCache(duration, { voice, lipsync })] as const;
     }),
   );
 
-  return (async (input: RequestInfo | URL) => {
+  return ((input: RequestInfo | URL) => {
     const url = String(input);
     const found = entries.find(([key]) => url.includes(key));
 
     if (!found) {
-      return new Response("not found", { status: 404 });
+      return Promise.resolve(new Response("not found", { status: 404 }));
     }
 
-    return new Response(JSON.stringify(found[1]), { status: 200 });
+    return Promise.resolve(
+      new Response(JSON.stringify(found[1]), { status: 200 }),
+    );
   }) as typeof fetch;
 };
 
@@ -404,14 +410,16 @@ describe("narration", () => {
 
   it("Studio では 404 が続いても waitIntervalMs 間隔で待って取得でき、sleep が 2 回呼ばれる", async () => {
     let calls = 0;
-    const fetchCache = (async () => {
+    const fetchCache = (() => {
       calls += 1;
 
       if (calls < 3) {
-        return new Response("not found", { status: 404 });
+        return Promise.resolve(new Response("not found", { status: 404 }));
       }
 
-      return new Response(JSON.stringify(fakeCache(1.5)), { status: 200 });
+      return Promise.resolve(
+        new Response(JSON.stringify(fakeCache(1.5)), { status: 200 }),
+      );
     }) as typeof fetch;
     const sleep = spy(async () => {});
 
@@ -432,10 +440,10 @@ describe("narration", () => {
 
   it("Studio でなければ 1 回で throw し、メッセージに URL と npm run dev を含む", async () => {
     let calls = 0;
-    const fetchCache = (async () => {
+    const fetchCache = (() => {
       calls += 1;
 
-      return new Response("not found", { status: 404 });
+      return Promise.resolve(new Response("not found", { status: 404 }));
     }) as typeof fetch;
 
     const key = await voiceKey({ text: "S" });
@@ -461,10 +469,10 @@ describe("narration", () => {
 
   it("待ちの打ち切り: waitTimeoutMs/waitIntervalMs から求めた回数だけ試して throw する", async () => {
     let calls = 0;
-    const fetchCache = (async () => {
+    const fetchCache = (() => {
       calls += 1;
 
-      return new Response("not found", { status: 404 });
+      return Promise.resolve(new Response("not found", { status: 404 }));
     }) as typeof fetch;
     const sleep = spy(async () => {});
 
@@ -536,14 +544,16 @@ describe("narration", () => {
 
   it("line() の reading を配列で書くと改行で結合した文字列と同じ key の音声キャッシュを読む", async () => {
     const key = await voiceKey({ text: "T2", reading: "a\nb" });
-    const fetchCache = (async (input: RequestInfo | URL) => {
+    const fetchCache = ((input: RequestInfo | URL) => {
       const url = String(input);
 
       if (url.includes(key)) {
-        return new Response(JSON.stringify(fakeCache(1)), { status: 200 });
+        return Promise.resolve(
+          new Response(JSON.stringify(fakeCache(1)), { status: 200 }),
+        );
       }
 
-      return new Response("not found", { status: 404 });
+      return Promise.resolve(new Response("not found", { status: 404 }));
     }) as typeof fetch;
 
     const { speech } = await narration(
@@ -758,25 +768,26 @@ describe("narration", () => {
 
   it("line() 直下に expression を渡すと即 throw する (by の中に書けというメッセージ、JS からの誤用対策)", () => {
     expect(() =>
-      line({ text: "A", expression: "x" } as unknown as Parameters<
-        typeof line
-      >[0]),
+      line(
+        { text: "A", expression: "x" } as unknown as Parameters<
+          typeof line
+        >[0],
+      )
     ).toThrow(/expression は by の中に書いてください/);
   });
 
   it("line() は by.expressions に無い expression を指定すると即 throw する", () => {
     const c = character({ expressions: { normal: ["a.png"] } });
 
-    expect(() =>
-      line({ text: "A", by: { character: c, expression: "nope" } }),
-    ).toThrow(/by に無い表情 "nope" が指定されました/);
+    expect(() => line({ text: "A", by: { character: c, expression: "nope" } }))
+      .toThrow(/by に無い表情 "nope" が指定されました/);
   });
 
   it("line() は by.expressions の prototype のキー (toString 等) を指定すると即 throw する (#11)", () => {
     const c = character({ expressions: { normal: ["a.png"] } });
 
     expect(() =>
-      line({ text: "A", by: { character: c, expression: "toString" } }),
+      line({ text: "A", by: { character: c, expression: "toString" } })
     ).toThrow(/by に無い表情 "toString" が指定されました/);
   });
 
@@ -785,7 +796,7 @@ describe("narration", () => {
       line({
         text: "A",
         by: null as unknown as Parameters<typeof line>[0]["by"],
-      }),
+      })
     ).toThrow(/by は character\(\) の戻り値か/);
   });
 
