@@ -1,8 +1,7 @@
 import { Video as MediaVideo } from "@remotion/media";
 import React from "react";
 import { useRemotionEnvironment, useVideoConfig } from "remotion";
-import { previewSrc } from "./previewSrc.ts";
-import { useVolumeProp, type Volume } from "./volume.ts";
+import { previewSrc, useVolumeProp, type Volume } from "../core/index.ts";
 
 /** Video が受け取るもの。 */
 type Props = {
@@ -13,7 +12,7 @@ type Props = {
   /**
    * 音量。一定値 (数値) または折れ線 (`{ at, volume }[]`)。折れ線の `at`
    * は要素の再生開始 (trimBefore 適用後) からの秒。既定は 1。不正な値は
-   * 要素ファクトリ (`src/components/index.tsx` の `video()`) の呼び出し時
+   * 要素ファクトリ (`./factory.tsx` の `video()`) の呼び出し時
    * に throw する。
    */
   volume?: Volume;

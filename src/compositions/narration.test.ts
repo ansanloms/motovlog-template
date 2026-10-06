@@ -2,7 +2,7 @@ import React from "react";
 import { staticFile } from "remotion";
 import { describe, expect, it, vi } from "vitest";
 import { annotation } from "../components/index.tsx";
-import { Line } from "../components/Line.tsx";
+import { Line } from "../../modules/subtitle/index.ts";
 import {
   cut,
   end,

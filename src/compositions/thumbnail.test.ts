@@ -1,7 +1,7 @@
 import { isValidElement } from "react";
 import { staticFile } from "remotion";
 import { describe, expect, it } from "vitest";
-import { Thumbnail } from "../components/Thumbnail.tsx";
+import { Thumbnail } from "../../modules/thumbnail/index.ts";
 import { character } from "./character.ts";
 import type { Character } from "./character.ts";
 import { figureLayers } from "./figure.ts";

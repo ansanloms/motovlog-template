@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { useFadeGain } from "../fadeGain.ts";
+import { useFadeGain } from "./fadeGain.ts";
 
 /** 音量の折れ線の 1 点。at は要素の再生開始 (trimBefore 適用後) からの秒。 */
 export type VolumePoint = { readonly at: number; readonly volume: number };

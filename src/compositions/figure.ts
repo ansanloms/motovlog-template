@@ -20,7 +20,7 @@
 
 import { createElement } from "react";
 import { staticFile } from "remotion";
-import { Figure } from "../components/Figure.tsx";
+import { Figure } from "../../modules/figure/index.ts";
 import { sample, toFrame } from "../effects/index.ts";
 import type { SampleNode } from "../effects/index.ts";
 import { characterTiming } from "../theme/index.ts";

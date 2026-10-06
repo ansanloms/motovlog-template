@@ -9,11 +9,12 @@ Remotion でモトブログ動画を作るためのライブラリ (lib) と、�
 
 ## ディレクトリ構成
 
-([ADR-0002](docs/adr/0002-project-directory-layout.md)・[ADR-0012](docs/adr/0012-split-template-library-from-consumer.md) の要約)
+([ADR-0002](docs/adr/0002-project-directory-layout.md)・[ADR-0012](docs/adr/0012-split-template-library-from-consumer.md)・[ADR-0015](docs/adr/0015-split-components-into-modules.md) の要約)
 
-lib (動画を作る機能) は次の 2 つ。
+lib (動画を作る機能) は次の 3 つ。
 
-- `src/`: 演出の DSL・コンポーネント・compositions・配置と秒数のトークン
+- `src/`: 演出の DSL (effects)・compositions・配置と秒数のトークン・音声と project の読み込み
+- `modules/`: npm package 相当の独立した単位。`modules/<name>/` は `index.ts` を入口に持ち、`motovlog-template/modules/<name>` として公開される。今は見た目のコンポーネント 9 個 (コンポーネント・CSS Module・要素ファクトリ・テストをまとめる) と、module 間で共有する部品を持つ `modules/core/` を置いている。`modules/<name>/` が import してよい他の module は原則 `modules/core/` だけ
 - `scripts/`: 音声生成・素材の変換・Studio の起動
 
 利用側 (動画 1 本ごとの値) は次のとおり。
@@ -28,15 +29,16 @@ lib (動画を作る機能) は次の 2 つ。
 - `remotion.config.ts`: Remotion の設定。`Config.setEntryPoint("./app/index.ts")` で入口を指す
 - `<slug>` は `YYYYMMDD-<name>` (例: `20260813-jododaira`)。同梱のサンプルだけ `00000000-sample` を使う
 
-利用側から lib を import してよいのは次の 5 つの入口だけで、それ以外の `src/` 配下を import すると ESLint が落とす。
+利用側から lib を import してよいのは次の 5 つの入口と、各 module の入口 (`modules/<name>/index.ts`) だけで、それ以外の `src/`・`modules/` 配下を import すると ESLint が落とす。
 
-| 入口                             | 実体                        | 主な中身                                                                 |
-| -------------------------------- | --------------------------- | ------------------------------------------------------------------------ |
-| `motovlog-template`              | `src/index.ts`              | `configure`・`RemotionRoot`・`Motovlog` と、下の 4 つの再 export         |
-| `motovlog-template/effects`      | `src/effects/index.ts`      | `timeline`・`cut`・`fade`・`crossfade`・`frame`・`start`・`end`・`group` |
-| `motovlog-template/components`   | `src/components/index.tsx`  | 要素ファクトリ (`video`・`audio`・`chapter`・`ending` 等)                |
-| `motovlog-template/compositions` | `src/compositions/index.ts` | `line`・`narration`・`character`・`figure`・`thumbnail`                  |
-| `motovlog-template/theme`        | `src/theme/index.ts`        | 配置と秒数のトークン (`chapterTiming`・`characterTiming`・`fps` 等)      |
+| 入口                               | 実体                        | 主な中身                                                                                                                                                                                                   |
+| ---------------------------------- | --------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `motovlog-template`                | `src/index.ts`              | `configure`・`RemotionRoot`・`Motovlog` と、下の 4 つの再 export                                                                                                                                           |
+| `motovlog-template/effects`        | `src/effects/index.ts`      | `timeline`・`cut`・`fade`・`crossfade`・`frame`・`start`・`end`・`group`                                                                                                                                   |
+| `motovlog-template/components`     | `src/components/index.tsx`  | 要素ファクトリ (`video`・`audio`・`chapter`・`ending` 等)                                                                                                                                                  |
+| `motovlog-template/compositions`   | `src/compositions/index.ts` | `line`・`narration`・`character`・`figure`・`thumbnail`                                                                                                                                                    |
+| `motovlog-template/theme`          | `src/theme/index.ts`        | 配置と秒数のトークン (`chapterTiming`・`characterTiming`・`fps` 等)                                                                                                                                        |
+| `motovlog-template/modules/<name>` | `modules/<name>/index.ts`   | npm package 相当の独立した単位 (今はコンポーネント 9 個と `core`)。コンポーネントの module は要素ファクトリとコンポーネントを出し、`motovlog-template/components` はこれらの要素ファクトリを再 export する |
 
 このリポジトリの中の利用側ファイルは、同じ 5 つの入口を相対パス (`../../src/effects/index.ts` 等) で import する。外部のリポジトリから依存として使う手順は「外部のリポジトリから使う」にある。
 
@@ -66,7 +68,7 @@ npm install github:ansanloms/motovlog-template
 
 TypeScript 5.9 には Temporal の型が無いため、`temporal-polyfill/global` が実行時にグローバルへ入れる `Temporal` の型を参照する 1 行だけの `.d.ts` を利用側にも置く (`tsconfig.json` の既定の include に入る場所であれば、パスは上記でなくてよい)。lib の同等のファイル (`src/temporal.d.ts`) は `node_modules` 内にあり、tsc の既定の include には入らないため、利用側で別途持つ必要がある。
 
-import は、このリポジトリ内の相対パスの代わりに bare specifier (5 入口 + `characters/<name>.ts` 用の 1 つ) を使う。
+import は、このリポジトリ内の相対パスの代わりに bare specifier (5 入口 + `characters/<name>.ts` 用の 1 つ + module ごとの入口) を使う。
 
 | このリポジトリ内の相対パス                                          | 外部からの import                          |
 | ------------------------------------------------------------------- | ------------------------------------------ |
@@ -76,6 +78,7 @@ import は、このリポジトリ内の相対パスの代わりに bare specifi
 | `../../src/compositions/index.ts`                                   | `motovlog-template/compositions`           |
 | `../../src/theme/index.ts`                                          | `motovlog-template/theme`                  |
 | `../../src/compositions/character.ts` (`characters/<name>.ts` 限定) | `motovlog-template/compositions/character` |
+| `../../modules/<name>/index.ts`                                     | `motovlog-template/modules/<name>`         |
 
 `characters/<name>.ts` だけは 5 入口ではなく `motovlog-template/compositions/character` を直に import する (`character()` の実体、`package.json` の `exports` の `./compositions/character`)。理由は [ADR-0012](docs/adr/0012-split-template-library-from-consumer.md) の禁止事項と同じで、5 入口は `figure()`・`line()` 伝いに CSS Modules を辿るため、素の Node から import する音声生成の watcher がこのファイルを読めなくなる。
 

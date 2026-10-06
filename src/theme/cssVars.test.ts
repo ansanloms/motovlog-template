@@ -9,9 +9,16 @@ import { themeCssVars } from "./cssVars.ts";
 // したものを使う。
 const { palette } = getSetup().theme;
 
-const srcDir = path.join(path.dirname(fileURLToPath(import.meta.url)), "..");
+const rootDir = path.join(
+  path.dirname(fileURLToPath(import.meta.url)),
+  "..",
+  "..",
+);
 
-// src 配下の *.module.css を再帰的に集める。
+// CSS Modules を置くディレクトリ。コンポーネントは modules/ にある (ADR-0015)。
+const scanDirs = ["src", "modules"].map((dir) => path.join(rootDir, dir));
+
+// dir 配下の *.module.css を再帰的に集める。
 const findModuleCssFiles = (dir: string): string[] => {
   return fs.readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
     const entryPath = path.join(dir, entry.name);
@@ -49,7 +56,7 @@ describe("themeCssVars", () => {
   it("*.module.css が参照する var(--...) はすべて themeCssVars に存在する", () => {
     // CSS 変数のタイプミスは実行時に黙って効かなくなるため、ここで止める。
     const vars = themeCssVars(palette, "Noto Sans JP");
-    const files = findModuleCssFiles(srcDir);
+    const files = scanDirs.flatMap(findModuleCssFiles);
 
     expect(files.length).toBeGreaterThan(0);
 
