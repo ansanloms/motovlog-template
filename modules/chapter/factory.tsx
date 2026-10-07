@@ -1,7 +1,7 @@
 import React from "react";
 import { Chapter } from "./Chapter.tsx";
-import { joinLines } from "../core/index.ts";
-import type { TextLines } from "../core/index.ts";
+import { joinLines } from "@motovlog/core";
+import type { TextLines } from "@motovlog/core";
 
 /** Chapter の要素ファクトリ。title は文字列の配列でも書け、改行で結合する。 */
 export const chapter = ({

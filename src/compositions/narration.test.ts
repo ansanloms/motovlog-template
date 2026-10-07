@@ -5,7 +5,7 @@ import { describe, it } from "@std/testing/bdd";
 import { expect } from "@std/expect";
 import { assertSpyCalls, spy } from "@std/testing/mock";
 import { annotation } from "../components/index.tsx";
-import { Line } from "../../modules/subtitle/index.ts";
+import { Line } from "@motovlog/subtitle";
 import {
   cut,
   end,
@@ -438,7 +438,7 @@ describe("narration", () => {
     );
   });
 
-  it("Studio でなければ 1 回で throw し、メッセージに URL と npm run dev を含む", async () => {
+  it("Studio でなければ 1 回で throw し、メッセージに URL と deno task dev を含む", async () => {
     let calls = 0;
     const fetchCache = (() => {
       calls += 1;
@@ -463,7 +463,7 @@ describe("narration", () => {
 
     expect(error).toBeInstanceOf(Error);
     expect((error as Error).message).toContain(expectedUrl);
-    expect((error as Error).message).toContain("npm run dev");
+    expect((error as Error).message).toContain("deno task dev");
     expect(calls).toBe(1);
   });
 

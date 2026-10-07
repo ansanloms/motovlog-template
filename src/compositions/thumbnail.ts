@@ -8,9 +8,9 @@
 
 import { createElement } from "react";
 import type { ReactElement } from "react";
-import { Thumbnail } from "../../modules/thumbnail/index.ts";
-import type { TextLines } from "../../modules/core/text.ts";
-import { joinLines } from "../../modules/core/text.ts";
+import { Thumbnail } from "@motovlog/thumbnail";
+import type { TextLines } from "@motovlog/core";
+import { joinLines } from "@motovlog/core";
 import { resolveBy } from "./character.ts";
 import type { ByRef } from "./character.ts";
 import { figureLayers } from "./figure.ts";

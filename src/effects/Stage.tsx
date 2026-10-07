@@ -1,6 +1,6 @@
 import React, { Fragment } from "react";
 import { AbsoluteFill, Sequence, useCurrentFrame } from "remotion";
-import { FadeGainContext, useFadeGain } from "../../modules/core/fadeGain.ts";
+import { FadeGainContext, useFadeGain } from "@motovlog/core";
 import { getSetup } from "../setup.ts";
 import { ThemeRoot } from "../theme/index.ts";
 import { isFrame } from "./frame.ts";

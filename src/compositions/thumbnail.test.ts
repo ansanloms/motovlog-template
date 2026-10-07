@@ -2,7 +2,7 @@ import { isValidElement } from "react";
 import { staticFile } from "remotion";
 import { describe, it } from "@std/testing/bdd";
 import { expect } from "@std/expect";
-import { Thumbnail } from "../../modules/thumbnail/index.ts";
+import { Thumbnail } from "@motovlog/thumbnail";
 import { character } from "./character.ts";
 import type { Character } from "./character.ts";
 import { figureLayers } from "./figure.ts";
