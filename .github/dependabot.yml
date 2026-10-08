@@ -26,6 +26,10 @@ updates:
     ignore:
       - dependency-name: "remotion"
       - dependency-name: "@remotion/*"
+      # typescript 7 (native 実装) は 5.x のコンパイラ API (createSourceFile 等) を
+      # 提供せず、scripts/voice/extract.ts が動かない。major は手で検討する。
+      - dependency-name: "typescript"
+        update-types: ["version-update:semver-major"]
 
   - package-ecosystem: "github-actions"
     directory: "/"
