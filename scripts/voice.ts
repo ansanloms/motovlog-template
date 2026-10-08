@@ -1,4 +1,4 @@
-// 使い方: tsx scripts/voice.ts [slug] [--watch]
+// 使い方: deno task voice [slug] [--watch]
 //
 // projects/<slug>/timeline.ts を静的解析し (scripts/voice/extract.ts)、
 // line() ごとの音声キャッシュ (public/projects/<slug>/lines/<key>.{wav,json}、
@@ -9,11 +9,11 @@
 // 利用側のルートは cwd (ADR-0012)。projects/・characters/・public/・.env・
 // app/config.ts はすべて cwd から引く。
 //
-// 既定 (--watch 無し) は 1 回生成して終了する (npm run render の前段)。
+// 既定 (--watch 無し) は 1 回生成して終了する (deno task render の前段)。
 // --watch は projects/<slug>/ ディレクトリの変更を fs.watch で監視し、
-// timeline.ts の変更のたびに再生成する (npm run dev から scripts/dev.ts が
+// timeline.ts の変更のたびに再生成する (deno task dev から scripts/dev.ts が
 // 起動する)。VOICEVOX_URL は .env で渡す。未設定なら 1 回実行は非 0 で
-// 終了し、--watch は起動時に 1 度警告して何もしない (npm run dev 自体は
+// 終了し、--watch は起動時に 1 度警告して何もしない (deno task dev 自体は
 // 使える)。
 
 import "temporal-polyfill/global";
@@ -81,7 +81,9 @@ export const configureFromConsumer = async (root: string): Promise<void> => {
     // configure() のメッセージは theme のどの項目かまでしか言わない。CLI から
     // は直すファイルが分かった方がよいので、読んだパスを添え直す。
     throw new Error(
-      `${configPath}: ${error instanceof Error ? error.message : String(error)}`,
+      `${configPath}: ${
+        error instanceof Error ? error.message : String(error)
+      }`,
     );
   }
 };
@@ -113,7 +115,7 @@ export const createRunQueue = (
   delayMs: number,
   onError: (error: unknown) => void,
   setTimeoutFn: typeof setTimeout = setTimeout,
-): (() => void) => {
+): () => void => {
   let running = false;
   let rerunRequested = false;
   let debounceTimer: ReturnType<typeof setTimeout> | null = null;
@@ -300,7 +302,7 @@ export const run = async (args: readonly string[]): Promise<RunHandle> => {
   };
 };
 
-// tsx で直接実行されたときだけ CLI として動く (scripts/dev.ts からの import では動かない)。
+// deno run で直接実行されたときだけ CLI として動く (scripts/dev.ts からの import では動かない)。
 if (
   process.argv[1] &&
   path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)

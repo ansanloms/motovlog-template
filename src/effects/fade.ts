@@ -8,8 +8,10 @@ import type { FadeItem, FrameMarker, Placement, Span } from "./types.ts";
  * fade() に渡すオプション。node が塊 (GroupNode) のときだけ duration/until
  * を省略できる (ADR-0014、省略時は塊の内容の尺になる)。
  */
-type FadeOptions<Node> = Placement &
-  (Node extends GroupNode ? Partial<Span> : Span) & {
+type FadeOptions<Node> =
+  & Placement
+  & (Node extends GroupNode ? Partial<Span> : Span)
+  & {
     /** フェードインの尺 (秒)。既定は 0 (フェードなし)。 */
     in?: number;
     /** フェードアウトの尺 (秒)。既定は 0 (フェードなし)。 */

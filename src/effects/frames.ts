@@ -97,8 +97,9 @@ export const fadeGain = (params: {
   const { frame, durationInFrames, inFrames, outFrames } = params;
 
   const inRatio = inFrames > 0 ? frame / inFrames : 1;
-  const outRatio =
-    outFrames > 0 ? (durationInFrames - 1 - frame) / outFrames : 1;
+  const outRatio = outFrames > 0
+    ? (durationInFrames - 1 - frame) / outFrames
+    : 1;
 
   const ratio = Math.min(inRatio, outRatio);
 
@@ -137,8 +138,9 @@ export const crossfadeGain = (params: {
   const { frame, durationInFrames, inFrames, outFrames } = params;
 
   const inRatio = inFrames > 0 ? (frame + 1) / inFrames : 1;
-  const outRatio =
-    outFrames > 0 ? (durationInFrames - 1 - frame) / outFrames : 1;
+  const outRatio = outFrames > 0
+    ? (durationInFrames - 1 - frame) / outFrames
+    : 1;
 
   const ratio = Math.min(inRatio, outRatio);
 

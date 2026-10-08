@@ -575,10 +575,9 @@ const resolveLayersInRounds = (
     }
 
     if (resolved.size === resolvedSizeBefore) {
-      const message =
-        lastBlockedError instanceof Error
-          ? lastBlockedError.message
-          : String(lastBlockedError);
+      const message = lastBlockedError instanceof Error
+        ? lastBlockedError.message
+        : String(lastBlockedError);
 
       throw new Error(
         `${message} (参照先がどの layer にも置かれていないか、参照が循環しています。同じ layer の後ろの item への参照も循環になります)`,

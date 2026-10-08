@@ -54,7 +54,7 @@ describe("readingText", () => {
 describe("assertReadingNotation", () => {
   it("正常な {漢字|よみ} は throw しない", () => {
     expect(() =>
-      assertReadingNotation("今日は{浄土平|じょうどだいら}まで走った。"),
+      assertReadingNotation("今日は{浄土平|じょうどだいら}まで走った。")
     ).not.toThrow();
   });
 

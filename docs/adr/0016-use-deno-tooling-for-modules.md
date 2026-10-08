@@ -58,13 +58,16 @@ ESLint は [ADR-0012](./0012-split-template-library-from-consumer.md) と [ADR-0
 
 - root の `deno.json` を workspace とし、`"workspace": ["./modules/*"]` で `modules/<name>/` をすべて member にする。
 - 各 member は自分の `deno.json` を module の manifest として持つ。`name` は `@motovlog/<name>`、`version` は `0.0.0`、`exports` は `./index.ts` とする。
-- 依存は member の `deno.json` の `imports` に書く。その member のファイルが import する外部パッケージだけを書き、root の `imports` には書かない。
+- 依存は member の `deno.json` の `imports` に書く。その member のファイルが import する外部パッケージだけを書く。
 - 各 member の `tasks` には `check` (`deno check index.ts`)・`lint` (`deno lint`)・`fmt:check` (`deno fmt --check`)・`test` (`deno test -A --permit-no-files`) を必ず置く。理由: task を持たない member があると、root の task (`deno task --members <task>`) をその member が引き継いで呼び返す。
-- root の `deno.json` は `nodeModulesDir`・`lock`・`compilerOptions`・`fmt`/`lint`/`test` の `include` を持つ。理由: `nodeModulesDir` は workspace の root にしか書けず、`include` が無いと root で引数なしに実行した `deno fmt`・`deno lint`・`deno test` がリポジトリ全体を対象にする。
-- member 間の import は相対パス (`../core/index.ts`) のまま書き、`@motovlog/<name>` の名前で import しない。理由: Remotion のバンドラ (Rspack) と `tsc` は `deno.json` を読まず、このリポジトリには `@motovlog/<name>` を解決する設定が無い。
-- `deno.lock` は使わない (`lock: false`)。理由は「依存のバージョン」に書く。
+- root の `deno.json` は `nodeModulesDir`・`compilerOptions`・`fmt`/`lint`/`test` の `include` を持つ。理由: `nodeModulesDir` は workspace の root にしか書けず、`include` が無いと root で引数なしに実行した `deno fmt`・`deno lint`・`deno test` がリポジトリ全体を対象にする。
+- member 間の import と、`src/` から member への import は、member の名前 (`@motovlog/<name>`) で書く。名前が指すのは member の `exports` (`./index.ts`) だけで、member の中の他のファイルを相対パスで直に import しない。理由: member を package 相当の単位として、入口だけを介して使うため。
+- Deno は名前を workspace から解決する。Remotion のバンドラ (Rspack) は `node_modules` から解決し、`deno install` は member を `node_modules` にリンクしないため、`remotion.config.ts` の `Config.overrideBundlerConfig()` で member の `deno.json` の `name` から `modules/<name>/index.ts` への alias (完全一致の `<name>$`) を足す。`overrideBundlerConfig()` は Webpack と Rspack のどちらを選んでも効く共通の override で、`Config.setRspack(true)` では `overrideWebpackConfig()` は呼ばれない。
+- `deno.lock` はコミットする。理由は「依存のバージョン」に書く。
 
 ### Node に残す範囲
+
+この節の範囲は [ADR-0017](./0017-unify-runtime-and-tooling-on-deno.md) が置き換え、すべて Deno で行う。
 
 - Remotion の bundle と render、Studio は Node 上の Remotion CLI で行う。
 - `tsc` はリポジトリ全体を型検査する。`modules/**/*.test.ts` は `tsconfig.json` の `exclude` に入れる。理由: `tsc` は `@std/*` を解決できない。
@@ -75,11 +78,11 @@ ESLint は [ADR-0012](./0012-split-template-library-from-consumer.md) と [ADR-0
 
 ### 依存のバージョン
 
-- root の `deno.json` の `nodeModulesDir` は `"manual"` とし、npm の依存は `npm ci` が作った `node_modules` から解決する。
-- member の npm 依存 (`react`・`remotion`・`@remotion/media` 等) は `package.json` と同じ exact 版で `imports` に書く。理由: `nodeModulesDir: "manual"` では npm 依存が `node_modules` の実体で解決されるため、実体と食い違うと `Could not find a matching package ... in the node_modules directory` で check が落ちる。同期は Dependabot の multi-ecosystem group (react) と `npm run upgrade` (Remotion) が行う。
-- `deno.lock` は使わない (root の `deno.json` の `lock: false`)。理由: npm 依存は `package-lock.json` が固定しており、`deno.lock` は root の npm 依存も記録するため、`package.json` が更新されるたびにずれる。
-- jsr 依存 (`@std/*`) は範囲内で浮く。更新は `deno outdated -r --update` で行う。
-- 依存の更新は Dependabot が行う。react は `npm` と `deno` の entry を multi-ecosystem group (react) にまとめ、`package.json` と member の `deno.json` を同じ PR で上げる。Remotion は Dependabot の対象外で、`npm run upgrade` が `package.json` と member の pin を揃える。
+- root の `deno.json` の `nodeModulesDir` は `"auto"` とし、`deno install` が root と member の `imports` から `node_modules` を作る ([ADR-0017](./0017-unify-runtime-and-tooling-on-deno.md))。
+- member の npm 依存 (`react`・`remotion`・`@remotion/media` 等) は root の `deno.json` の `imports` と同じ exact 版で書く。理由: 同じパッケージの版が root と member で分かれると、`node_modules` に 2 つの版が入り、React のように 1 つの実体を前提とするパッケージが壊れる。同期は Dependabot の group (react) と `deno task upgrade` (Remotion) が行う。
+- `deno.lock` をコミットする。理由: npm と jsr の依存の解決結果を固定し、CI の `deno install --frozen` で宣言との食い違いを検出するため。
+- jsr 依存 (`@std/*`) は範囲内で浮き、`deno.lock` が固定する。更新は `deno outdated -r --update` で行う。
+- 依存の更新は Dependabot の `deno` の entry が行い、root と member の `deno.json` を見る。react 系は group (react) で 1 つの PR にまとめる。Remotion は Dependabot の対象外で、`deno task upgrade` が root と member の pin を揃える。
 
 ## Consequences
 
@@ -94,15 +97,13 @@ ESLint は [ADR-0012](./0012-split-template-library-from-consumer.md) と [ADR-0
 - テストの書き方が 2 通りになる。`modules/` の `.test.ts` は `@std/testing/bdd`、`.test.tsx` とそれ以外のディレクトリのテストは vitest で書く。
 - 整形のツールがディレクトリで分かれる。`modules/` は `deno fmt`、それ以外は prettier である。
 - `src/` 等から `modules/` へ移すテストは、`.test.ts` であれば `@std/testing/bdd` と `@std/expect` に書き換える必要がある。
-- jsr 依存は `deno.lock` で固定されないため、範囲内で新しい版に変わる。
 - module を足すときは、その module の `deno.json` (`name`・`exports`・`imports`・`tasks` の 4 つ) も書く必要がある。
 
 ### 禁止事項
 
 - `modules/**/*.test.ts` を vitest で書くこと、または CSS Modules を読むテストを `.test.ts` として置くこと。
-- member の npm 依存を `package.json` と違う版で書くこと。
-- `deno.lock` をコミットすること。
-- member 間の import を `@motovlog/<name>` の名前で書くこと。
+- member の npm 依存を root の `deno.json` と違う版で書くこと。
+- member を相対パスで import すること、または member の `index.ts` 以外のファイルを import すること。
 - member の 4 つの task (`check`・`lint`・`fmt:check`・`test`) を省くこと。
 - member の `deno.json` に `nodeModulesDir` を書くこと。
 - `modules/` に対する ESLint の境界の規則を、Deno の lint で置き換えたとして外すこと。
@@ -110,11 +111,12 @@ ESLint は [ADR-0012](./0012-split-template-library-from-consumer.md) と [ADR-0
 
 ## Assumptions
 
-| 前提                                                                  | 状態   | 確認方法 / 結果                                                                                     |
-| --------------------------------------------------------------------- | ------ | --------------------------------------------------------------------------------------------------- |
-| `deno fmt` と prettier の整形結果の差は末尾カンマ程度に留まる         | 検証済 | 2026-10-01、`deno fmt --check modules/` で差分は 23 ファイル中 1 ファイル (末尾カンマ) だった       |
-| Deno が `nodeModulesDir: "manual"` で `node_modules` の依存を解決する | 検証済 | 2026-10-01、deno 2.9.6 で `deno check modules/` と `deno test` が通った                             |
-| Deno が CSS Modules の実行時 import に対応しない                      | 検証済 | 2026-10-01、deno 2.9.6 で `Importing these types of modules is currently not supported.` を確認した |
+| 前提                                                                  | 状態   | 確認方法 / 結果                                                                                                                                           |
+| --------------------------------------------------------------------- | ------ | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `deno fmt` と prettier の整形結果の差は末尾カンマ程度に留まる         | 検証済 | 2026-10-01、`deno fmt --check modules/` で差分は 23 ファイル中 1 ファイル (末尾カンマ) だった                                                             |
+| Deno が `nodeModulesDir: "manual"` で `node_modules` の依存を解決する | 検証済 | 2026-10-01、deno 2.9.6 で `deno check modules/` と `deno test` が通った                                                                                   |
+| Remotion のバンドラが alias で `@motovlog/<name>` を解決する          | 検証済 | 2026-10-07、deno 2.9.7 と Remotion 4.0.529 で、alias を外すと `Can't resolve '@motovlog/annotation'` で失敗し、付けると `compositions`・`render` が通った |
+| Deno が CSS Modules の実行時 import に対応しない                      | 検証済 | 2026-10-01、deno 2.9.6 で `Importing these types of modules is currently not supported.` を確認した                                                       |
 
 ## References
 
@@ -123,3 +125,5 @@ ESLint は [ADR-0012](./0012-split-template-library-from-consumer.md) と [ADR-0
 - 2026-10-03 の所有者の計画承認: `modules/<name>/` を Deno の workspace の member とし、module ごとに `deno.json` (name・exports・imports・tasks) を持たせる。member 間の import は相対パスのまま、`nodeModulesDir` と `include` は root に残す。
 - 2026-10-03 の deno 2.9.6 での実測 (Context に記載した workspace の結果)。`deno task --help` の `--members  Run the task in all workspace members, but not in the workspace root`。
 - 2026-10-06 の所有者の承認: member の npm 依存は exact で `package.json` と揃え、Dependabot の multi-ecosystem group で同時に上げる。`deno.lock` は使わない。
+- 2026-10-07 の所有者の承認 ([ADR-0017](./0017-unify-runtime-and-tooling-on-deno.md) の 3 段階目): `package.json` を外し、member の npm 依存は root の `deno.json` と揃える。`deno.lock` をコミットする。member は `@motovlog/<name>` の名前で import し、Remotion のバンドラには `remotion.config.ts` の alias で解決させる。
+- Remotion のドキュメント「Webpack and Rspack」(https://www.remotion.dev/docs/bundlers): `Config.overrideBundlerConfig()` は "With either selected bundler. Runs first."、`Config.overrideWebpackConfig()` は "Only when Webpack is selected."。

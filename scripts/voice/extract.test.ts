@@ -49,7 +49,9 @@ const lineImportFor = (dir: string, localName = "line"): string =>
 const characterImportFor = (dir: string, localName = "character"): string =>
   localName === "character"
     ? `import { character } from "${characterSpecifierFor(dir)}";`
-    : `import { character as ${localName} } from "${characterSpecifierFor(dir)}";`;
+    : `import { character as ${localName} } from "${
+      characterSpecifierFor(dir)
+    }";`;
 
 // fs に書かず、path 計算だけに使う架空の timeline.ts のパス
 // (projects/<slug>/timeline.ts と同じ深さに置く。実プロジェクトの import
@@ -62,10 +64,6 @@ const FILE = path.join(
 );
 const FILE_DIR = path.dirname(FILE);
 const LINE_IMPORT = lineImportFor(FILE_DIR);
-
-// bare specifier のテストで node_modules/<name> の symlink 先にするリポジトリ
-// ルート (このリポジトリ自身、= lib)。
-const REPO_ROOT = fileURLToPath(new URL("../../", import.meta.url));
 
 const THEME_SOURCE = `
 export const narrator = { speaker: 13, speed: 1, pitch: 0 };
@@ -88,37 +86,17 @@ const makeTmpDir = (): string => {
 };
 
 /**
- * dir/node_modules/<name> を lib のリポジトリルート (REPO_ROOT) への symlink
- * にする。bare specifier (外部リポジトリからの依存) のテストで、Node の解決
- * (createRequire().resolve()) が node_modules 経由で package.json の exports
- * を辿れるようにする。name は package.json の name (motovlog-template) と
- * 一致しなくてよい (specifierIsLibModule() は解決先のファイルで判定するため、
- * npm alias 相当の名前でも通ることを確かめるのに使う)。
- */
-const linkPackage = (dir: string, name: string): void => {
-  const nodeModulesDir = path.join(dir, "node_modules");
-  fs.mkdirSync(nodeModulesDir, { recursive: true });
-  fs.symlinkSync(REPO_ROOT, path.join(nodeModulesDir, name), "dir");
-};
-
-/**
  * tmp ディレクトリに theme.ts と timeline.ts を書き出し、timeline.ts の
  * 絶対パスを返す。timeline.ts の先頭には実物の narration.ts から line を
  * import する行を自動で足す (呼び出し側の timelineSource はそれに続く本文)。
  * timelineSource・otherFiles の値関数は実際に生成される dir を受け取る
- * (character.ts への相対 specifier は dir から計算するため)。linkPackages は
- * bare specifier を解決できるようにする node_modules 上の名前の一覧。
+ * (character.ts への相対 specifier は dir から計算するため)。
  */
 const setupProject = (
   timelineSource: string | ((dir: string) => string),
   otherFiles: Record<string, (dir: string) => string> = {},
-  { linkPackages = [] }: { linkPackages?: string[] } = {},
 ): string => {
   const dir = makeTmpDir();
-
-  for (const name of linkPackages) {
-    linkPackage(dir, name);
-  }
 
   fs.writeFileSync(path.join(dir, "theme.ts"), THEME_SOURCE);
 
@@ -126,8 +104,9 @@ const setupProject = (
     fs.writeFileSync(path.join(dir, name), content(dir));
   }
 
-  const resolvedSource =
-    typeof timelineSource === "function" ? timelineSource(dir) : timelineSource;
+  const resolvedSource = typeof timelineSource === "function"
+    ? timelineSource(dir)
+    : timelineSource;
 
   const timelinePath = path.join(dir, "timeline.ts");
   fs.writeFileSync(timelinePath, `${lineImportFor(dir)}\n${resolvedSource}`);
@@ -136,7 +115,9 @@ const setupProject = (
 
 describe("extractLines", () => {
   it("lib の入口 (src/compositions/index.ts) からの import も line() と見なす", async () => {
-    const source = `import { line } from "${specifierFor(FILE_DIR, COMPOSITIONS_INDEX_TS)}";\nline({ text: "こんにちは" });`;
+    const source = `import { line } from "${
+      specifierFor(FILE_DIR, COMPOSITIONS_INDEX_TS)
+    }";\nline({ text: "こんにちは" });`;
 
     await expect(extractLines(source, FILE)).resolves.toEqual({
       lines: [{ text: "こんにちは" }],
@@ -145,7 +126,9 @@ describe("extractLines", () => {
   });
 
   it("lib の root export (src/index.ts) からの import も line() と見なす", async () => {
-    const source = `import { line } from "${specifierFor(FILE_DIR, ROOT_INDEX_TS)}";\nline({ text: "こんにちは" });`;
+    const source = `import { line } from "${
+      specifierFor(FILE_DIR, ROOT_INDEX_TS)
+    }";\nline({ text: "こんにちは" });`;
 
     await expect(extractLines(source, FILE)).resolves.toEqual({
       lines: [{ text: "こんにちは" }],
@@ -153,11 +136,11 @@ describe("extractLines", () => {
     });
   });
 
-  it("bare specifier (motovlog-template/compositions) からの import も line() と見なす", async () => {
+  it("bare specifier (deno.json の imports の motovlog-template/compositions) からの import も line() と見なす", async () => {
     const dir = makeTmpDir();
-    linkPackage(dir, "motovlog-template");
     const timelinePath = path.join(dir, "timeline.ts");
-    const source = `import { line } from "motovlog-template/compositions";\nline({ text: "こんにちは" });`;
+    const source =
+      `import { line } from "motovlog-template/compositions";\nline({ text: "こんにちは" });`;
     fs.writeFileSync(timelinePath, source);
 
     await expect(extractLines(source, timelinePath)).resolves.toEqual({
@@ -166,11 +149,11 @@ describe("extractLines", () => {
     });
   });
 
-  it("bare specifier (motovlog-template) からの import も line() と見なす", async () => {
+  it("bare specifier (deno.json の imports の motovlog-template) からの import も line() と見なす", async () => {
     const dir = makeTmpDir();
-    linkPackage(dir, "motovlog-template");
     const timelinePath = path.join(dir, "timeline.ts");
-    const source = `import { line } from "motovlog-template";\nline({ text: "こんにちは" });`;
+    const source =
+      `import { line } from "motovlog-template";\nline({ text: "こんにちは" });`;
     fs.writeFileSync(timelinePath, source);
 
     await expect(extractLines(source, timelinePath)).resolves.toEqual({
@@ -180,7 +163,8 @@ describe("extractLines", () => {
   });
 
   it("lib 以外の bare specifier からの line は拾わない", async () => {
-    const source = `import { line } from "other-package";\nline({ text: "こんにちは" });`;
+    const source =
+      `import { line } from "other-package";\nline({ text: "こんにちは" });`;
 
     await expect(extractLines(source, FILE)).resolves.toEqual({
       lines: [],
@@ -188,16 +172,16 @@ describe("extractLines", () => {
     });
   });
 
-  describe("specifier の解決 (package 名に依存しない判定)", () => {
-    it("npm alias 相当のでたらめな名前の symlink でも lib と見なす", async () => {
+  describe("specifier の解決 (import map で解決できないもの)", () => {
+    it("ファイル以外 (npm:) に解決される bare specifier (react) は lib と見なさない", async () => {
       const dir = makeTmpDir();
-      linkPackage(dir, "mvt-xyz");
       const timelinePath = path.join(dir, "timeline.ts");
-      const source = `import { line } from "mvt-xyz/compositions";\nline({ text: "こんにちは" });`;
+      const source =
+        `import { line } from "react";\nline({ text: "こんにちは" });`;
       fs.writeFileSync(timelinePath, source);
 
       await expect(extractLines(source, timelinePath)).resolves.toEqual({
-        lines: [{ text: "こんにちは" }],
+        lines: [],
         silent: 0,
       });
     });
@@ -205,7 +189,8 @@ describe("extractLines", () => {
     it("解決できない bare specifier (some-other-lib) は lib と見なさない", async () => {
       const dir = makeTmpDir();
       const timelinePath = path.join(dir, "timeline.ts");
-      const source = `import { line } from "some-other-lib";\nline({ text: "こんにちは" });`;
+      const source =
+        `import { line } from "some-other-lib";\nline({ text: "こんにちは" });`;
       fs.writeFileSync(timelinePath, source);
 
       await expect(extractLines(source, timelinePath)).resolves.toEqual({
@@ -225,8 +210,6 @@ describe("extractLines", () => {
         });
         line({ text: "a", by: hero });
       `,
-      {},
-      { linkPackages: ["motovlog-template"] },
     );
     const source = fs.readFileSync(timelinePath, "utf-8");
 
@@ -246,8 +229,6 @@ describe("extractLines", () => {
         });
         line({ text: "a", by: hero });
       `,
-      {},
-      { linkPackages: ["motovlog-template"] },
     );
     const source = fs.readFileSync(timelinePath, "utf-8");
 
@@ -267,7 +248,8 @@ describe("extractLines", () => {
   });
 
   it("正常系: voice (リテラルのみの object literal) を読む", async () => {
-    const source = `${LINE_IMPORT}\nline({ text: "こんにちは", voice: { speaker: 13 } });`;
+    const source =
+      `${LINE_IMPORT}\nline({ text: "こんにちは", voice: { speaker: 13 } });`;
 
     await expect(extractLines(source, FILE)).resolves.toEqual({
       lines: [{ text: "こんにちは", voice: { speaker: 13 } }],
@@ -276,7 +258,8 @@ describe("extractLines", () => {
   });
 
   it("正常系: voice に単項マイナスの数値リテラルを渡せる", async () => {
-    const source = `${LINE_IMPORT}\nline({ text: "こんにちは", voice: { pitch: -0.1 } });`;
+    const source =
+      `${LINE_IMPORT}\nline({ text: "こんにちは", voice: { pitch: -0.1 } });`;
 
     await expect(extractLines(source, FILE)).resolves.toEqual({
       lines: [{ text: "こんにちは", voice: { pitch: -0.1 } }],
@@ -297,7 +280,8 @@ describe("extractLines", () => {
   });
 
   it("正常系: reading (リテラル) を読む", async () => {
-    const source = `${LINE_IMPORT}\nline({ text: "{浄土平|じょうどだいら}", reading: "浄土平です" });`;
+    const source =
+      `${LINE_IMPORT}\nline({ text: "{浄土平|じょうどだいら}", reading: "浄土平です" });`;
 
     await expect(extractLines(source, FILE)).resolves.toEqual({
       lines: [{ text: "{浄土平|じょうどだいら}", reading: "浄土平です" }],
@@ -315,7 +299,8 @@ describe("extractLines", () => {
   });
 
   it("reading が変数参照 (非リテラル) なら位置付きエラーになる", async () => {
-    const source = `${LINE_IMPORT}\nconst r = "a"; line({ text: "x", reading: r });`;
+    const source =
+      `${LINE_IMPORT}\nconst r = "a"; line({ text: "x", reading: r });`;
 
     await expect(extractLines(source, FILE)).rejects.toThrow(
       /timeline\.ts:2:\d+.*リテラル/,
@@ -331,7 +316,8 @@ describe("extractLines", () => {
   });
 
   it("voice: null と reading を同時に指定すると位置付きエラーになる", async () => {
-    const source = `${LINE_IMPORT}\nline({ text: "a", reading: "エー", voice: null });`;
+    const source =
+      `${LINE_IMPORT}\nline({ text: "a", reading: "エー", voice: null });`;
 
     await expect(extractLines(source, FILE)).rejects.toThrow(
       /timeline\.ts:2:\d+.*声無しの行 \(voice: null\) に reading は書けません/,
@@ -359,7 +345,8 @@ describe("extractLines", () => {
   });
 
   it("reading の {漢字|よみ} 記法が壊れていれば位置付きエラーになる", async () => {
-    const source = `${LINE_IMPORT}\nline({ text: "a", reading: "{|じょうどだいら}" });`;
+    const source =
+      `${LINE_IMPORT}\nline({ text: "a", reading: "{|じょうどだいら}" });`;
 
     await expect(extractLines(source, FILE)).rejects.toThrow(
       /timeline\.ts:2:\d+.*\{漢字\|よみ\} の形で書いてください/,
@@ -392,7 +379,8 @@ describe("extractLines", () => {
   });
 
   it("正常系: text が文字列リテラルの配列なら改行で結合する", async () => {
-    const source = `${LINE_IMPORT}\nline({ text: ["こんにちは", "今日も晴れ"] });`;
+    const source =
+      `${LINE_IMPORT}\nline({ text: ["こんにちは", "今日も晴れ"] });`;
 
     await expect(extractLines(source, FILE)).resolves.toEqual({
       lines: [{ text: "こんにちは\n今日も晴れ" }],
@@ -401,7 +389,8 @@ describe("extractLines", () => {
   });
 
   it("text が配列で要素に非リテラルを含むと位置付きエラーになる", async () => {
-    const source = `${LINE_IMPORT}\nconst t = "a"; line({ text: ["こんにちは", t] });`;
+    const source =
+      `${LINE_IMPORT}\nconst t = "a"; line({ text: ["こんにちは", t] });`;
 
     await expect(extractLines(source, FILE)).rejects.toThrow(
       /timeline\.ts:2:\d+.*リテラル/,
@@ -425,7 +414,8 @@ describe("extractLines", () => {
   });
 
   it("voice のプロパティが重複していれば位置付きエラーになる", async () => {
-    const source = `${LINE_IMPORT}\nline({ text: "a", voice: { speaker: 1, speaker: 2 } });`;
+    const source =
+      `${LINE_IMPORT}\nline({ text: "a", voice: { speaker: 1, speaker: 2 } });`;
 
     await expect(extractLines(source, FILE)).rejects.toThrow(
       /timeline\.ts:2:\d+.*重複/,
@@ -441,13 +431,15 @@ describe("extractLines", () => {
   });
 
   it("voice に未知のキーがあれば位置付きエラーになる", async () => {
-    const source = `${LINE_IMPORT}\nline({ text: "a", voice: { unknown: 1 } });`;
+    const source =
+      `${LINE_IMPORT}\nline({ text: "a", voice: { unknown: 1 } });`;
 
     await expect(extractLines(source, FILE)).rejects.toThrow(/未知のキー/);
   });
 
   it("voice の値が数値でなければ位置付きエラーになる", async () => {
-    const source = `${LINE_IMPORT}\nline({ text: "a", voice: { speaker: "13" } });`;
+    const source =
+      `${LINE_IMPORT}\nline({ text: "a", voice: { speaker: "13" } });`;
 
     await expect(extractLines(source, FILE)).rejects.toThrow(/有限の数値/);
   });
@@ -484,7 +476,9 @@ describe("extractLines", () => {
   });
 
   it("namespace import (import * as n) 経由の n.line() も拾う", async () => {
-    const source = `import * as n from "${lineSpecifierFor(FILE_DIR)}";\nn.line({ text: "namespace" });`;
+    const source = `import * as n from "${
+      lineSpecifierFor(FILE_DIR)
+    }";\nn.line({ text: "namespace" });`;
 
     await expect(extractLines(source, FILE)).resolves.toEqual({
       lines: [{ text: "namespace" }],

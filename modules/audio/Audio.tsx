@@ -1,7 +1,7 @@
 import { Audio as MediaAudio } from "@remotion/media";
 import React from "react";
 import { useVideoConfig } from "remotion";
-import { useVolumeProp, type Volume } from "../core/index.ts";
+import { useVolumeProp, type Volume } from "@motovlog/core";
 
 /** Audio が受け取るもの。 */
 type Props = {

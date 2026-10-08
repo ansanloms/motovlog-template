@@ -34,7 +34,7 @@
 // 目パチ・口パク・表情の判定に使う (声無しの item は lipsync: [] で、
 // 表情の切り替えだけ効く)。キャッシュが無いときは Studio では書き上がるまで
 // 待ち、render と Node (Studio でも rendering でもない環境) では即エラーに
-// する (npm run dev の watcher か npm run render の前段が生成する)。
+// する (deno task dev の watcher か deno task render の前段が生成する)。
 //
 // 入力配列には line() の item に加え、figure() (./figure.ts) が返す括り
 // (FigureGroup) を混ぜて置ける。narration() は括りの中の item を配列の順の
@@ -44,9 +44,9 @@
 import type { ReactNode } from "react";
 import React from "react";
 import { getRemotionEnvironment, staticFile } from "remotion";
-import { Line, subtitleBand } from "../../modules/subtitle/index.ts";
-import type { TextLines } from "../../modules/core/text.ts";
-import { joinLines } from "../../modules/core/text.ts";
+import { Line, subtitleBand } from "@motovlog/subtitle";
+import type { TextLines } from "@motovlog/core";
+import { joinLines } from "@motovlog/core";
 import {
   cut,
   fade,
@@ -161,8 +161,9 @@ export const line = (props: LineProps): ReactNode => {
 
   assertReadingNotation(text);
 
-  const reading =
-    props.reading !== undefined ? joinLines(props.reading) : undefined;
+  const reading = props.reading !== undefined
+    ? joinLines(props.reading)
+    : undefined;
 
   if (reading === "") {
     throw new Error(
@@ -249,7 +250,7 @@ const tryFetchVoiceCache = async (
 
 /**
  * `<key>.json` を取得する。Studio では waitIntervalMs 間隔で waitTimeoutMs
- * まで待つ (npm run dev の watcher が書き終わるのを待つ)。render と Node
+ * まで待つ (deno task dev の watcher が書き終わるのを待つ)。render と Node
  * (Studio でも rendering でもない環境、isStudio が false) では 1 回だけ試し、
  * 無ければ即エラー。
  */
@@ -275,7 +276,7 @@ const waitForVoiceCache = async (
 
   throw new Error(
     `発話の音声キャッシュが見つかりません: ${url}\n` +
-      "npm run dev の watcher が動いているか、.env の VOICEVOX_URL が設定されているかを確認してください。",
+      "deno task dev の watcher が動いているか、.env の VOICEVOX_URL が設定されているかを確認してください。",
   );
 };
 
@@ -575,22 +576,22 @@ export const narration = async (
       speechLayer.push(
         original.kind === "fade"
           ? {
-              kind: "fade",
-              node: original.node,
-              duration: positionDuration,
-              at: resolved.at,
-              in: original.in,
-              out: original.out,
-              audio: original.audio,
-              source: original,
-            }
+            kind: "fade",
+            node: original.node,
+            duration: positionDuration,
+            at: resolved.at,
+            in: original.in,
+            out: original.out,
+            audio: original.audio,
+            source: original,
+          }
           : {
-              kind: "cut",
-              node: original.node,
-              duration: positionDuration,
-              at: resolved.at,
-              source: original,
-            },
+            kind: "cut",
+            node: original.node,
+            duration: positionDuration,
+            at: resolved.at,
+            source: original,
+          },
       );
 
       emittedSpans.push({ at: resolved.at, duration: positionDuration });
@@ -686,7 +687,7 @@ export const narration = async (
       duration: span.duration,
       in: span.fadeIn,
       out: bandTiming.fadeOut,
-    }),
+    })
   );
 
   // 括りごとに立ち絵の item を 1 つ作る。範囲は「最初の行の開始 − lead」
@@ -727,21 +728,20 @@ export const narration = async (
       const duration = figureEnd - at;
 
       return figureGroup.options.in !== undefined ||
-        figureGroup.options.out !== undefined
+          figureGroup.options.out !== undefined
         ? fade(node, {
-            at,
-            duration,
-            in: figureGroup.options.in,
-            out: figureGroup.options.out,
-          })
+          at,
+          duration,
+          in: figureGroup.options.in,
+          out: figureGroup.options.out,
+        })
         : cut(node, { at, duration });
     },
   );
 
-  const layers: Layer[] =
-    figureLayer.length > 0
-      ? [figureLayer, bandLayer, speechLayer]
-      : [bandLayer, speechLayer];
+  const layers: Layer[] = figureLayer.length > 0
+    ? [figureLayer, bandLayer, speechLayer]
+    : [bandLayer, speechLayer];
 
   return { ...group(layers), speech: speechEntries, lines: lineItems };
 };

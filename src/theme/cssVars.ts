@@ -38,7 +38,9 @@ const toRgbChannels = (hex: string): string => {
  * (リテラルの重複を避ける)。
  */
 export const thumbScrim = (palette: Palette): string =>
-  `linear-gradient(to top, rgba(${toRgbChannels(palette.bg)}, ${thumbLayout.scrimAlpha}), transparent)`;
+  `linear-gradient(to top, rgba(${
+    toRgbChannels(palette.bg)
+  }, ${thumbLayout.scrimAlpha}), transparent)`;
 
 // PascalCase/camelCase のキーを CSS 変数名の kebab-case に変える。
 const toKebabCase = (value: string): string =>

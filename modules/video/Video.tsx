@@ -1,7 +1,7 @@
 import { Video as MediaVideo } from "@remotion/media";
 import React from "react";
 import { useRemotionEnvironment, useVideoConfig } from "remotion";
-import { previewSrc, useVolumeProp, type Volume } from "../core/index.ts";
+import { previewSrc, useVolumeProp, type Volume } from "@motovlog/core";
 
 /** Video が受け取るもの。 */
 type Props = {

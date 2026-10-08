@@ -52,20 +52,18 @@ describe("parseConvertArgs", () => {
 
   it("inputs が空なら throw する", () => {
     expect(() => parseConvertArgs(["20260817-jododaira"])).toThrow(
-      "usage: npm run convert -- <slug> <入力ファイル>...",
+      "usage: deno task convert <slug> <入力ファイル>...",
     );
   });
 
   it("未知の -- オプションは throw する", () => {
-    expect(() =>
-      parseConvertArgs(["--xyz", "20260817-jododaira", "a.mp4"]),
-    ).toThrow("不明なオプションです: --xyz");
+    expect(() => parseConvertArgs(["--xyz", "20260817-jododaira", "a.mp4"]))
+      .toThrow("不明なオプションです: --xyz");
   });
 
   it("--fps=<n> も不明なオプションとして throw する (fps は theme の定数)", () => {
-    expect(() =>
-      parseConvertArgs(["--fps=60", "20260817-jododaira", "a.mp4"]),
-    ).toThrow("不明なオプションです: --fps=60");
+    expect(() => parseConvertArgs(["--fps=60", "20260817-jododaira", "a.mp4"]))
+      .toThrow("不明なオプションです: --fps=60");
   });
 
   it("--help は null を返す", () => {
@@ -80,7 +78,7 @@ describe("parseConvertArgs", () => {
     expect(parseConvertArgs(["--xyz", "--help"])).toBeNull();
   });
 
-  it("素の -- (オプション終端) は読み飛ばし、以降を位置引数として読む (npx motovlog-convert -- <slug> <入力ファイル>...)", () => {
+  it("素の -- (オプション終端) は読み飛ばし、以降を位置引数として読む (deno task convert -- <slug> <入力ファイル>...)", () => {
     expect(parseConvertArgs(["--", "20260817-jododaira", "a.mp4"])).toEqual({
       slug: "20260817-jododaira",
       inputs: ["a.mp4"],
@@ -448,7 +446,7 @@ describe("runConvert", () => {
   });
 
   it("(b) 1 本目の nvenc が失敗したら libx264 で再試行し、以降は libx264 で統一する", async () => {
-    const { deps, calls, logs, warns } = makeDeps((call, index) => {
+    const { deps, calls, logs, warns } = makeDeps((_call, index) => {
       // 0: probe, 1: a.mp4 本体 nvenc (失敗), 2: a.mp4 本体 libx264 再試行
       // (成功)、3: a.mp4 プロキシ libx264 (成功、以降 libx264 に統一済み)、
       // 4: b.mkv 本体 libx264 (成功)、5: b.mkv プロキシ libx264 (成功)。
@@ -480,8 +478,8 @@ describe("runConvert", () => {
   });
 
   it("(c) probe 失敗なら全部 libx264 で変換する", async () => {
-    const { deps, calls, logs, warns } = makeDeps((call, index) =>
-      index === 0 ? 1 : 0,
+    const { deps, calls, logs, warns } = makeDeps((_call, index) =>
+      index === 0 ? 1 : 0
     );
 
     await runConvert(
@@ -517,7 +515,7 @@ describe("runConvert", () => {
   });
 
   it("(e) nvenc 失敗後の libx264 再試行も失敗したら Error を投げ、tmp を unlink する", async () => {
-    const { deps, unlinks, warns } = makeDeps((call, index) => {
+    const { deps, unlinks, warns } = makeDeps((_call, index) => {
       // 0: probe (成功、encoder は nvenc), 1: a.mp4 nvenc (失敗),
       // 2: a.mp4 libx264 再試行 (失敗)。
       if (index === 0) {
@@ -564,7 +562,7 @@ describe("runConvert", () => {
 
   it("(h) nvenc encode 中に abort されたら ConvertAbortedError を投げ、libx264 の再試行はせず tmp を unlink する", async () => {
     const controller = new AbortController();
-    const { deps, calls, unlinks, warns, logs } = makeDeps((call, index) => {
+    const { deps, calls, unlinks, warns, logs } = makeDeps((_call, index) => {
       // 0: probe (成功), 1: a.mp4 nvenc encode (この呼び出し中に abort)。
       if (index === 1) {
         controller.abort();
@@ -684,7 +682,7 @@ describe("runConvert", () => {
   });
 
   it("(m) プロキシの nvenc・libx264 再試行とも失敗したら Error を投げ、プロキシの tmp だけ unlink して本体は残す", async () => {
-    const { deps, unlinks, renames, warns } = makeDeps((call, index) => {
+    const { deps, unlinks, renames, warns } = makeDeps((_call, index) => {
       // 0: probe (成功), 1: 本体 nvenc (成功), 2: プロキシ nvenc (失敗),
       // 3: プロキシ libx264 再試行 (失敗)。
       if (index <= 1) {
@@ -706,7 +704,7 @@ describe("runConvert", () => {
 
   it("(n) プロキシの nvenc encode 中に abort されたら ConvertAbortedError を投げる", async () => {
     const controller = new AbortController();
-    const { deps, calls, unlinks, warns } = makeDeps((call, index) => {
+    const { deps, calls, unlinks, warns } = makeDeps((_call, index) => {
       // 0: probe (成功), 1: 本体 nvenc (成功), 2: プロキシ nvenc encode
       // (この呼び出し中に abort)。
       if (index === 2) {

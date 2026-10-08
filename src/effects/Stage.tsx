@@ -1,6 +1,6 @@
 import React, { Fragment } from "react";
 import { AbsoluteFill, Sequence, useCurrentFrame } from "remotion";
-import { FadeGainContext, useFadeGain } from "../../modules/core/fadeGain.ts";
+import { FadeGainContext, useFadeGain } from "@motovlog/core";
 import { getSetup } from "../setup.ts";
 import { ThemeRoot } from "../theme/index.ts";
 import { isFrame } from "./frame.ts";
@@ -84,17 +84,18 @@ const renderLayers = (
 
           const rawNode = item.node;
 
-          const node: React.ReactNode =
-            item.group !== undefined ? (
+          const node: React.ReactNode = item.group !== undefined
+            ? (
               renderLayers(item.group.layers, fps, absoluteFrom)
-            ) : isSample(rawNode) ? (
-              <Sampled render={rawNode.render} from={from} fps={fps} />
-            ) : (
-              (rawNode as React.ReactNode)
+            )
+            : isSample(rawNode)
+            ? <Sampled render={rawNode.render} from={from} fps={fps} />
+            : (
+              rawNode as React.ReactNode
             );
 
-          const body =
-            item.kind === "fade" ? (
+          const body = item.kind === "fade"
+            ? (
               <FadeLayer
                 durationInFrames={durationInFrames}
                 inFrames={toFrame(item.in, fps)}
@@ -103,33 +104,32 @@ const renderLayers = (
               >
                 {node}
               </FadeLayer>
-            ) : (
-              <AbsoluteFill>{node}</AbsoluteFill>
-            );
+            )
+            : <AbsoluteFill>{node}</AbsoluteFill>;
 
           // crossfade の出る側は、この layer の解決結果 (nodeItems) で
           // 自分の直後にある item の transitionIn で特定する。crossfade
           // 自体は解決結果の配列に入らないため、隣接する item が対になる。
           const overlapIn = item.transitionIn
             ? transitionFrames({
-                at: item.at,
-                duration: item.transitionIn.duration,
-                fps,
-              })
+              at: item.at,
+              duration: item.transitionIn.duration,
+              fps,
+            })
             : 0;
           const next = nodeItems[itemIndex + 1];
 
           const gainInFrames = item.transitionIn?.audio ? overlapIn : 0;
           const gainOutFrames = next?.transitionIn?.audio
             ? transitionFrames({
-                at: next.at,
-                duration: next.transitionIn.duration,
-                fps,
-              })
+              at: next.at,
+              duration: next.transitionIn.duration,
+              fps,
+            })
             : 0;
 
-          const bodyWithGain =
-            gainInFrames > 0 || gainOutFrames > 0 ? (
+          const bodyWithGain = gainInFrames > 0 || gainOutFrames > 0
+            ? (
               <GainLayer
                 durationInFrames={durationInFrames}
                 inFrames={gainInFrames}
@@ -137,9 +137,8 @@ const renderLayers = (
               >
                 {body}
               </GainLayer>
-            ) : (
-              body
-            );
+            )
+            : body;
 
           return (
             <Sequence
@@ -148,32 +147,31 @@ const renderLayers = (
               durationInFrames={durationInFrames}
               name={`layer ${layerIndex}: ${item.kind}`}
             >
-              {item.transitionIn ? (
-                <FadeLayer
-                  durationInFrames={durationInFrames}
-                  inFrames={overlapIn}
-                  outFrames={0}
-                  audio={false}
-                >
-                  {bodyWithGain}
-                </FadeLayer>
-              ) : (
-                bodyWithGain
-              )}
+              {item.transitionIn
+                ? (
+                  <FadeLayer
+                    durationInFrames={durationInFrames}
+                    inFrames={overlapIn}
+                    outFrames={0}
+                    audio={false}
+                  >
+                    {bodyWithGain}
+                  </FadeLayer>
+                )
+                : bodyWithGain}
             </Sequence>
           );
         })}
       </>
     );
 
-    below =
-      frameItems.length > 0 ? (
+    below = frameItems.length > 0
+      ? (
         <FrameEffects items={frameItems} fps={fps}>
           {below}
         </FrameEffects>
-      ) : (
-        below
-      );
+      )
+      : below;
 
     below = (
       <Fragment key={layerIndex}>
@@ -240,18 +238,16 @@ const FadeLayer: React.FC<{
 
   return (
     <AbsoluteFill style={{ opacity }}>
-      {audio ? (
-        <FadeGainContext.Provider
-          value={
-            parentGain *
-            fadeGain({ frame, durationInFrames, inFrames, outFrames })
-          }
-        >
-          {children}
-        </FadeGainContext.Provider>
-      ) : (
-        children
-      )}
+      {audio
+        ? (
+          <FadeGainContext.Provider
+            value={parentGain *
+              fadeGain({ frame, durationInFrames, inFrames, outFrames })}
+          >
+            {children}
+          </FadeGainContext.Provider>
+        )
+        : children}
     </AbsoluteFill>
   );
 };
@@ -272,10 +268,8 @@ const GainLayer: React.FC<{
 
   return (
     <FadeGainContext.Provider
-      value={
-        parentGain *
-        crossfadeGain({ frame, durationInFrames, inFrames, outFrames })
-      }
+      value={parentGain *
+        crossfadeGain({ frame, durationInFrames, inFrames, outFrames })}
     >
       {children}
     </FadeGainContext.Provider>

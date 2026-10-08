@@ -1,7 +1,7 @@
 import React from "react";
 import { AbsoluteFill, Img } from "remotion";
 import styles from "./PhotoShowcase.module.css";
-import { Video } from "../video/index.ts";
+import { Video } from "@motovlog/video";
 
 /** 写真紹介の枠に置く短い動画。音は出さない (常に無音)。 */
 export type PhotoVideo = {

@@ -38,7 +38,7 @@ describe("timeline", () => {
     expect(() =>
       timeline([
         [cut(null, { duration: 5 }), cut(null, { duration: 3, at: 2 })],
-      ]),
+      ])
     ).toThrow();
   });
 
@@ -89,7 +89,7 @@ describe("timeline", () => {
         duration: 1,
         // @ts-expect-error 非 boolean を渡す検査
         audio: "yes",
-      }),
+      })
     ).toThrow();
   });
 
@@ -141,7 +141,7 @@ describe("timeline", () => {
     expect(() =>
       timeline([
         [cut(null, { duration: 5, at: 11 }), cut(null, { duration: 3, at: 0 })],
-      ]),
+      ])
     ).toThrow(/時間順/);
   });
 
@@ -152,7 +152,7 @@ describe("timeline", () => {
           fade(null, { duration: 5, at: 11 }),
           fade(null, { duration: 3, at: 0 }),
         ],
-      ]),
+      ])
     ).toThrow(/時間順/);
   });
 
@@ -200,14 +200,13 @@ describe("timeline", () => {
 
   it("半フレームの item は位置によっては 1 フレームに満たず throw する", () => {
     expect(() =>
-      timeline([[cut(null, { duration: 0.5 / fps, at: 0.6 / fps })]]),
+      timeline([[cut(null, { duration: 0.5 / fps, at: 0.6 / fps })]])
     ).toThrow(/1 フレームに満たない/);
   });
 
   it("同じ duration でも at: 0 なら throw しない", () => {
-    expect(() =>
-      timeline([[cut(null, { duration: 0.5 / fps, at: 0 })]]),
-    ).not.toThrow();
+    expect(() => timeline([[cut(null, { duration: 0.5 / fps, at: 0 })]])).not
+      .toThrow();
   });
 });
 
@@ -248,19 +247,19 @@ describe("timeline: crossfade", () => {
 
   it("crossfade() は audio が boolean 以外だと throw する", () => {
     expect(() =>
-      crossfade({ duration: 0.4, audio: "true" as unknown as boolean }),
+      crossfade({ duration: 0.4, audio: "true" as unknown as boolean })
     ).toThrow(/audio は boolean で指定します/);
   });
 
   it("layer の先頭に crossfade があると throw する", () => {
     expect(() =>
-      timeline([[crossfade({ duration: 0.4 }), cut(null, { duration: 3 })]]),
+      timeline([[crossfade({ duration: 0.4 }), cut(null, { duration: 3 })]])
     ).toThrow();
   });
 
   it("layer の末尾に crossfade があると throw する", () => {
     expect(() =>
-      timeline([[cut(null, { duration: 3 }), crossfade({ duration: 0.4 })]]),
+      timeline([[cut(null, { duration: 3 }), crossfade({ duration: 0.4 })]])
     ).toThrow();
   });
 
@@ -273,7 +272,7 @@ describe("timeline: crossfade", () => {
           crossfade({ duration: 0.4 }),
           cut(null, { duration: 3 }),
         ],
-      ]),
+      ])
     ).toThrow();
   });
 
@@ -285,7 +284,7 @@ describe("timeline: crossfade", () => {
           crossfade({ duration: 0.4 }),
           cut(null, { duration: 3, after: 0 }),
         ],
-      ]),
+      ])
     ).toThrow();
 
     expect(() =>
@@ -295,7 +294,7 @@ describe("timeline: crossfade", () => {
           crossfade({ duration: 0.4 }),
           cut(null, { duration: 3, at: 10 }),
         ],
-      ]),
+      ])
     ).toThrow();
   });
 
@@ -307,7 +306,7 @@ describe("timeline: crossfade", () => {
           crossfade({ duration: 0.01 }),
           cut(null, { duration: 3 }),
         ],
-      ]),
+      ])
     ).toThrow();
   });
 
@@ -319,7 +318,7 @@ describe("timeline: crossfade", () => {
           crossfade({ duration: 0.5 / 30 }),
           cut(null, { duration: 0.5 / 30 }),
         ],
-      ]),
+      ])
     ).toThrow(/crossfade \(index 1\).*1 フレームに満たない/);
   });
 
@@ -345,7 +344,7 @@ describe("timeline: crossfade", () => {
           crossfade({ duration: 2 }),
           cut(null, { duration: 3 }),
         ],
-      ]),
+      ])
     ).toThrow();
   });
 
@@ -357,7 +356,7 @@ describe("timeline: crossfade", () => {
           crossfade({ duration: 2 }),
           cut(null, { duration: 1 }),
         ],
-      ]),
+      ])
     ).toThrow();
   });
 
@@ -369,7 +368,7 @@ describe("timeline: crossfade", () => {
           crossfade({ duration: 0.07 }),
           cut(null, { duration: 0.1 }),
         ],
-      ]),
+      ])
     ).toThrow();
   });
 
@@ -397,7 +396,7 @@ describe("timeline: crossfade", () => {
           crossfade({ duration: 2 }),
           cut(null, { duration: 4 }),
         ],
-      ]),
+      ])
     ).toThrow();
   });
 
@@ -410,7 +409,7 @@ describe("timeline: crossfade", () => {
           crossfade({ duration: 0.4 }),
           fade(null, { duration: 3 }),
         ],
-      ]),
+      ])
     ).toThrow();
 
     expect(() =>
@@ -421,7 +420,7 @@ describe("timeline: crossfade", () => {
           crossfade({ duration: 0.4 }),
           fade(frame(), { duration: 3 }),
         ],
-      ]),
+      ])
     ).toThrow();
   });
 
@@ -433,7 +432,7 @@ describe("timeline: crossfade", () => {
           crossfade({ duration: 0 }),
           cut(null, { duration: 3 }),
         ],
-      ]),
+      ])
     ).toThrow();
 
     expect(() =>
@@ -443,7 +442,7 @@ describe("timeline: crossfade", () => {
           crossfade({ duration: -1 }),
           cut(null, { duration: 3 }),
         ],
-      ]),
+      ])
     ).toThrow();
 
     expect(() =>
@@ -453,7 +452,7 @@ describe("timeline: crossfade", () => {
           crossfade({ duration: Number.NaN }),
           cut(null, { duration: 3 }),
         ],
-      ]),
+      ])
     ).toThrow();
   });
 
@@ -465,7 +464,7 @@ describe("timeline: crossfade", () => {
           crossfade({ duration: 0.4 }),
           cut(null, { duration: 5 }),
         ],
-      ]),
+      ])
     ).toThrow();
   });
 
@@ -477,7 +476,7 @@ describe("timeline: crossfade", () => {
           crossfade({ duration: 0.4 }),
           cut(null, { duration: 5 }),
         ],
-      ]),
+      ])
     ).not.toThrow();
   });
 });
@@ -490,7 +489,7 @@ describe("timeline: frame()", () => {
   it("cut() に frame() を渡すと throw する", () => {
     expect(() =>
       // @ts-expect-error frame() は cut() に渡せない
-      cut(frame(), { duration: 1 }),
+      cut(frame(), { duration: 1 })
     ).toThrow();
   });
 
@@ -546,16 +545,15 @@ describe("timeline: anchor (start/end)", () => {
     const later = cut(null, { duration: 1 });
 
     expect(() =>
-      timeline([[cut(null, { duration: 1, at: start(later, 0) }), later]]),
+      timeline([[cut(null, { duration: 1, at: start(later, 0) }), later]])
     ).toThrow(/参照先を解決できません/);
   });
 
   it("どの layer にも置いていない item を参照すると throw する", () => {
     const orphan = cut(null, { duration: 1 });
 
-    expect(() =>
-      timeline([[cut(null, { duration: 1, at: start(orphan, 0) })]]),
-    ).toThrow(/参照先を解決できません/);
+    expect(() => timeline([[cut(null, { duration: 1, at: start(orphan, 0) })]]))
+      .toThrow(/参照先を解決できません/);
   });
 
   it("2 つの layer が互いを参照する (循環) と throw する", () => {
@@ -635,7 +633,7 @@ describe("timeline: anchor (start/end)", () => {
           cut(null, { duration: 1, at: 5 }),
           cut(null, { duration: 1, at: start(a, 0) }),
         ],
-      ]),
+      ])
     ).toThrow();
   });
 
@@ -752,7 +750,7 @@ describe("timeline: until", () => {
 
   it("fade() の until 指定で in + out が解決後の duration を超えると throw する", () => {
     expect(() =>
-      timeline([[fade(null, { at: 0, until: 1, in: 0.6, out: 0.6 })]]),
+      timeline([[fade(null, { at: 0, until: 1, in: 0.6, out: 0.6 })]])
     ).toThrow(/in \(.*\) \+ out \(.*\) が until から求めた duration/);
   });
 });
