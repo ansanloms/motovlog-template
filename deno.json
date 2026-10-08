@@ -2,10 +2,23 @@
   "nodeModulesDir": "manual",
   "lock": false,
   "workspace": ["./modules/*"],
+  "imports": {
+    "@std/expect": "jsr:@std/expect@^1.0.20",
+    "@std/testing": "jsr:@std/testing@^1.0.21",
+    "./modules/annotation/Annotation.module.css": "./test/cssStub.ts",
+    "./modules/chapter/Chapter.module.css": "./test/cssStub.ts",
+    "./modules/ending/Ending.module.css": "./test/cssStub.ts",
+    "./modules/figure/Figure.module.css": "./test/cssStub.ts",
+    "./modules/photo-showcase/PhotoShowcase.module.css": "./test/cssStub.ts",
+    "./modules/subtitle/Subtitle.module.css": "./test/cssStub.ts",
+    "./modules/subtitle/SubtitleBand.module.css": "./test/cssStub.ts",
+    "./modules/thumbnail/Thumbnail.module.css": "./test/cssStub.ts"
+  },
   "compilerOptions": {
     "jsx": "react-jsx",
     "jsxImportSource": "react",
-    "lib": ["dom", "dom.iterable", "esnext"]
+    "lib": ["dom", "dom.iterable", "esnext"],
+    "types": ["npm:@types/node"]
   },
   "fmt": {
     "include": ["modules/"]
@@ -18,14 +31,20 @@
     "plugins": ["jsr:@aireone/deno-lint-curly"]
   },
   "test": {
-    "include": ["modules/**/*.test.ts"],
-    "exclude": ["modules/**/*.test.tsx"]
+    "include": [
+      "src/**/*.test.ts",
+      "src/**/*.test.tsx",
+      "modules/**/*.test.ts",
+      "modules/**/*.test.tsx",
+      "scripts/**/*.test.ts",
+      "theme/**/*.test.ts"
+    ]
   },
   "tasks": {
     "check": "deno task --members check",
     "lint": "deno task --members lint",
     "fmt": "deno fmt",
     "fmt:check": "deno task --members fmt:check",
-    "test": "deno task --members test"
+    "test": "deno test -A"
   }
 }

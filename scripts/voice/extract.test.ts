@@ -2,7 +2,8 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, it } from "@std/testing/bdd";
+import { expect } from "@std/expect";
 import { extractLines } from "./extract.ts";
 
 // isNarrationLineCall (#8) は import が実際の src/compositions/narration.ts

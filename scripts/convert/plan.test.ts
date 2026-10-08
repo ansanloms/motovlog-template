@@ -1,4 +1,5 @@
-import { describe, expect, it, vi } from "vitest";
+import { describe, it } from "@std/testing/bdd";
+import { expect } from "@std/expect";
 import {
   checkDuplicateOutputs,
   ConvertAbortedError,
@@ -389,32 +390,35 @@ describe("runConvert", () => {
     const unlinks: string[] = [];
     const logs: string[] = [];
     const warns: string[] = [];
+    const tmps: Array<string | null> = [];
 
     const deps: ConvertDeps = {
-      ffmpeg: vi.fn((args: string[], env: NodeJS.ProcessEnv) => {
+      ffmpeg: (args: string[], env: NodeJS.ProcessEnv) => {
         const call = { args, env };
         calls.push(call);
         return Promise.resolve(ffmpegImpl(call, calls.length - 1));
-      }),
+      },
       exists: (p) => existingOutputs.includes(p),
-      mkdir: vi.fn(),
-      rename: vi.fn((from: string, to: string) => {
+      mkdir: () => {},
+      rename: (from: string, to: string) => {
         renames.push({ from, to });
-      }),
-      unlink: vi.fn((p: string) => {
+      },
+      unlink: (p: string) => {
         unlinks.push(p);
-      }),
-      log: vi.fn((line: string) => {
+      },
+      log: (line: string) => {
         logs.push(line);
-      }),
-      warn: vi.fn((line: string) => {
+      },
+      warn: (line: string) => {
         warns.push(line);
-      }),
+      },
       env: {},
-      onTmp: vi.fn(),
+      onTmp: (p: string | null) => {
+        tmps.push(p);
+      },
     };
 
-    return { deps, calls, renames, unlinks, logs, warns };
+    return { deps, calls, renames, unlinks, logs, warns, tmps };
   };
 
   it("(a) probe 成功・2 本とも nvenc 成功なら nvenc で done し、プロキシも作る", async () => {
@@ -533,18 +537,18 @@ describe("runConvert", () => {
   });
 
   it("(f) rename が失敗したら tmp を unlink し、onTmp(null) を通知したうえで例外を投げる", async () => {
-    const { deps, unlinks } = makeDeps(() => 0);
+    const { deps, unlinks, tmps } = makeDeps(() => 0);
     const renameError = new Error("rename に失敗しました");
-    deps.rename = vi.fn(() => {
+    deps.rename = () => {
       throw renameError;
-    });
+    };
 
     await expect(
       runConvert({ inputs: ["a.mp4"], outDir: "/out", fps: 30, gop: 30 }, deps),
     ).rejects.toThrow(renameError);
 
     expect(unlinks).toEqual(["/out/.tmp.a.mp4"]);
-    expect(deps.onTmp).toHaveBeenLastCalledWith(null);
+    expect(tmps.at(-1)).toBeNull();
   });
 
   it("(g) probe 失敗で libx264 に固定後、libx264 の encode が失敗したら Error を投げ、tmp を unlink する", async () => {
@@ -596,11 +600,11 @@ describe("runConvert", () => {
     const controller = new AbortController();
     const { deps, calls } = makeDeps(() => 0);
     const rename = deps.rename;
-    deps.rename = vi.fn((from: string, to: string) => {
+    deps.rename = (from: string, to: string) => {
       rename(from, to);
       // a.mp4 の rename (= 1 本目の成功) 直後に abort する。
       controller.abort();
-    });
+    };
 
     await expect(
       runConvert(

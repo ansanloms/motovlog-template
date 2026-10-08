@@ -55,18 +55,17 @@
     "react": "19.3.0",
     "react-dom": "19.3.0",
     "remotion": "4.0.529",
-    "typescript": "5.9.3",
-    "vitest": "5.0.1"
+    "typescript": "5.9.3"
   },
   "scripts": {
     "dev": "tsx scripts/dev.ts",
     "build": "remotion bundle",
     "upgrade": "scripts/remotion-upgrade.sh",
     "lint": "npm run lint:node && npm run lint:deno",
-    "lint:node": "eslint app theme src modules test scripts projects characters vitest.config.mts && tsc && prettier --check app theme src test scripts projects characters eslint.config.mjs vitest.config.mts remotion.config.ts",
+    "lint:node": "eslint app theme src modules test scripts projects characters && tsc && prettier --check app theme src test scripts projects characters eslint.config.mjs remotion.config.ts",
     "lint:deno": "deno task check && deno task lint && deno task fmt:check && deno task test",
-    "fix": "eslint --fix app theme src modules test scripts projects characters vitest.config.mts && prettier --write app theme src test scripts projects characters eslint.config.mjs vitest.config.mts remotion.config.ts && deno task fmt",
-    "test": "vitest run",
+    "fix": "eslint --fix app theme src modules test scripts projects characters && prettier --write app theme src test scripts projects characters eslint.config.mjs remotion.config.ts && deno task fmt",
+    "test": "deno task test",
     "convert": "tsx scripts/convert-movie.ts",
     "render": "tsx scripts/voice.ts && remotion render Motovlog"
   }

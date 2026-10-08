@@ -1,6 +1,7 @@
 import { isValidElement } from "react";
 import { staticFile } from "remotion";
-import { describe, expect, it } from "vitest";
+import { describe, it } from "@std/testing/bdd";
+import { expect } from "@std/expect";
 import { character } from "./character.ts";
 import type { Character } from "./character.ts";
 import { Figure } from "../../modules/figure/index.ts";

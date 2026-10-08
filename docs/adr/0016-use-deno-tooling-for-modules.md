@@ -1,7 +1,7 @@
 ---
 status: accepted
 date: 2026-10-03T00:00:00Z
-refs: [12, 15]
+refs: [12, 15, 17]
 tags: [tooling, deno, test, lint, modules]
 ---
 
@@ -69,7 +69,7 @@ ESLint は [ADR-0012](./0012-split-template-library-from-consumer.md) と [ADR-0
 - Remotion の bundle と render、Studio は Node 上の Remotion CLI で行う。
 - `tsc` はリポジトリ全体を型検査する。`modules/**/*.test.ts` は `tsconfig.json` の `exclude` に入れる。理由: `tsc` は `@std/*` を解決できない。
 - ESLint は `modules/**` も含めてこれまでどおり実行する。境界の規則と React hooks の規則は ESLint だけが受け持つ。
-- `modules/**/*.test.tsx` (CSS Modules を読むテスト) は vitest で実行する。vitest は `modules/**/*.test.ts` を対象から外す。
+- `modules/**/*.test.tsx` (CSS Modules を読むテスト) は vitest で実行する。vitest は `modules/**/*.test.ts` を対象から外す。テストの実行は [ADR-0017](./0017-unify-runtime-and-tooling-on-deno.md) が置き換え、CSS Modules を import map のスタブに割り当ててすべて `deno test` で行う。
 - prettier は `modules/` を対象にしない。
 - `src/`・`scripts/`・`app/`・`theme/`・`test/` のツールは変えない。
 

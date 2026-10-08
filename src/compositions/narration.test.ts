@@ -1,6 +1,9 @@
+import "../../test/setup.ts";
 import React from "react";
 import { staticFile } from "remotion";
-import { describe, expect, it, vi } from "vitest";
+import { describe, it } from "@std/testing/bdd";
+import { expect } from "@std/expect";
+import { assertSpyCalls, spy } from "@std/testing/mock";
 import { annotation } from "../components/index.tsx";
 import { Line } from "../../modules/subtitle/index.ts";
 import {
@@ -410,7 +413,7 @@ describe("narration", () => {
 
       return new Response(JSON.stringify(fakeCache(1.5)), { status: 200 });
     }) as typeof fetch;
-    const sleep = vi.fn(async () => {});
+    const sleep = spy(async () => {});
 
     const {
       layers: [, speechLayer],
@@ -421,7 +424,7 @@ describe("narration", () => {
     );
 
     expect(calls).toBe(3);
-    expect(sleep).toHaveBeenCalledTimes(2);
+    assertSpyCalls(sleep, 2);
     expect((speechLayer[0] as CutItem).duration).toBe(
       1.5 + subtitleTiming.tail,
     );
@@ -463,7 +466,7 @@ describe("narration", () => {
 
       return new Response("not found", { status: 404 });
     }) as typeof fetch;
-    const sleep = vi.fn(async () => {});
+    const sleep = spy(async () => {});
 
     await expect(
       narration(

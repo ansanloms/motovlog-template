@@ -1,4 +1,5 @@
-import { describe, expect, it } from "vitest";
+import { describe, it } from "@std/testing/bdd";
+import { expect } from "@std/expect";
 import { cut } from "./cut.ts";
 import type { CutItem, Layer, PendingCutItem } from "./types.ts";
 

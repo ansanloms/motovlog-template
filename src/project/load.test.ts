@@ -1,4 +1,8 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import "../../test/setup.ts";
+import { afterEach, beforeEach, describe, it } from "@std/testing/bdd";
+import { expect } from "@std/expect";
+import { stub } from "@std/testing/mock";
+import type { Stub } from "@std/testing/mock";
 import { isTimeline, loadTimeline, resolveProjectSlug } from "./load.ts";
 import { getSetup } from "../setup.ts";
 import { fps } from "../theme/timing.ts";
@@ -29,8 +33,13 @@ const FAKE_VOICE_CACHE = {
   generatedAt: "2026-09-08T00:00:00Z",
 };
 
+/** beforeEach() で差し替えた fetch。afterEach() で戻す。 */
+let fetchStub:
+  | Stub<typeof globalThis, Parameters<typeof fetch>, ReturnType<typeof fetch>>
+  | undefined;
+
 beforeEach(() => {
-  vi.stubGlobal("fetch", (async (input: RequestInfo | URL) => {
+  fetchStub = stub(globalThis, "fetch", (async (input: RequestInfo | URL) => {
     const url = String(input);
 
     if (url.endsWith(".json")) {
@@ -42,7 +51,8 @@ beforeEach(() => {
 });
 
 afterEach(() => {
-  vi.unstubAllGlobals();
+  fetchStub?.restore();
+  fetchStub = undefined;
 });
 
 describe("resolveProjectSlug", () => {

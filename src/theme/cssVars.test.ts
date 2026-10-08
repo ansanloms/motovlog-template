@@ -1,7 +1,9 @@
+import "../../test/setup.ts";
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { describe, expect, it } from "vitest";
+import { describe, it } from "@std/testing/bdd";
+import { expect } from "@std/expect";
 import { getSetup } from "../setup.ts";
 import { themeCssVars } from "./cssVars.ts";
 

@@ -1,8 +1,25 @@
-import { describe, expect, it, vi } from "vitest";
+import "../test/setup.ts";
+import { describe, it } from "@std/testing/bdd";
+import { expect } from "@std/expect";
 import { getSetup } from "./setup.ts";
 import type { Setup } from "./setup.ts";
 import { PALETTE_KEYS } from "./theme/tokens.ts";
 import { VOICE_KEYS } from "./voice/cache.ts";
+
+/** importFresh() が付ける query の通し番号。 */
+let freshCount = 0;
+
+/**
+ * setup.ts を別のモジュールとして読み直す。Deno は query の違う URL を別の
+ * モジュールとして評価するため、毎回 query を変えて import する。
+ */
+const importFresh = (): Promise<typeof import("./setup.ts")> => {
+  freshCount += 1;
+
+  return import(
+    new URL(`./setup.ts?fresh=${freshCount}`, import.meta.url).href
+  );
+};
 
 describe("getSetup", () => {
   it("configure() 済みなら利用側の値を返す", () => {
@@ -12,10 +29,8 @@ describe("getSetup", () => {
   });
 
   it("configure() 前に呼ぶと configure() を書く場所を示して throw する", async () => {
-    // このファイルのモジュールレジストリだけを捨てて、configure() されていない
-    // 状態の setup.ts を読み直す。
-    vi.resetModules();
-    const fresh = await import("./setup.ts");
+    // configure() されていない状態の setup.ts を読み直す。
+    const fresh = await importFresh();
 
     expect(() => fresh.getSetup()).toThrow(/app\/index\.ts/);
   });
@@ -53,11 +68,7 @@ describe("configure", () => {
    * 読み直した setup.ts。このファイルが静的に import している側 (test/setup.ts
    * が configure() 済み) のレジストリを上書きしないため、毎回読み直す。
    */
-  const freshSetup = async () => {
-    vi.resetModules();
-
-    return import("./setup.ts");
-  };
+  const freshSetup = importFresh;
 
   it("narrator の項目が数値でなければ、その項目名を挙げて throw する", async () => {
     const { configure } = await freshSetup();
