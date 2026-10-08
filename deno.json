@@ -19,7 +19,7 @@
     "@remotion/media": "npm:@remotion/media@4.0.529",
     "@remotion/video-matting": "npm:@remotion/video-matting@4.0.529",
     "@remotion/whisper-webgpu": "npm:@remotion/whisper-webgpu@4.0.529",
-    "@types/node": "npm:@types/node@26.6.1",
+    "@types/node": "npm:@types/node@26.6.4",
     "@types/react": "npm:@types/react@19.3.0",
     "react": "npm:react@19.3.0",
     "react/": "npm:/react@19.3.0/",
