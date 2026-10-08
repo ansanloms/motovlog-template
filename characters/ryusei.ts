@@ -15,7 +15,7 @@
 // voice はこのキャラクターの既定の声質で、line() 自身の voice がこれを
 // 上書きする (src/voice/key.ts の mergeVoice())。
 //
-// このファイルは Node からそのまま import できる純粋な値のモジュールに
+// このファイルは Deno からそのまま import できる純粋な値のモジュールに
 // 保つこと (remotion・CSS・src/components は import しない。
 // scripts/voice/extract.ts の watcher が line().by から voice だけを
 // 読むため)。

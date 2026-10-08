@@ -4,7 +4,7 @@ import { describe, it } from "@std/testing/bdd";
 import { expect } from "@std/expect";
 import { character } from "./character.ts";
 import type { Character } from "./character.ts";
-import { Figure } from "../../modules/figure/index.ts";
+import { Figure } from "@motovlog/figure";
 import { cut, isSample } from "../effects/index.ts";
 import { fps } from "../theme/timing.ts";
 import type { LipsyncEntry } from "../voice/cache.ts";

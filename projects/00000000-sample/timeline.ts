@@ -11,9 +11,9 @@
 //
 // 動かし方:
 // - .env に REMOTION_PROJECT=<slug> と VOICEVOX_URL=<VOICEVOX ENGINE の URL>
-//   を書いて `npm run dev`。Studio が起き、発話の音声キャッシュを生成しつつ
+//   を書いて `deno task dev`。Studio が起き、発話の音声キャッシュを生成しつつ
 //   プレビューできる。
-// - `npm run render -- out/<slug>.mp4` でレンダリング (先に音声キャッシュの
+// - `deno task render out/<slug>.mp4` でレンダリング (先に音声キャッシュの
 //   生成が走る)。
 //
 // 正本: README「timeline.ts の書き方」「発話」、

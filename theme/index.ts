@@ -2,8 +2,8 @@
 // app/index.ts の configure() 経由で受け取る。layout・timing のトークンは lib の
 // src/theme/ が持つ。
 //
-// このファイルは Remotion を import しない。npm run dev / render の前段で動く
-// watcher (scripts/voice.ts) が Node から app/config.ts 経由で読むため。
+// このファイルは Remotion を import しない。deno task dev / render の前段で動く
+// watcher (scripts/voice.ts) が Deno から app/config.ts 経由で読むため。
 
 import type { Narrator, Palette, Theme } from "../src/theme/index.ts";
 

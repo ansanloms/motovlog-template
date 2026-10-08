@@ -4,23 +4,34 @@ Remotion でモトブログ動画を作るためのライブラリ (lib) と、�
 
 ## 前提
 
-- Node.js と npm (`npm ci` で依存を入れる)
-- Deno (型検査・lint・整形・テスト。`npm run lint`・`npm run fix`・`npm test` から呼ぶ)
+- Deno (依存の導入・型検査・lint・整形・テスト・Remotion の bundle・render・Studio・スクリプトの実行をすべて Deno で行う。Node.js と npm は使わない)
 - ffmpeg (原本の変換。NVENC を使う場合は NVIDIA GPU。WSL では `/usr/lib/wsl/lib` のライブラリを使う)
+
+依存は `deno install` で入れる。root の `deno.json` の `imports` (exact 版の `npm:` 指定) と `deno.lock` から `node_modules/` を作る (`nodeModulesDir: "auto"`)。Remotion のバンドラ (Rspack) は `node_modules/` から依存を解決するため、`node_modules/` が要る。
 
 ## 開発ツール
 
-型検査・lint・整形・テストは Deno で行う ([ADR-0017](docs/adr/0017-unify-runtime-and-tooling-on-deno.md))。Node に残るのは、層と module の境界を見る ESLint と、Remotion の bundle・render・Studio である。
+実行系と開発ツールは Deno に揃えている ([ADR-0017](docs/adr/0017-unify-runtime-and-tooling-on-deno.md))。コマンドはすべて root の `deno.json` の `tasks` にある。
 
-| 対象                   | Deno (`deno task ...`)                                        | Node (`npm run ...`)                             |
-| ---------------------- | ------------------------------------------------------------- | ------------------------------------------------ |
-| 型検査                 | `check` (リポジトリ全体。テストを含む)                        | なし                                             |
-| lint                   | `lint` (リポジトリ全体)                                       | `lint:node` の ESLint (層と module の境界の規則) |
-| 整形                   | `fmt`・`fmt:check` (コード・markdown・`.github/` の YAML)     | なし                                             |
-| テスト                 | `test` (全テスト。`@std/testing/bdd` と `@std/expect` で書く) | `test` (`deno task test` を呼ぶ)                 |
-| bundle・render・Studio | なし                                                          | `build`・`render`・`dev`                         |
+| task               | 内容                                                                            |
+| ------------------ | ------------------------------------------------------------------------------- |
+| `dev`              | 音声キャッシュ生成の watcher と Remotion Studio を起動する (`scripts/dev.ts`)   |
+| `studio`           | Remotion Studio だけを起動する                                                  |
+| `render`           | 音声キャッシュを生成してから `Motovlog` を render する                          |
+| `bundle`           | Remotion の bundle (CI の build job)                                            |
+| `voice`            | 音声キャッシュを 1 回生成する (`scripts/voice.ts`)                              |
+| `convert`          | ドラレコ原本を変換済み素材にする (`scripts/convert-movie.ts`)                   |
+| `remotion`         | Remotion の CLI (`deno task remotion <サブコマンド>`。版はこの task だけに書く) |
+| `check`            | 型検査 (リポジトリ全体。テストを含む)                                           |
+| `lint`             | `deno lint` (リポジトリ全体) と `lint:eslint` (層と module の境界を見る ESLint) |
+| `fmt`・`fmt:check` | 整形 (コード・markdown・`.github/` の YAML)                                     |
+| `fix`              | `eslint --fix` と `deno fmt`                                                    |
+| `test`             | 全テスト (`@std/testing/bdd` と `@std/expect` で書く)                           |
+| `upgrade`          | Remotion の更新 (`scripts/remotion-upgrade.sh`、CLAUDE.md「skill の導入」参照)  |
 
-`npm run lint` は ESLint (`lint:node`) の後に `npm run lint:deno` (Deno の `check`・`lint`・`fmt:check`・`test`) を実行し、`npm run fix` は `eslint --fix` の後に `deno task fmt` を実行する。整形の対象と除外は root の `deno.json` の `fmt` にあり、markdown は `proseWrap: "preserve"` で改行を変えない。`tsconfig.json` は Remotion の CLI とバンドラが読むためだけに置いている。テストが読む CSS Modules は、root の `deno.json` の `imports` で `test/cssStub.ts` に差し替える。`configure()` や Temporal が要るテストは先頭で `test/setup.ts` を import する。CI の lint job は `npm run lint` を実行し、module ごとの matrix job (`modules`) は member の 4 つの task を実行する。
+引数は task 名の後ろにそのまま書く (`deno task convert <slug> <入力ファイル>...`)。`deno task` は `--` も引数としてそのまま渡すため、`--` は付けない。整形の対象と除外は root の `deno.json` の `fmt` にあり、markdown は `proseWrap: "preserve"` で改行を変えない。`tsconfig.json` は Remotion の CLI とバンドラが読むためだけに置いている。テストが読む CSS Modules は、root の `deno.json` の `imports` で `test/cssStub.ts` に差し替える。`configure()` や Temporal が要るテストは先頭で `test/setup.ts` を import する。CI の lint job は `lint`・`fmt:check`・`check`、test job は `test`、build job は `bundle` を実行し、module ごとの matrix job (`modules`) は member の 4 つの task を実行する。
+
+root の `package.json` は `{ "private": true }` だけで、依存は持たない。Remotion の CLI は最も近い `package.json` の場所をルート (`remotion.config.ts`・`.env` を読む場所) とし、Studio は `/` を返すときにルートの `package.json` を読むため、目印として置いている ([ADR-0017](docs/adr/0017-unify-runtime-and-tooling-on-deno.md))。
 
 `modules/<name>/` は Deno の workspace の member で、それぞれ自分の `deno.json` (`name`・`exports`・`imports`・`tasks`) を持ち、`tasks` には `check`・`lint`・`fmt:check`・`test` の 4 つを置く。module 単位で検査するときは、その module のディレクトリで次を実行する。
 
@@ -41,13 +52,13 @@ root の `deno task check`・`lint`・`fmt:check`・`test` はリポジトリ全
 lib (動画を作る機能) は次の 3 つ。
 
 - `src/`: 演出の DSL (effects)・compositions・配置と秒数のトークン・音声と project の読み込み
-- `modules/`: npm package 相当の独立した単位。`modules/<name>/` は `index.ts` を入口に持ち、`motovlog-template/modules/<name>` として公開される。今は見た目のコンポーネント 9 個 (コンポーネント・CSS Module・要素ファクトリ・テストをまとめる) と、module 間で共有する部品を持つ `modules/core/` を置いている。`modules/<name>/` が import してよい他の module は原則 `modules/core/` だけ
+- `modules/`: package 相当の独立した単位。`modules/<name>/` は Deno の workspace の member で、`index.ts` を入口に持ち、member の名前 `@motovlog/<name>` で import する。今は見た目のコンポーネント 9 個 (コンポーネント・CSS Module・要素ファクトリ・テストをまとめる) と、module 間で共有する部品を持つ `modules/core/` を置いている。`modules/<name>/` が import してよい他の module は原則 `modules/core/` だけ
 - `scripts/`: 音声生成・素材の変換・Studio の起動
 
 利用側 (動画 1 本ごとの値) は次のとおり。
 
 - `app/index.ts`: Remotion の入口。`configure()` で利用側の値を lib に渡し、`registerRoot()` を呼ぶ
-- `app/config.ts`: `theme` と `defaultProject` (既定の slug)。音声生成の watcher (Node) も読むため Remotion を import しない
+- `app/config.ts`: `theme` と `defaultProject` (既定の slug)。音声生成の watcher (`scripts/voice.ts`) も読むため Remotion を import しない
 - `theme/index.ts`: カラーパレット (`palette`) と既定の話者 (`narrator`)
 - `projects/<slug>/timeline.ts`: 動画の定義。コミットする
 - `characters/<name>.ts`: キャラクター (立ち絵) の定義。コミットする
@@ -56,30 +67,24 @@ lib (動画を作る機能) は次の 3 つ。
 - `remotion.config.ts`: Remotion の設定。`Config.setEntryPoint("./app/index.ts")` で入口を指す
 - `<slug>` は `YYYYMMDD-<name>` (例: `20260813-jododaira`)。同梱のサンプルだけ `00000000-sample` を使う
 
-利用側から lib を import してよいのは次の 5 つの入口と、各 module の入口 (`modules/<name>/index.ts`) だけで、それ以外の `src/`・`modules/` 配下を import すると ESLint が落とす。
+利用側から lib を import してよいのは次の 5 つの入口と、各 module の入口 (`@motovlog/<name>`、実体は `modules/<name>/index.ts`) だけで、それ以外の `src/`・`modules/` 配下を import すると ESLint が落とす。
 
-| 入口                               | 実体                        | 主な中身                                                                                                                                                                                                   |
-| ---------------------------------- | --------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `motovlog-template`                | `src/index.ts`              | `configure`・`RemotionRoot`・`Motovlog` と、下の 4 つの再 export                                                                                                                                           |
-| `motovlog-template/effects`        | `src/effects/index.ts`      | `timeline`・`cut`・`fade`・`crossfade`・`frame`・`start`・`end`・`group`                                                                                                                                   |
-| `motovlog-template/components`     | `src/components/index.tsx`  | 要素ファクトリ (`video`・`audio`・`chapter`・`ending` 等)                                                                                                                                                  |
-| `motovlog-template/compositions`   | `src/compositions/index.ts` | `line`・`narration`・`character`・`figure`・`thumbnail`                                                                                                                                                    |
-| `motovlog-template/theme`          | `src/theme/index.ts`        | 配置と秒数のトークン (`chapterTiming`・`characterTiming`・`fps` 等)                                                                                                                                        |
-| `motovlog-template/modules/<name>` | `modules/<name>/index.ts`   | npm package 相当の独立した単位 (今はコンポーネント 9 個と `core`)。コンポーネントの module は要素ファクトリとコンポーネントを出し、`motovlog-template/components` はこれらの要素ファクトリを再 export する |
+| 入口                             | 実体                        | 主な中身                                                                                                                                                                                               |
+| -------------------------------- | --------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `motovlog-template`              | `src/index.ts`              | `configure`・`RemotionRoot`・`Motovlog` と、下の 4 つの再 export                                                                                                                                       |
+| `motovlog-template/effects`      | `src/effects/index.ts`      | `timeline`・`cut`・`fade`・`crossfade`・`frame`・`start`・`end`・`group`                                                                                                                               |
+| `motovlog-template/components`   | `src/components/index.tsx`  | 要素ファクトリ (`video`・`audio`・`chapter`・`ending` 等)                                                                                                                                              |
+| `motovlog-template/compositions` | `src/compositions/index.ts` | `line`・`narration`・`character`・`figure`・`thumbnail`                                                                                                                                                |
+| `motovlog-template/theme`        | `src/theme/index.ts`        | 配置と秒数のトークン (`chapterTiming`・`characterTiming`・`fps` 等)                                                                                                                                    |
+| `@motovlog/<name>`               | `modules/<name>/index.ts`   | package 相当の独立した単位 (今はコンポーネント 9 個と `core`)。コンポーネントの module は要素ファクトリとコンポーネントを出し、`motovlog-template/components` はこれらの要素ファクトリを再 export する |
 
-このリポジトリの中の利用側ファイルは、同じ 5 つの入口を相対パス (`../../src/effects/index.ts` 等) で import する。外部のリポジトリから依存として使う手順は「外部のリポジトリから使う」にある。
+このリポジトリの中の利用側ファイルは、同じ 5 つの入口を相対パス (`../../src/effects/index.ts` 等) で import する。`motovlog-template` で始まる名前は root の `deno.json` の `imports` が同じファイルに割り当てており、`exports` にも同じ 6 つ (5 入口と `./compositions/character`) を lib の公開面として書いている。`src/` と member 同士は module を `@motovlog/<name>` で import する。Deno は名前を workspace から解決し、Remotion のバンドラには `remotion.config.ts` の `Config.overrideBundlerConfig()` で `modules/<name>/index.ts` への alias を渡す。外部のリポジトリから依存として使う手順は「外部のリポジトリから使う」にある。
 
 ## 外部のリポジトリから使う
 
-`motovlog-template` は npm レジストリには publish しない (`private: true`)。外部のリポジトリからは GitHub 参照で依存に入れる ([ADR-0012](docs/adr/0012-split-template-library-from-consumer.md))。
+npm を外したため、以前の `npm install github:ansanloms/motovlog-template` で依存に入れる手順と `bin` (`npx motovlog-dev` 等) は使えない。外部のリポジトリから lib を使う方法は、lib と利用側を別リポジトリに分ける計画で決める ([ADR-0012](docs/adr/0012-split-template-library-from-consumer.md)・[ADR-0017](docs/adr/0017-unify-runtime-and-tooling-on-deno.md))。
 
-```sh
-npm install github:ansanloms/motovlog-template
-```
-
-`peerDependencies` (`remotion`・`@remotion/cli`・`@remotion/google-fonts`・`@remotion/media`・`react`・`react-dom`) は利用側の `dependencies` に同じバージョンで入れる。加えて `tsx`・`typescript`・`@types/react`・`@types/node`・`@types/web` を `devDependencies` に入れる (`tsx` は lib の実行時 `dependencies` にも入っているが、利用側の TypeScript の解決には別途要る)。
-
-利用側に次のファイルを作る (実物は同梱のサンプル project、`app/`・`theme/index.ts` を参照)。
+利用側が持つファイルは次のとおり (実物は同梱のサンプル project、`app/`・`theme/index.ts` を参照)。
 
 | ファイル                      | 内容                                                                     |
 | ----------------------------- | ------------------------------------------------------------------------ |
@@ -91,13 +96,10 @@ npm install github:ansanloms/motovlog-template
 | `remotion.config.ts`          | `Config.setEntryPoint("./app/index.ts")`                                 |
 | `.env`                        | `REMOTION_PROJECT`・`VOICEVOX_URL` (「新しい動画を作る」参照)            |
 | `public/`                     | 素材 (「ディレクトリ構成」参照)                                          |
-| `types/temporal.d.ts`         | `/// <reference types="temporal-polyfill/types/global" />` (下記参照)    |
 
-TypeScript 5.9 には Temporal の型が無いため、`temporal-polyfill/global` が実行時にグローバルへ入れる `Temporal` の型を参照する 1 行だけの `.d.ts` を利用側にも置く (`tsconfig.json` の既定の include に入る場所であれば、パスは上記でなくてよい)。lib の同等のファイル (`src/temporal.d.ts`) は `node_modules` 内にあり、tsc の既定の include には入らないため、利用側で別途持つ必要がある。
+lib の公開面 (root の `deno.json` の `exports` と、workspace の member) と、このリポジトリ内の相対パスの対応は次のとおり。
 
-import は、このリポジトリ内の相対パスの代わりに bare specifier (5 入口 + `characters/<name>.ts` 用の 1 つ + module ごとの入口) を使う。
-
-| このリポジトリ内の相対パス                                          | 外部からの import                          |
+| このリポジトリ内の相対パス                                          | 公開面の名前                               |
 | ------------------------------------------------------------------- | ------------------------------------------ |
 | `../../src/index.ts`                                                | `motovlog-template`                        |
 | `../../src/effects/index.ts`                                        | `motovlog-template/effects`                |
@@ -105,29 +107,18 @@ import は、このリポジトリ内の相対パスの代わりに bare specifi
 | `../../src/compositions/index.ts`                                   | `motovlog-template/compositions`           |
 | `../../src/theme/index.ts`                                          | `motovlog-template/theme`                  |
 | `../../src/compositions/character.ts` (`characters/<name>.ts` 限定) | `motovlog-template/compositions/character` |
-| `../../modules/<name>/index.ts`                                     | `motovlog-template/modules/<name>`         |
+| `../../modules/<name>/index.ts`                                     | `@motovlog/<name>`                         |
 
-`characters/<name>.ts` だけは 5 入口ではなく `motovlog-template/compositions/character` を直に import する (`character()` の実体、`package.json` の `exports` の `./compositions/character`)。理由は [ADR-0012](docs/adr/0012-split-template-library-from-consumer.md) の禁止事項と同じで、5 入口は `figure()`・`line()` 伝いに CSS Modules を辿るため、素の Node から import する音声生成の watcher がこのファイルを読めなくなる。
-
-依存として入った `motovlog-template` は `tsx scripts/<name>.ts` を直接叩けないため、次のコマンドを `bin` として使う。
-
-| コマンド                                        | 相当する lib 内の呼び出し                                                      |
-| ----------------------------------------------- | ------------------------------------------------------------------------------ |
-| `npx motovlog-dev`                              | `npm run dev` (`tsx scripts/dev.ts`)                                           |
-| `npx motovlog-voice [slug]`                     | `tsx scripts/voice.ts`                                                         |
-| `npx motovlog-convert <slug> <入力ファイル>...` | `tsx scripts/convert-movie.ts`                                                 |
-| `npx remotion render Motovlog`                  | `npm run render` の後半 (先に `npx motovlog-voice` で音声キャッシュを生成する) |
-
-`REMOTION_PROJECT` の優先順位 (Remotion CLI は `.env` の値をシェルの環境変数より優先する) は「新しい動画を作る」の注記のとおり、外部のリポジトリでも変わらない。
+`characters/<name>.ts` だけは 5 入口ではなく `src/compositions/character.ts` (`motovlog-template/compositions/character`) を直に import する。理由は [ADR-0012](docs/adr/0012-split-template-library-from-consumer.md) の禁止事項と同じで、5 入口は `figure()`・`line()` 伝いに CSS Modules を辿るため、音声生成の watcher がこのファイルを読めなくなる。音声生成の watcher (`scripts/voice/extract.ts`) は bare specifier を実行中の Deno の import map (`deno.json` の `imports`) で解決し、解決先が lib のファイルかどうかで `line()`・`character()` を見分ける。
 
 ## 新しい動画を作る
 
 1. slug を決めて `projects/<slug>/timeline.ts` を作る。`projects/00000000-sample/timeline.ts` をコピーして書き換えるのが早い。
-2. ドラレコ原本を変換済み素材に変換する: `npm run convert -- <slug> <原本>...`。出力は `public/projects/<slug>/<basename>.mp4`。詳細は「変換済み素材の生成」。
+2. ドラレコ原本を変換済み素材に変換する: `deno task convert <slug> <原本>...`。出力は `public/projects/<slug>/<basename>.mp4`。詳細は「変換済み素材の生成」。
 3. timeline.ts に走行映像・章タイトル・注釈・発話等の要素を書く (「timeline.ts の書き方」)。素材のパスは `public/` 相対 (`projects/<slug>/clip1.mp4`、`projects/<slug>/photos/photo-01.jpg`)。
-4. プレビュー: `.env` に `REMOTION_PROJECT=<slug>` と `VOICEVOX_URL=<VOICEVOX ENGINE の URL>` を書く。`npm run dev` で起動する。timeline.ts を監視して発話の音声キャッシュを生成しつつ Remotion Studio を起こす。`VOICEVOX_URL` が無いと watcher は生成せず、発話 (`narration()`) を含む project は Studio がキャッシュを 30 秒待った後エラーになる。発話の無い project は影響を受けない。
-5. レンダリング: `.env` の `REMOTION_PROJECT` を render する slug にしてから `npm run render -- out/<slug>.mp4`。先に音声キャッシュを生成してからレンダリングする。Remotion CLI は `.env` の値をシェルの環境変数より優先する (2026-09-11 実測) ため、project を切り替えるときはシェルで渡さず `.env` を書き換える。
-6. 公開したら `git tag render/<slug>` を打つ。再現はタグを checkout して `npm ci` し、素材を復元して render する。
+4. プレビュー: `.env` に `REMOTION_PROJECT=<slug>` と `VOICEVOX_URL=<VOICEVOX ENGINE の URL>` を書く。`deno task dev` で起動する。timeline.ts を監視して発話の音声キャッシュを生成しつつ Remotion Studio を起こす。`VOICEVOX_URL` が無いと watcher は生成せず、発話 (`narration()`) を含む project は Studio がキャッシュを 30 秒待った後エラーになる。発話の無い project は影響を受けない。
+5. レンダリング: `.env` の `REMOTION_PROJECT` を render する slug にしてから `deno task render out/<slug>.mp4`。先に音声キャッシュを生成してからレンダリングする。Remotion CLI は `.env` の値をシェルの環境変数より優先する (2026-09-11 実測) ため、project を切り替えるときはシェルで渡さず `.env` を書き換える。
+6. 公開したら `git tag render/<slug>` を打つ。再現はタグを checkout して `deno install` し、素材を復元して render する。
 
 具体的なコマンドと timeline.ts の書き換え箇所は [docs/howto-new-project.md](docs/howto-new-project.md) にある。
 
@@ -141,12 +132,12 @@ import は、このリポジトリ内の相対パスの代わりに bare specifi
 
 残りの素材はコミットしていないので、次を `public/` 配下に用意する。
 
-| 素材                                                                          | 内容                                                                                                                                       |
-| ----------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
-| `public/projects/00000000-sample/VID_20260802_074903_00_287_359_DASHCAM1.mp4` | ドラレコの変換済み素材。`npm run convert -- 00000000-sample <原本>` で作る。別のファイルを使うなら timeline.ts の `src` を出力名に合わせる |
-| `public/projects/00000000-sample/photos/photo-03.jpg`                         | サムネに使う走行写真                                                                                                                       |
-| `public/projects/00000000-sample/photos/photo-01.jpg`・`photo-02.jpg`         | 写真紹介に使う走行写真                                                                                                                     |
-| `public/assets/bgm/m1.wav`                                                    | サンプルの BGM (`audio()` の例)                                                                                                            |
+| 素材                                                                          | 内容                                                                                                                                      |
+| ----------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
+| `public/projects/00000000-sample/VID_20260802_074903_00_287_359_DASHCAM1.mp4` | ドラレコの変換済み素材。`deno task convert 00000000-sample <原本>` で作る。別のファイルを使うなら timeline.ts の `src` を出力名に合わせる |
+| `public/projects/00000000-sample/photos/photo-03.jpg`                         | サムネに使う走行写真                                                                                                                      |
+| `public/projects/00000000-sample/photos/photo-01.jpg`・`photo-02.jpg`         | 写真紹介に使う走行写真                                                                                                                    |
+| `public/assets/bgm/m1.wav`                                                    | サンプルの BGM (`audio()` の例)                                                                                                           |
 
 素材が手元に無い場合、走行映像は次の ffmpeg で同名の合成素材を作れば代わりに使える。既に同名のファイルがあれば `-n` により上書きせずに終了する。
 
@@ -158,10 +149,10 @@ ffmpeg -n -f lavfi -i testsrc=size=1920x1080:rate=30:duration=40 -pix_fmt yuv420
 この合成素材にも Studio 用プロキシ (「変換済み素材の生成」の「Studio 用プロキシ」参照) が要るので、続けて次を実行する。
 
 ```sh
-npm run convert -- 00000000-sample public/projects/00000000-sample/VID_20260802_074903_00_287_359_DASHCAM1.mp4
+deno task convert 00000000-sample public/projects/00000000-sample/VID_20260802_074903_00_287_359_DASHCAM1.mp4
 ```
 
-写真 (`photos/photo-01.jpg`・`photo-02.jpg`・`photo-03.jpg`) は ffmpeg では代替できない。手元の JPG を同名で置けばサムネ・写真紹介の見た目は仮のものになるが Studio と render は動く。代替の合成動画は変換済み素材と同じファイル名なので、実素材に切り替えるときは代替ファイルを消してから `npm run convert -- 00000000-sample <原本>` を実行する (既存があると skip される)。
+写真 (`photos/photo-01.jpg`・`photo-02.jpg`・`photo-03.jpg`) は ffmpeg では代替できない。手元の JPG を同名で置けばサムネ・写真紹介の見た目は仮のものになるが Studio と render は動く。代替の合成動画は変換済み素材と同じファイル名なので、実素材に切り替えるときは代替ファイルを消してから `deno task convert 00000000-sample <原本>` を実行する (既存があると skip される)。
 
 BGM (`assets/bgm/m1.wav`) が無い場合は、サンプルの BGM layer (layer 4) を外すか、手元の wav を同名で置く。
 
@@ -243,15 +234,15 @@ export default timeline([[cut(chapter1, { at: 0 })]]);
 
 要素は `motovlog-template/components` が公開する要素ファクトリで組み立てる。各ファクトリは対応するコンポーネントと同じ props を受け、フレーム依存の値は持たない。
 
-| ファクトリ             | 内容                                                                                                                                                                                                                                                                                                                               |
-| ---------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `video(props)`         | 走行映像。`src` (staticFile() 済み URL)・`trimBefore?` (秒)・`volume?`                                                                                                                                                                                                                                                             |
-| `audio(props)`         | 音声。`src` (staticFile() 済み URL)・`trimBefore?` (秒)・`volume?`・`loop?`                                                                                                                                                                                                                                                        |
-| `chapter(props)`       | 章タイトル。`title` (文字列、または改行として結合される文字列の配列)・`subtitle`                                                                                                                                                                                                                                                   |
-| `annotation(props)`    | 右上の注釈。`text`                                                                                                                                                                                                                                                                                                                 |
-| `photoShowcase(props)` | 写真紹介 (1〜2 枚)。`photos` (要素は写真の URL、または短い動画 `{ video, trimBefore? }`。動画は音を出さない (常に無音)。動画は `npm run convert` で `public/projects/<slug>/` に置いた変換済み素材を指す (写真の `photos/` ではない))・`fit?` (`"cover"` 既定は枠を満たすよう切る、`"contain"` は切らずに収め、影は媒体の縁に付く) |
-| `ending(props)`        | ED。`title`・`subtitle`・`date`・`distance`・`ridingTime`・`routes`・`credits`                                                                                                                                                                                                                                                     |
-| `subtitleBand({})`     | 字幕下の暗がり (props は無いが引数は要る、通常は `narration()` が組むので直接は使わない)                                                                                                                                                                                                                                           |
+| ファクトリ             | 内容                                                                                                                                                                                                                                                                                                                                 |
+| ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `video(props)`         | 走行映像。`src` (staticFile() 済み URL)・`trimBefore?` (秒)・`volume?`                                                                                                                                                                                                                                                               |
+| `audio(props)`         | 音声。`src` (staticFile() 済み URL)・`trimBefore?` (秒)・`volume?`・`loop?`                                                                                                                                                                                                                                                          |
+| `chapter(props)`       | 章タイトル。`title` (文字列、または改行として結合される文字列の配列)・`subtitle`                                                                                                                                                                                                                                                     |
+| `annotation(props)`    | 右上の注釈。`text`                                                                                                                                                                                                                                                                                                                   |
+| `photoShowcase(props)` | 写真紹介 (1〜2 枚)。`photos` (要素は写真の URL、または短い動画 `{ video, trimBefore? }`。動画は音を出さない (常に無音)。動画は `deno task convert` で `public/projects/<slug>/` に置いた変換済み素材を指す (写真の `photos/` ではない))・`fit?` (`"cover"` 既定は枠を満たすよう切る、`"contain"` は切らずに収め、影は媒体の縁に付く) |
+| `ending(props)`        | ED。`title`・`subtitle`・`date`・`distance`・`ridingTime`・`routes`・`credits`                                                                                                                                                                                                                                                       |
+| `subtitleBand({})`     | 字幕下の暗がり (props は無いが引数は要る、通常は `narration()` が組むので直接は使わない)                                                                                                                                                                                                                                             |
 
 立ち絵の `figure()` は要素ファクトリではなく `line()`・`narration()` と同じ `motovlog-template/compositions` に置く (「立ち絵」参照。`narration()` が括りから作る立ち絵の item は effects の `sample()` を使うため)。サムネ・OP の絵の `thumbnail(props)` も同じ入口に置く (`photo`・`badge`・`title` (文字列、または改行として結合される文字列の配列)・`by` (`character()` の戻り値、表情は `expressions` の最初のキー、か `{ character, expression? }` の形で表情を明示する) を受け、`character()` の表情名の解決 (`figureLayers()`) を伴うため、ADR-0011 の禁止事項により components 単体では書けない)。
 
@@ -299,7 +290,7 @@ export default timeline([
 - `line({ text, reading?, voice?, by? })` の `text` は文字列リテラル (`{漢字|よみ}` の記法で読みを添えられる)、またはそれらの配列 (字幕の改行として結合される。読みには影響しない)。字幕には `text` を、合成には `reading` (省略時は `text`) を使う。`{漢字|よみ}` はどちらか片側が空・`|` が無い・入れ子や非対称の括弧 (閉じ忘れ・開き忘れ) だと throw する (配列の場合は結合した文字列で検査する)。
 - `reading` は合成に渡す文 (`text` と同じ書式、`{漢字|よみ}` を書ける。`text` と同じく配列可)。文字列リテラルで書く。空文字は throw する (声無しは `voice: null` で書く)。`voice: null` と `reading` を同時に指定しても throw する (声無しの行に `reading` は意味を持たないため)。
 - `by` は `characters/<name>.ts` の `character()` の戻り値の参照 (表情は現在の表情を維持) か、`{ character, expression? }` の形 (表情を明示する)。指定すると `narration()` の `speech` にその `character` の参照が乗り、`figure()` (「立ち絵」) の括りに含めるとその立ち絵が自分宛の発話を選ぶのに使う。
-- `voice` の実効値は利用側の既定話者 (`theme/index.ts` の `narrator`) ← `by.voice` ← `line()` 自身の `voice` の順で上書きした値になる。差分だけを書く (例: `{ speed: 0.9 }`)。`voice: null` を渡すと声無し (wav・lipsync を作らない) になり、`cut()`/`fade()` の `duration` の明示が必須になる (字幕の尺 = `duration`)。声の無い字幕は `line({ text, voice: null })` を `duration` を明示した項目として `narration()` に置いて書く。`text`・`reading`・`voice`・`by` は watcher (`npm run dev`) が静的に読むため、リテラルの他は `theme/index.ts` からの import・spread・同じファイルの const・プロパティアクセスに限られる (`voice: null` はリテラルとしてそのまま読める)。`by` は識別子、または `{ character, expression? }` の形のオブジェクトリテラル (`character` は識別子、`expression` は文字列リテラル) に限る (詳細は [ADR-0010](docs/adr/0010-build-narration-timeline-with-hashed-voice-cache.md), [ADR-0011](docs/adr/0011-draw-figure-from-character-presets-linked-by-speech.md))。
+- `voice` の実効値は利用側の既定話者 (`theme/index.ts` の `narrator`) ← `by.voice` ← `line()` 自身の `voice` の順で上書きした値になる。差分だけを書く (例: `{ speed: 0.9 }`)。`voice: null` を渡すと声無し (wav・lipsync を作らない) になり、`cut()`/`fade()` の `duration` の明示が必須になる (字幕の尺 = `duration`)。声の無い字幕は `line({ text, voice: null })` を `duration` を明示した項目として `narration()` に置いて書く。`text`・`reading`・`voice`・`by` は watcher (`deno task dev`) が静的に読むため、リテラルの他は `theme/index.ts` からの import・spread・同じファイルの const・プロパティアクセスに限られる (`voice: null` はリテラルとしてそのまま読める)。`by` は識別子、または `{ character, expression? }` の形のオブジェクトリテラル (`character` は識別子、`expression` は文字列リテラル) に限る (詳細は [ADR-0010](docs/adr/0010-build-narration-timeline-with-hashed-voice-cache.md), [ADR-0011](docs/adr/0011-draw-figure-from-character-presets-linked-by-speech.md))。
 - `by.expression` は `character` の `expressions` のキー (文字列リテラル)。指定すると、この発話の開始と同時に立ち絵の表情がそのキーに切り替わり、次に `expression` を指定する自分宛の発話まで維持する (詳細は「立ち絵」)。この引き継ぎは同じ `narration()` の呼び出し (1 つの塊) の中に限り、別の `narration()` の呼び出しをまたいでは引き継がない (新しい塊は初期の表情から始まる)。`voice: null` の項目でも `by` は書け、表情の切り替えだけ効く (口パクは付かない)。
 - `cut()` の `duration` を省いた item は `narration()` にだけ渡せる。位置は `at`/`after`/省略のいずれかで指定し、`after` は前の発話の音声の終わりからの間隔 (秒) になる。
 - `narration()` の入力配列には `line()` の item に加え、`figure()` (「立ち絵」) が返す立ち絵の括りを item と混ぜて置ける。括りの中の行は配列の順のまま平らにして解決するため、`at`/`after`/省略や `after` の連鎖は行を直接書いたのと同じに振る舞う (括りの後ろに続く行は括りの最後の行から続く)。括りごとに立ち絵の item を 1 つ作り、暗がり・発話より下の立ち絵 layer に積む (詳細は「立ち絵」)。
@@ -307,7 +298,7 @@ export default timeline([
 - `narration()` に渡した `cut(line(...), { ... })` の入力 item を const に取っておくと、他の layer から `start(item, offset?)` / `end(item, offset?)` でその発話を参照できる (`item` に `until` は指定できない)。`end()` は発話 layer の item の終端 (字幕の尺の終端) を指す。塊 (`narration()` の戻り値) を `cut()`/`fade()` で置いた後も、外側の layer から同じ規則で参照できる (「塊 (group)」参照)。const に取らなくても `lines[i]` で同じ item を参照できる (例: `cut(photo, { at: start(n.lines[4]) })`)。
 - `narration()` は発話の音声キャッシュを待つため、timeline.ts 側は `const n = await narration(...)` の top-level await で受ける。`timeline()` 自体は同期のまま。
 
-project の選択は環境変数 `REMOTION_PROJECT` (slug) で行い、`.env` に書く。Remotion CLI は `.env` の値をシェルの環境変数より優先するため、`REMOTION_PROJECT=<slug> npx remotion studio` の形で渡しても `.env` に書かれた project が読まれる (2026-09-11 実測)。音声キャッシュを生成する `scripts/voice.ts` は Remotion CLI を通さずシェルの環境変数が効くため、`.env` と違う slug をシェルで渡すと、音声の生成先と render の読み先がずれる。未設定・空なら `app/config.ts` の `defaultProject` (同梱の設定ではサンプル project `00000000-sample`) を読む。VOICEVOX ENGINE の URL は環境変数 `VOICEVOX_URL` で渡す (`.env` に書く)。`npm run dev` は未設定でも起動できるが、その間は発話の音声キャッシュを生成しない。`npm run render` は未設定だと非 0 で終了する。composition の props (`--props` や Studio の props パネル) で `slug` を上書きすると、読み込む timeline.ts は変わるが `narration()` の既定の読み先 (`REMOTION_PROJECT`) は変わらないため食い違う ([ADR-0010](docs/adr/0010-build-narration-timeline-with-hashed-voice-cache.md))。
+project の選択は環境変数 `REMOTION_PROJECT` (slug) で行い、`.env` に書く。Remotion CLI は `.env` の値をシェルの環境変数より優先するため、`REMOTION_PROJECT=<slug> deno task studio` の形で渡しても `.env` に書かれた project が読まれる (2026-09-11 実測)。音声キャッシュを生成する `scripts/voice.ts` は Remotion CLI を通さずシェルの環境変数が効くため、`.env` と違う slug をシェルで渡すと、音声の生成先と render の読み先がずれる。未設定・空なら `app/config.ts` の `defaultProject` (同梱の設定ではサンプル project `00000000-sample`) を読む。VOICEVOX ENGINE の URL は環境変数 `VOICEVOX_URL` で渡す (`.env` に書く)。`deno task dev` は未設定でも起動できるが、その間は発話の音声キャッシュを生成しない。`deno task render` は未設定だと非 0 で終了する。composition の props (`--props` や Studio の props パネル) で `slug` を上書きすると、読み込む timeline.ts は変わるが `narration()` の既定の読み先 (`REMOTION_PROJECT`) は変わらないため食い違う ([ADR-0010](docs/adr/0010-build-narration-timeline-with-hashed-voice-cache.md))。
 
 ### 立ち絵
 
@@ -341,9 +332,9 @@ ED・サムネ用フレームの絵は要素ファクトリで置けるが、ED 
 
 ドラレコ原本 (HEVC) は Remotion に直接読ませず、H.264 の変換済み素材に変換して使う ([ADR-0003](docs/adr/0003-convert-dashcam-footage-to-h264-proxy.md))。この変換は非可逆の再エンコードで、変換済み素材の画質が完成動画の画質の上限になる。`remotion render` は Chrome が描いたフレームをさらに再エンコードする (H.264 の既定 CRF は 18) ため、完成動画は 2 回の非可逆エンコードを経る。変換のエンコード設定は NVENC の `-cq 23` と libx264 の `-crf 22` のどちらか一方が使われる。
 
-    npm run convert -- <slug> <入力ファイル>...
+    deno task convert <slug> <入力ファイル>...
 
-`npm run` はリポジトリルートを cwd にして実行するため、入力ファイルは絶対パスで渡す。
+`deno task` はリポジトリルートを cwd にして実行するため、入力ファイルは絶対パスで渡す。
 
 - 出力先は `public/projects/<slug>/<basename>.mp4` ([ADR-0002](docs/adr/0002-project-directory-layout.md))。既に存在するファイルはスキップする。
 - `<slug>` は `YYYYMMDD-<name>` (ASCII 小文字の kebab-case)。形式が違うとエラーになる。
@@ -353,16 +344,16 @@ ED・サムネ用フレームの絵は要素ファクトリで置けるが、ED 
 
 ### Studio 用プロキシ
 
-変換済み素材に加えて `public/projects/<slug>/<basename>.preview.mp4` (Studio 用プロキシ) を作る ([ADR-0013](docs/adr/0013-add-preview-proxy-for-studio.md))。`npm run dev` (Remotion Studio) はこのプロキシを読み、`remotion render` は変換済み素材 (本体) を読む。
+変換済み素材に加えて `public/projects/<slug>/<basename>.preview.mp4` (Studio 用プロキシ) を作る ([ADR-0013](docs/adr/0013-add-preview-proxy-for-studio.md))。`deno task dev` (Remotion Studio) はこのプロキシを読み、`remotion render` は変換済み素材 (本体) を読む。
 
-- プロキシは変換済み素材から生成する H.264 で、既定は 540p。`.env` の `PREVIEW_HEIGHT` (2 以上の偶数) で解像度を変えられる。`npm run dev` と同じく `npm run convert` も `.env` を読む。
-- 既に変換済み素材だけがある project にプロキシを追加するときは、変換済み素材自身を入力にして `npm run convert` を再実行する。例: `npm run convert -- 20260813-jododaira public/projects/20260813-jododaira/*.mp4`。この glob は生成済みのプロキシ (`*.preview.mp4`) も拾うが、`.preview.mp4` で終わる入力は convert がスキップするため、そのまま再実行して構わない。
+- プロキシは変換済み素材から生成する H.264 で、既定は 540p。`.env` の `PREVIEW_HEIGHT` (2 以上の偶数) で解像度を変えられる。`deno task dev` と同じく `deno task convert` も `.env` を読む。
+- 既に変換済み素材だけがある project にプロキシを追加するときは、変換済み素材自身を入力にして `deno task convert` を再実行する。例: `deno task convert 20260813-jododaira public/projects/20260813-jododaira/*.mp4`。この glob は生成済みのプロキシ (`*.preview.mp4`) も拾うが、`.preview.mp4` で終わる入力は convert がスキップするため、そのまま再実行して構わない。
 
 ## コーディング規約
 
 - 相対 import・export・import() には実体のファイルの拡張子 (`.ts`/`.tsx`/`.module.css`/`.json`) を付ける。`../theme` のようなディレクトリ指定は `index.ts` まで書く。
 - 日付と時間は Temporal で表し、`Date` は使わない ([ADR-0007](docs/adr/0007-use-temporal-for-dates-and-times.md))。
-- コミット前に `npm run fix` (ESLint と `deno fmt` の自動修正) を通す。
+- コミット前に `deno task fix` (ESLint と `deno fmt` の自動修正) を通す。
 
 ## License
 

@@ -16,7 +16,7 @@
 // - オブジェクトリテラル (キーはリテラルのみ。値は再帰的に評価。
 //   spread (...expr) は評価結果のオブジェクトを展開する)
 // - 識別子 (同じファイルの top-level const、または import の binding。
-//   import は timeline.ts からの相対パスを Node の動的 import() で読む)
+//   import は timeline.ts からの相対パスを 動的 import() で読む)
 // - プロパティアクセス (a.b)
 // それ以外 (関数呼び出し・条件式・置換ありテンプレート・計算式等) は
 // timeline.ts 内の位置 (行:列) 付きで throw する。voice が null リテラルに
@@ -41,7 +41,6 @@
 // narration.ts と同じ関数を使い、静的解析側と実行時側で結果を一致させる)。
 
 import fs from "node:fs";
-import { createRequire } from "node:module";
 import path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import * as ts from "typescript";
@@ -80,16 +79,17 @@ const CHARACTER_MODULE_REALPATHS = realpathAll([
   path.join(LIB_DIR, "index.ts"),
 ]);
 
-// bare specifier (外部リポジトリからの依存) を Node の解決 (node_modules →
-// package.json の exports) で実ファイルの絶対パスへ解決する。require.resolve()
-// は対象が .ts でもパスを返すだけで読み込みは起きない。解決できなければ
-// (依存が無い・存在しない subpath 等) undefined を返す。
-const resolveBareSpecifier = (
-  fileName: string,
-  specifier: string,
-): string | undefined => {
+// bare specifier を実行中の Deno の import map (deno.json の imports) で
+// 実ファイルの絶対パスへ解決する。import.meta.resolve() は解決するだけで
+// 読み込みは起きない。import map はプロセス全体で 1 つのため、起点は
+// timeline.ts ではなくこのファイルになる (結果は同じ)。解決できない
+// (import map に無い) ときと、ファイル以外 (npm:・jsr: 等) に解決されたときは
+// undefined を返す。
+const resolveBareSpecifier = (specifier: string): string | undefined => {
   try {
-    return createRequire(pathToFileURL(fileName)).resolve(specifier);
+    const resolved = import.meta.resolve(specifier);
+
+    return resolved.startsWith("file:") ? fileURLToPath(resolved) : undefined;
   } catch {
     return undefined;
   }
@@ -98,12 +98,12 @@ const resolveBareSpecifier = (
 /**
  * import の specifier が lib のファイル (moduleRealpaths) に解決されるか
  * どうかを見る。package 名 (motovlog-template 等) との文字列一致ではなく
- * 解決先のファイルで判定する。npm alias・fork・改名した依存でも、実体が
- * lib のファイルであれば判定が壊れないようにするため。
+ * 解決先のファイルで判定する。import map で別名を付けた・fork・改名した
+ * 依存でも、実体が lib のファイルであれば判定が壊れないようにするため。
  *
  * 相対 specifier (./・../) は timeline.ts のディレクトリを起点に
- * path.resolve() で、bare specifier は resolveBareSpecifier() (Node の
- * 解決) で絶対パスに解決する。どちらの結果も realpath で正規化してから
+ * path.resolve() で、bare specifier は resolveBareSpecifier() (import map
+ * による解決) で絶対パスに解決する。どちらの結果も realpath で正規化してから
  * moduleRealpaths と突き合わせる (symlink 経由でも実体のパスで一致させる)。
  * 解決できない・解決先が存在しない場合は lib ではないと見なす。
  */
@@ -116,7 +116,7 @@ const specifierIsLibModule = (
 
   const resolved = isRelative
     ? path.resolve(path.dirname(context.fileName), specifier)
-    : resolveBareSpecifier(context.fileName, specifier);
+    : resolveBareSpecifier(specifier);
 
   if (resolved === undefined) {
     return false;
@@ -225,10 +225,10 @@ const buildContext = (sourceFile: ts.SourceFile): EvalContext => {
   };
 };
 
-// import 先を timeline.ts (fileName) からの相対パスとして解決し、Node の
-// 動的 import() で読む。同じ specifier は 1 度しか読み込まない。URL に
+// import 先を timeline.ts (fileName) からの相対パスとして解決し、動的
+// import() で読む。同じ specifier は 1 度しか読み込まない。URL に
 // ファイルの mtime をクエリとして付ける (dev 中に characters/<name>.ts 等を
-// 書き換えたときに Node の ESM キャッシュが古いモジュールを返すのを防ぐ。
+// 書き換えたときに ESM のモジュールキャッシュが古いモジュールを返すのを防ぐ。
 // `Date` は ESLint で禁止のため mtimeMs (fs.statSync) を使う)。
 const loadModule = (
   context: EvalContext,
@@ -1084,7 +1084,7 @@ export type ExtractResult = {
  * (別名を含む) に解決されるものだけを対象にする。text はリテラル (文字列・置換無し
  * テンプレート) か、それらの配列限定、voice は上記の評価器が読める式限定
  * で、それ以外があれば位置情報付きのエラーを投げる。voice の import 解決のため、
- * timeline.ts と同じディレクトリを起点に Node の動的 import() を行う。
+ * timeline.ts と同じディレクトリを起点に 動的 import() を行う。
  * voice: null (声無し) の呼び出しは lines から除外し、件数を silent に
  * 集計する (呼び出し側が「発話が 0 件」を lines.length だけで判定して
  * 誤警告しないため)。

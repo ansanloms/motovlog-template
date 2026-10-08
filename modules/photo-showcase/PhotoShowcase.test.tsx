@@ -4,7 +4,7 @@ import { describe, it } from "@std/testing/bdd";
 import { expect } from "@std/expect";
 import { photoShowcase } from "./index.ts";
 import { PhotoShowcase } from "./PhotoShowcase.tsx";
-import { Video } from "../video/index.ts";
+import { Video } from "@motovlog/video";
 
 /** 未知の値を ReactElement に絞り込む (要素で無ければ throw)。 */
 const asElement = (node: unknown): ReactElement => {

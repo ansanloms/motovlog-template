@@ -52,7 +52,7 @@ describe("parseConvertArgs", () => {
 
   it("inputs が空なら throw する", () => {
     expect(() => parseConvertArgs(["20260817-jododaira"])).toThrow(
-      "usage: npm run convert -- <slug> <入力ファイル>...",
+      "usage: deno task convert <slug> <入力ファイル>...",
     );
   });
 
@@ -78,7 +78,7 @@ describe("parseConvertArgs", () => {
     expect(parseConvertArgs(["--xyz", "--help"])).toBeNull();
   });
 
-  it("素の -- (オプション終端) は読み飛ばし、以降を位置引数として読む (npx motovlog-convert -- <slug> <入力ファイル>...)", () => {
+  it("素の -- (オプション終端) は読み飛ばし、以降を位置引数として読む (deno task convert -- <slug> <入力ファイル>...)", () => {
     expect(parseConvertArgs(["--", "20260817-jododaira", "a.mp4"])).toEqual({
       slug: "20260817-jododaira",
       inputs: ["a.mp4"],

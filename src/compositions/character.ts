@@ -13,7 +13,7 @@
 // 座標計算をしない。素材の切り出し (PSD からの書き出し等) はテンプレートの
 // 外で行う。
 //
-// このファイル自体は Node からそのまま import できる純粋な値のモジュールと
+// このファイル自体は Deno からそのまま import できる純粋な値のモジュールと
 // する (remotion・CSS・src/components を import しない。watcher
 // (scripts/voice/extract.ts) が line().by から voice だけを読むため)。
 

@@ -1,6 +1,6 @@
 import React from "react";
 import { Video } from "./Video.tsx";
-import { assertVolume } from "../core/index.ts";
+import { assertVolume } from "@motovlog/core";
 
 /** Video の要素ファクトリ。不正な volume はここで throw する。 */
 export const video = (props: React.ComponentProps<typeof Video>) => {

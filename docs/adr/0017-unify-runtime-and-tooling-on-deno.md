@@ -43,7 +43,7 @@ Remotion は Deno を公式の実行環境としていない。
 
 ### Deno が受け持つ範囲
 
-- Remotion CLI (`compositions`・`bundle`・`render`・`studio`) を `deno run -A npm:@remotion/cli/remotion` で実行する。`npm:@remotion/cli` の形では呼ばない。
+- Remotion CLI (`compositions`・`bundle`・`render`・`studio`) を `deno run -A npm:@remotion/cli@<版>/remotion` で実行する。`npm:@remotion/cli` の形では呼ばない。版は root の `deno.json` の `remotion` task だけに書き、他の task とスクリプトは `deno task remotion <サブコマンド>` で呼ぶ。
 - `scripts/` のスクリプトを Deno で実行する。
 - テストはすべて `deno test` で実行し、`@std/testing/bdd` と `@std/expect` で書く。モックと偽の時計は `@std/testing/mock` と `@std/testing/time` を使う。vitest は使わない。
 - root の `deno.json` の `test.include` に `src/`・`modules/`・`scripts/`・`theme/` のテスト (`*.test.ts`・`*.test.tsx`) を並べ、root の `deno task test` は `deno test -A` でそれらをまとめて実行する。各 member の `deno task test` は自分のテストだけを実行する。
@@ -55,7 +55,10 @@ Remotion は Deno を公式の実行環境としていない。
 
 - `node_modules` は残す。
 - `node_modules` は `deno install` で作り、root の `deno.json` は `nodeModulesDir: "auto"` にする。
-- npm の依存は root の `deno.json` に exact 版で書き、`package.json`・`package-lock.json` は置かない。npm コマンドは使わない。
+- npm の依存は root の `deno.json` に exact 版で書き、`package-lock.json` は置かない。npm コマンドは使わない。
+- root には `{ "private": true }` だけの `package.json` を置き、依存・`scripts`・`exports` は書かない。理由: Remotion の CLI はルートを最も近い `package.json` の場所で決め、Studio は `/` を返すときにルートの `package.json` を読む。無いと Studio は `ENOENT: no such file or directory, open '<root>/package.json'` で HTTP 500 を返し、親ディレクトリ (5 階層以内) に `package.json` があるとそちらの `remotion.config.ts`・`.env` を読む。
+- `deno.lock` をコミットし、CI は `deno install --frozen` で依存を入れる。
+- `modules/<name>` は member の名前 `@motovlog/<name>` で import し、Rspack には `remotion.config.ts` の `Config.overrideBundlerConfig()` の alias で解決させる ([ADR-0016](./0016-use-deno-tooling-for-modules.md))。
 
 ### ESLint
 
@@ -64,7 +67,7 @@ Remotion は Deno を公式の実行環境としていない。
 ### 段階的な移行
 
 - 移行は 3 段階で行う。1 段階目でテストを Deno に移し、2 段階目で型検査・lint・整形を Deno に移し、3 段階目で Remotion CLI の実行・依存の宣言・CI を Deno に移す。
-- CI では Deno で `compositions` を実行し、Remotion が Deno で動くことの smoke check にする。
+- CI では Deno で `bundle` を実行し、Remotion のバンドラが Deno の作った `node_modules` と alias で動くことの smoke check にする。`compositions` は CI では実行しない。理由: サンプル project の発話の音声キャッシュ (`public/projects/00000000-sample/lines/`) はコミットせず、無いと `narration()` が `waitForVoiceCache` で失敗する。
 
 ## Consequences
 
@@ -76,17 +79,19 @@ Remotion は Deno を公式の実行環境としていない。
 
 ### 代償
 
-- Remotion は Deno を公式の実行環境としていないため、Remotion の更新で Deno 上の実行が壊れることがある。CI の `compositions` で検知し、壊れたら原因を調べる必要がある。
+- Remotion は Deno を公式の実行環境としていないため、Remotion の更新で Deno 上の実行が壊れることがある。CI の `bundle` と `deno task upgrade` の検証で検知し、壊れたら原因を調べる必要がある。
 - CSS Modules のスタブはクラス名を返すだけなので、テストからは CSS の中身を検査できない。
 - CSS Modules を足すたびに、root の `deno.json` の `imports` にスタブの割り当てを足す必要がある。
 - テストで `vi.resetModules()` に当たる機能が無いため、モジュールを読み直すテストは query 付きの URL (`./setup.ts?fresh=<n>`) で import し直す。
 - ESLint のためだけに Node のツールが残る。
+- Remotion の CLI と Studio のために、依存を持たない `package.json` が 1 つ残る。
 
 ### 禁止事項
 
 - vitest でテストを書くこと。
 - `node_modules` を前提から外すこと。理由: Rspack が bare specifier を解決できなくなる。
 - Remotion CLI を `npm:@remotion/cli` の形で呼ぶこと。
+- root の `package.json` に依存・`scripts`・`exports` を書くこと、または root の `package.json` を消すこと。
 - CSS Modules を読むテストを、スタブの割り当てを足さずに置くこと。
 - ESLint の境界の規則を、同じ検査ができる置き換えなしに外すこと。
 
@@ -97,9 +102,10 @@ Remotion は Deno を公式の実行環境としていない。
 | Remotion CLI が Deno で Node と同じように動く                       | 検証済 | 2026-10-07、deno 2.9.7 と Remotion 4.0.529 で `compositions`・`bundle`・`render`・`studio` を確認した |
 | `deno install` で作った `node_modules` で Rspack が依存を解決できる | 検証済 | 2026-10-07、`nodeModulesDir: "auto"` と `deno install` で `compositions` と `render` が動いた         |
 | import map のスタブで CSS Modules を読むテストが `deno test` で通る | 検証済 | 2026-10-07、4 ファイルが通った                                                                        |
-| Remotion の更新後も Deno 上で動き続ける                             | 未検証 | 更新のたびに CI の `compositions` で確認する                                                          |
+| Remotion の更新後も Deno 上で動き続ける                             | 未検証 | 更新のたびに CI の `bundle` と `deno task upgrade` の lint・test・bundle で確認する                   |
 
 ## References
 
 - 2026-10-07 の所有者の承認: Remotion の実行と開発ツールを Deno に統一し、Node は Deno が作る `node_modules` だけに残す。`node_modules` は Rspack のために残し、`deno install` (`nodeModulesDir: "auto"`) で作る。CSS Modules を読むテストは import map のスタブで `deno test` に移す。ESLint は境界の規則のためだけに残す。移行はテスト・開発ツール・実行環境と CI の 3 段階で行う。
 - 2026-10-07 の deno 2.9.7 と Remotion 4.0.529 での実測 (Context に記載した結果)。
+- `@remotion/renderer` 4.0.529 の `dist/find-closest-package-json.js`: `findRemotionRoot()` は cwd から 5 階層まで `package.json` を探し、見つからなければ `process.cwd()` を返す。`@remotion/studio-server` 4.0.529 の `dist/helpers/get-installed-dependencies.js` は `<remotionRoot>/package.json` を無条件に `readFileSync` する。2026-10-07 に `package.json` の無いディレクトリで `deno task studio` を起動すると `/` が HTTP 500 になり、`{ "private": true }` を置くと HTTP 200 を返した。
