@@ -28,7 +28,7 @@
     "remotion": "npm:remotion@4.0.529",
     "remotion/": "npm:/remotion@4.0.529/",
     "temporal-polyfill/": "npm:/temporal-polyfill@1.0.5/",
-    "typescript": "npm:typescript@5.9.3",
+    "typescript": "npm:typescript@7.0.2",
     "motovlog-template": "./src/index.ts",
     "motovlog-template/effects": "./src/effects/index.ts",
     "motovlog-template/components": "./src/components/index.tsx",
