@@ -151,7 +151,8 @@ export const queryTotalSeconds = (query: AudioQuery): number => {
     }
 
     if (phrase.pause_mora) {
-      total += (phrase.pause_mora.consonant_length ?? 0) +
+      total +=
+        (phrase.pause_mora.consonant_length ?? 0) +
         pauseMoraLength(query, phrase.pause_mora);
     }
   }

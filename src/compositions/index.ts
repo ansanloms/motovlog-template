@@ -5,7 +5,7 @@
 //
 // characters/<name>.ts だけはこの入口を通さず ./character.ts を直に import
 // する。この入口は figure()・line() 経由で src/components と CSS Modules を
-// 辿るため、素の Deno から読めなくなり、ADR-0011 の前提 (watcher が
+// 辿るため、素の Node から読めなくなり、ADR-0011 の前提 (watcher が
 // characters/<name>.ts をそのまま import して voice を読む) を壊す。
 export { character, isEyesLayer, isMouthLayer } from "./character.ts";
 export type {

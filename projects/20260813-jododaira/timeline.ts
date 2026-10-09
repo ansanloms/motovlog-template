@@ -348,8 +348,7 @@ const n5 = await narration([
     ),
     cut(
       line({
-        text:
-          "(「火山ガス注意」「窓を閉めて走行下さい」の看板にビビり散らかしている)",
+        text: "(「火山ガス注意」「窓を閉めて走行下さい」の看板にビビり散らかしている)",
         voice: null,
         by: { character: ryusei, expression: "paleAndSweatBig" },
       }),

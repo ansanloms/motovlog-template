@@ -4,7 +4,7 @@ README の「新しい動画を作る」を、具体的なコマンドと timeli
 
 ## 前提
 
-- `deno install` が済んでいる (初回だけ)。
+- `npm ci` が済んでいる (初回だけ)。
 - ffmpeg が入っている。NVENC を使うなら NVIDIA GPU。WSL では nvenc を使う ffmpeg の呼び出しに `/usr/lib/wsl/lib` を `LD_LIBRARY_PATH` で渡す (`scripts/convert/plan.ts`)。
 - ドラレコの原本 (HEVC) は Windows 側 (`/mnt/c`) に置いたままでよい。触るのは変換時の読み取り 1 回だけで、書き換えない。
 
@@ -22,14 +22,14 @@ cp projects/00000000-sample/timeline.ts projects/20260901-example/timeline.ts
 ### 2. ドラレコ原本を変換済み素材に変換する
 
 ```
-deno task convert 20260901-example /mnt/c/path/to/DASHCAM_20260901_133345.MP4
+npm run convert -- 20260901-example /mnt/c/path/to/DASHCAM_20260901_133345.MP4
 ```
 
 - 出力は `public/projects/20260901-example/DASHCAM_20260901_133345.mp4` (原本の basename + `.mp4`)。既にあればスキップする。
-- あわせて Studio 用プロキシ `public/projects/20260901-example/DASHCAM_20260901_133345.preview.mp4` (既定 540p、`PREVIEW_HEIGHT` で変更可) も作る ([ADR-0013](adr/0013-add-preview-proxy-for-studio.md))。`deno task dev` で使うため必須で、無いと Studio でこの素材が再生できない。
+- あわせて Studio 用プロキシ `public/projects/20260901-example/DASHCAM_20260901_133345.preview.mp4` (既定 540p、`PREVIEW_HEIGHT` で変更可) も作る ([ADR-0013](adr/0013-add-preview-proxy-for-studio.md))。`npm run dev` で使うため必須で、無いと Studio でこの素材が再生できない。
 - フレームレートは `src/theme/timing.ts` の `fps` に固定されており、指定オプションは無い。composition の fps と常に一致する。
 - 原本 1 本 (約 43 分・8GB) で NVENC なら約 9 分、出力は約 5GB。NVENC が使えない環境では libx264 で約 10 倍かかる。
-- `deno task` はリポジトリルートを cwd にするので原本は絶対パスで渡す。
+- `npm run` はリポジトリルートを cwd にするので原本は絶対パスで渡す。
 
 ### 3. timeline.ts を書く
 
@@ -49,15 +49,15 @@ deno task convert 20260901-example /mnt/c/path/to/DASHCAM_20260901_133345.MP4
 `.env` に `REMOTION_PROJECT=20260901-example` と `VOICEVOX_URL=<VOICEVOX ENGINE の URL>` を書く。Studio 用プロキシの高さは任意で `PREVIEW_HEIGHT` (未設定なら 540、2 以上の偶数) で変えられる ([ADR-0013](adr/0013-add-preview-proxy-for-studio.md))。
 
 ```
-deno task dev
+npm run dev
 ```
 
-`deno task dev` は timeline.ts を監視して発話の音声キャッシュを生成しつつ Studio を起こす。timeline.ts を編集したら Studio 上で再読み込みし、反映されているか確認する。project を切り替えるときは `.env` を書き換える。理由: Remotion CLI は `.env` の値をシェルの環境変数より優先するため、`REMOTION_PROJECT=<slug> deno task dev` の形では Studio が `.env` の project を読み、シェルの環境変数が効く watcher とずれる (README の「発話」節)。
+`npm run dev` は timeline.ts を監視して発話の音声キャッシュを生成しつつ Studio を起こす。timeline.ts を編集したら Studio 上で再読み込みし、反映されているか確認する。project を切り替えるときは `.env` を書き換える。理由: Remotion CLI は `.env` の値をシェルの環境変数より優先するため、`REMOTION_PROJECT=<slug> npm run dev` の形では Studio が `.env` の project を読み、シェルの環境変数が効く watcher とずれる (README の「発話」節)。
 
 ### 5. レンダリングする
 
 ```
-deno task render out/20260901-example.mp4
+npm run render -- out/20260901-example.mp4
 ```
 
 render する project は手順 4 で書いた `.env` の `REMOTION_PROJECT` が決める。先に音声キャッシュを生成してからレンダリングする。`out/` はコミットされない。
@@ -71,7 +71,7 @@ git tag render/20260901-example
 git push origin main render/20260901-example
 ```
 
-再現するときはタグを checkout して `deno install` し、素材 (変換済み素材) を復元して render する。素材はコミットされていないので、原本と生成物の保管場所を別に持つ。
+再現するときはタグを checkout して `npm ci` し、素材 (変換済み素材) を復元して render する。素材はコミットされていないので、原本と生成物の保管場所を別に持つ。
 
 ## git で扱うもの
 

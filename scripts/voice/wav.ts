@@ -39,9 +39,7 @@ export const wavDurationSeconds = (buffer: Buffer): number => {
       // 前に打ち切る (RangeError より説明的なエラーにする)。
       if (dataStart + chunkSize > buffer.length) {
         throw new Error(
-          `wav が途中で切れています (fmt チャンクの宣言サイズ ${chunkSize} バイトに対し、実サイズは ${
-            buffer.length - dataStart
-          } バイトしかありません)`,
+          `wav が途中で切れています (fmt チャンクの宣言サイズ ${chunkSize} バイトに対し、実サイズは ${buffer.length - dataStart} バイトしかありません)`,
         );
       }
 
@@ -53,9 +51,7 @@ export const wavDurationSeconds = (buffer: Buffer): number => {
     } else if (chunkId === "data") {
       if (dataStart + chunkSize > buffer.length) {
         throw new Error(
-          `data チャンクが途中で切れています (宣言サイズ ${chunkSize} バイトに対し、実サイズは ${
-            buffer.length - dataStart
-          } バイトしかありません)`,
+          `data チャンクが途中で切れています (宣言サイズ ${chunkSize} バイトに対し、実サイズは ${buffer.length - dataStart} バイトしかありません)`,
         );
       }
 

@@ -18,13 +18,14 @@ jobs:
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
       - uses: actions/setup-python@v7
         with:
           python-version: "3.12"
-      - uses: denoland/setup-deno@v2.0.5
-        with:
-          deno-version: "2.9.6"
-      - run: deno install
+      - run: npm ci
       - run: pip install apm-cli==0.28.0
       - run: apm --version
       - run: scripts/remotion-upgrade.sh "$VERSION"
@@ -43,7 +44,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          version="$(jq -r '.imports.remotion | sub("^npm:remotion@"; "")' deno.json)"
+          version="$(node -p "const p=require('./package.json'); p.devDependencies?.remotion ?? p.dependencies?.remotion ?? ''")"
           echo "version=$version" >>"$GITHUB_OUTPUT"
           branch="chore/remotion-upgrade-${version}"
           if [ "$(gh pr list --head "$branch" --state open --json number --jq length)" = "0" ]; then
@@ -69,4 +70,4 @@ jobs:
             --base main \
             --head "chore/remotion-upgrade-${{ steps.target.outputs.version }}" \
             --title "build: Remotion を ${{ steps.target.outputs.version }} へ更新" \
-            --body "Remotion upgrade workflow による自動更新。scripts/remotion-upgrade.sh で deno.json の Remotion の版の書き換え、deno install、remotion-dev/skills の SHA 更新、apm install、lint、test、build を通した。"
+            --body "Remotion upgrade workflow による自動更新。scripts/remotion-upgrade.sh で \`npx remotion upgrade\`、optional peer の揃え、remotion-dev/skills の SHA 更新、apm install、lint、test、build を通した。"

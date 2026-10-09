@@ -1,7 +1,7 @@
 ---
 status: accepted
 date: 2026-10-01T00:00:00Z
-refs: [6, 11, 12, 14, 16]
+refs: [6, 11, 12, 14, 18]
 tags: [layout, package, components, boundary]
 ---
 
@@ -24,18 +24,19 @@ lib の見た目のコンポーネントは `src/components/` に平らに置か
 
 ## Considered Options
 
-1. `modules/<name>/` を package 相当の独立した単位とし、member の名前 `@motovlog/<name>` で公開する ([ADR-0016](./0016-use-deno-tooling-for-modules.md))。初回はコンポーネントと共有部品 `modules/core/` を置く — 採用。コンポーネント単位でファイルがまとまり、依存の規則を ESLint で書ける。
+1. `modules/<name>/` を npm package 相当の独立した単位とし、単一の `package.json` の `exports` の `./modules/*` で公開する。初回はコンポーネントと共有部品 `modules/core/` を置く — 採用。コンポーネント単位でファイルがまとまり、依存の規則を ESLint で書ける。パッケージの構成とバンドラの設定は変わらない。
 2. npm workspaces で module ごとにパッケージを分ける — 却下。npm 11.19.0・node 24.20.0 で実測した。root が workspace の package に依存している lib を利用側が `github:` 参照で取り込むと、npm はその package を registry で解決しようとし、`E404` で install 自体が失敗する。依存を外すと install は通るが、workspace の package は利用側の `node_modules/<name>` に展開されず、lib の `exports` の subpath 経由でしか届かない。workspaces にしても利用側から見える形は今と同じ subpath になり、Remotion のバンドラと CSS Modules の検証をやり直すコストだけが増える。
 3. `src/effects`・`src/compositions` も `modules/` に移す — 却下。これらはコンポーネントではなく層の DSL で、[ADR-0006](./0006-write-timeline-as-effects-dsl.md) と [ADR-0012](./0012-split-template-library-from-consumer.md) の層の規則がディレクトリ単位で書かれている。移しても 1 か所にまとまるファイルが増えず、層の境界の検査を書き直すことになる。
 4. 現状の `src/components/` を保つ — 却下。コンポーネント間の依存と共有部品への依存が区別されず、Driver 2 を満たさない。
-5. `Video` を `modules/core/` に移し、`modules/photo-showcase/` が `modules/video/` を import する例外を作らない — 却下。`video` は `@motovlog/video` として独立した公開面と要素ファクトリ (`video()`) を持つ、それ自体が公開 module である。`modules/core/` はコンポーネントではない共有部品 (`text.ts`・`volume.ts`・`previewSrc.ts`・`fadeGain.ts`) の置き場であり、1 行の import 例外を避けるためにコンポーネントを core に持ち上げると、その境界が曖昧になる。
+5. `Video` を `modules/core/` に移し、`modules/photo-showcase/` が `modules/video/` を import する例外を作らない — 却下。`video` は `motovlog-template/modules/video` として独立した公開面と要素ファクトリ (`video()`) を持つ、それ自体が公開 module である。`modules/core/` はコンポーネントではない共有部品 (`text.ts`・`volume.ts`・`previewSrc.ts`・`fadeGain.ts`) の置き場であり、1 行の import 例外を避けるためにコンポーネントを core に持ち上げると、その境界が曖昧になる。
 
 ## Decision
 
 ### modules/ の定義
 
-- `modules/<name>/` は `index.ts` を入口に持ち、Deno の workspace の member の名前 `@motovlog/<name>` で公開される独立した単位 (package 相当) とする ([ADR-0016](./0016-use-deno-tooling-for-modules.md))。コンポーネント専用のディレクトリではなく、コンポーネント以外の単位も置ける。
+- `modules/<name>/` は `index.ts` を入口に持ち、`package.json` の `exports` の `./modules/*` で `motovlog-template/modules/<name>` として公開される独立した単位 (npm package 相当) とする。コンポーネント専用のディレクトリではなく、コンポーネント以外の単位も置ける。
 - `package.json` は 1 つのまま管理し、npm workspaces にはしない。
+- CI は `modules/` のディレクトリごとに ESLint とテストを実行し、module 単位で検証する ([ADR-0018](./0018-return-runtime-and-tooling-to-node.md))。
 - 初回に置くのは、見た目のコンポーネント 9 個 (`chapter`・`ending`・`photo-showcase`・`thumbnail`・`figure`・`subtitle`・`annotation`・`video`・`audio`) と、共有部品の `core` とする。
 
 ### modules/ に置く基準
@@ -43,7 +44,6 @@ lib の見た目のコンポーネントは `src/components/` に平らに置か
 `modules/<name>/` に置く単位は、次をすべて満たす。
 
 - 公開面は自分の `index.ts` だけとする。
-- 各 module は自分の `deno.json` (name・exports・imports・tasks。npm 依存は root の deno.json と同じ exact 版で書く) を持ち、`tasks` には `check`・`lint`・`fmt:check`・`test` の 4 つを置く ([ADR-0016](./0016-use-deno-tooling-for-modules.md))。
 - 依存は `modules/core/` と、ESLint の規則で許した外部パッケージ (`react`・`remotion`・`@remotion/media`) に限る。例外は `photo-showcase` から `video` への依存 1 件だけとする。理由: 写真紹介が短い動画を走行映像と同じ `Video` で描く。
 - project (利用側) を知らない。
 - `src/` の層の DSL (`effects`・`compositions`・`theme`・`voice`・`project`) は `modules/` に移さない。移すときは別の ADR で決める。
@@ -72,7 +72,7 @@ lib の見た目のコンポーネントは `src/components/` に平らに置か
 
 ### 公開面
 
-- module は member の名前 `@motovlog/<name>` で公開し、`src/` と他の module からも名前で import する。Remotion のバンドラには `remotion.config.ts` の `Config.overrideBundlerConfig()` で `modules/<name>/index.ts` への alias を渡す ([ADR-0016](./0016-use-deno-tooling-for-modules.md))。
+- `package.json` の `exports` に `"./modules/*": "./modules/*/index.ts"` を足し、`files` に `modules` を足す。
 - `src/components/index.tsx` は `modules/*` の要素ファクトリを再 export するだけのファイルにし、`exports` の `./components` を保つ。
 - npm workspaces は使わず、`package.json` は 1 つとする。
 
@@ -88,11 +88,11 @@ lib の見た目のコンポーネントは `src/components/` に平らに置か
 
 - 1 つのコンポーネントを変えるときに読むファイルが 1 つのディレクトリに収まる。
 - module 間の依存が `modules/core/` 経由に限られ、違反が lint で落ちる。
-- 利用側は `@motovlog/<name>` で必要な module だけを import でき、既存の `motovlog-template/components` もそのまま使える。
+- 利用側は `motovlog-template/modules/<name>` で必要な module だけを import でき、既存の `motovlog-template/components` もそのまま使える。
 
 ### 代償
 
-- 公開面が `motovlog-template/components` と `@motovlog/<name>` の 2 通りになり、同じ要素ファクトリを 2 つの経路で import できる。
+- 公開面が `motovlog-template/components` と `motovlog-template/modules/<name>` の 2 通りになり、同じ要素ファクトリを 2 つの経路で import できる。
 - module 間の依存の規則は、module の名前ごとに ESLint の設定ブロックを生成して検査する。module を足すと設定が増え、規則は import 文の文字列の前方一致による近似になる。
 - 他の module の部品を使いたい場合は、原則としてその部品を `modules/core/` に移す。個別の import 例外は増やさず、増やすときは ADR に記録する。
 - 例外の一覧 (`eslint.config.mjs` の `MODULE_IMPORT_EXCEPTIONS`) に循環検知は無い。ESLint は module ごとに設定ブロックを生成して片方向だけを検査するため、逆方向の例外 (`video` → `photo-showcase`) を足しても lint では検出できない。循環を防ぐ歯止めはレビューとこの ADR であり、一覧は 1 件に保つ。
@@ -108,14 +108,12 @@ lib の見た目のコンポーネントは `src/components/` に平らに置か
 
 ## Assumptions
 
-| 前提                                                                   | 状態   | 確認方法 / 結果                                                                                                                                                      |
-| ---------------------------------------------------------------------- | ------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| lib の中で `@motovlog/<name>` を Deno と Remotion のバンドラが解決する | 検証済 | 2026-10-07、deno 2.9.7 と Remotion 4.0.529 で `deno check` と、alias を付けた `compositions`・`render` が通った ([ADR-0016](./0016-use-deno-tooling-for-modules.md)) |
-| 外部のリポジトリの利用側が `@motovlog/<name>` を解決できる             | 未検証 | lib と利用側を分ける計画で、利用側の依存の入れ方と合わせて確認する                                                                                                   |
-| module 間で共有する部品が `modules/core/` に収まる                     | 未検証 | 各コンポーネントを module に移すときに、`modules/core/` 以外の module への依存が要るかを確認する                                                                     |
+| 前提                                                                                    | 状態   | 確認方法 / 結果                                                                                            |
+| --------------------------------------------------------------------------------------- | ------ | ---------------------------------------------------------------------------------------------------------- |
+| `exports` の `./modules/*` のパターンを、利用側の Node と Remotion のバンドラが解決する | 未検証 | 利用側リポジトリで `motovlog-template/modules/<name>` を import し、tsc・Studio・render が通るかを確認する |
+| module 間で共有する部品が `modules/core/` に収まる                                      | 未検証 | 各コンポーネントを module に移すときに、`modules/core/` 以外の module への依存が要るかを確認する           |
 
 ## References
 
 - 2026-09-30 の計画承認: `src/components/` の中身だけを `modules/<name>/` に分け、共有部品を `modules/core/` に置く。npm workspaces は使わず、`package.json` の `exports` に `./modules/*` を足す。`src/effects` と `src/compositions` は `src/` に残す。
 - 2026-10-01 の所有者の決定: `modules/` はコンポーネント専用ではなく npm package 相当の独立した単位を置く場所とし、コンポーネント以外の単位も後から置ける。名前は `modules/` のままとし、npm workspaces は使わない。npm workspaces の却下理由の実測 (npm 11.19.0・node 24.20.0) は、この決定と同時に共有された結果である。
-- 2026-10-07 の所有者の承認 ([ADR-0017](./0017-unify-runtime-and-tooling-on-deno.md) の 3 段階目): `package.json` を外し、module は `@motovlog/<name>` の名前で公開・import する。

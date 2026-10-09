@@ -13,7 +13,7 @@
 // 座標計算をしない。素材の切り出し (PSD からの書き出し等) はテンプレートの
 // 外で行う。
 //
-// このファイル自体は Deno からそのまま import できる純粋な値のモジュールと
+// このファイル自体は Node からそのまま import できる純粋な値のモジュールと
 // する (remotion・CSS・src/components を import しない。watcher
 // (scripts/voice/extract.ts) が line().by から voice だけを読むため)。
 
@@ -48,10 +48,8 @@ export type Character = {
  * line()・thumbnail() の by に渡せる値。character() の参照 (表情は既定) か、
  * `{ character, expression? }` の形 (表情を明示する) のどちらか。
  */
-export type ByRef = Character | {
-  readonly character: Character;
-  readonly expression?: string;
-};
+export type ByRef =
+  Character | { readonly character: Character; readonly expression?: string };
 
 /** layer が EyesLayer かどうかを判定する。 */
 export const isEyesLayer = (layer: FigureLayer): layer is EyesLayer =>

@@ -1,5 +1,5 @@
 // .env はスクリプトの利用側のルート (cwd) にある想定 (ADR-0012)。Remotion CLI
-// (deno task studio/render) は自前で .env を読むが、deno run で直接起動する
+// (npx remotion studio/render) は自前で .env を読むが、tsx で直接起動する
 // スクリプト (scripts/voice.ts・scripts/convert-movie.ts 等) は読まないため、
 // スクリプトの入口でこれを呼ぶ。
 

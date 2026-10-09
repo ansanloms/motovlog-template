@@ -1,6 +1,7 @@
 ---
-status: accepted
+status: superseded
 date: 2026-10-03T00:00:00Z
+superseded-by: [18]
 refs: [12, 15, 17]
 tags: [tooling, deno, test, lint, modules]
 ---

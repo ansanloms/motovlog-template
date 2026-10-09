@@ -52,15 +52,15 @@ export type Anchor = {
  */
 export type Placement =
   | {
-    /** 開始位置 (絶対秒または Anchor)。省略時は同じ layer の直前の item の終端 (最初は 0) に連結する。 */
-    readonly at?: number | Anchor;
-    readonly after?: never;
-  }
+      /** 開始位置 (絶対秒または Anchor)。省略時は同じ layer の直前の item の終端 (最初は 0) に連結する。 */
+      readonly at?: number | Anchor;
+      readonly after?: never;
+    }
   | {
-    /** 直前の item の終端からの相対秒。 */
-    readonly after?: number;
-    readonly at?: never;
-  };
+      /** 直前の item の終端からの相対秒。 */
+      readonly after?: number;
+      readonly at?: never;
+    };
 
 /**
  * item の尺の指定。`duration` (秒数) か `until` (終端の絶対秒または Anchor)
@@ -70,15 +70,15 @@ export type Placement =
  */
 export type Span =
   | {
-    /** 表示する尺 (秒)。 */
-    readonly duration: number;
-    readonly until?: never;
-  }
+      /** 表示する尺 (秒)。 */
+      readonly duration: number;
+      readonly until?: never;
+    }
   | {
-    /** 終端の絶対秒または Anchor。尺は開始位置を解決してから求める。 */
-    readonly until: number | Anchor;
-    readonly duration?: never;
-  };
+      /** 終端の絶対秒または Anchor。尺は開始位置を解決してから求める。 */
+      readonly until: number | Anchor;
+      readonly duration?: never;
+    };
 
 /** duration も until も持たない (span を省いた) 印。ADR-0014 参照。 */
 type NoSpan = { readonly duration?: never; readonly until?: never };
@@ -154,36 +154,32 @@ export type ResolvedGroup = {
 };
 
 /** `at`・`duration` が解決済みの FadeItem (timeline() の戻り値 `layers` の要素)。 */
-export type ResolvedFadeItem =
-  & Omit<
-    FadeItem,
-    "at" | "after" | "duration" | "until" | "source"
-  >
-  & {
-    readonly at: number;
-    /** 表示する尺 (秒)。until 指定の item も開始位置の解決後に数値へ求まる。 */
-    readonly duration: number;
-    /** 直前からの遷移 (crossfade)。無ければ undefined。 */
-    readonly transitionIn?: Transition;
-    /** node が塊 (GroupNode) のときの、解決済みの内部 layers。 */
-    readonly group?: ResolvedGroup;
-  };
+export type ResolvedFadeItem = Omit<
+  FadeItem,
+  "at" | "after" | "duration" | "until" | "source"
+> & {
+  readonly at: number;
+  /** 表示する尺 (秒)。until 指定の item も開始位置の解決後に数値へ求まる。 */
+  readonly duration: number;
+  /** 直前からの遷移 (crossfade)。無ければ undefined。 */
+  readonly transitionIn?: Transition;
+  /** node が塊 (GroupNode) のときの、解決済みの内部 layers。 */
+  readonly group?: ResolvedGroup;
+};
 
 /** `at`・`duration` が解決済みの CutItem (timeline() の戻り値 `layers` の要素)。 */
-export type ResolvedCutItem =
-  & Omit<
-    CutItem,
-    "at" | "after" | "duration" | "until" | "source"
-  >
-  & {
-    readonly at: number;
-    /** 表示する尺 (秒)。until 指定の item も開始位置の解決後に数値へ求まる。 */
-    readonly duration: number;
-    /** 直前からの遷移 (crossfade)。無ければ undefined。 */
-    readonly transitionIn?: Transition;
-    /** node が塊 (GroupNode) のときの、解決済みの内部 layers。 */
-    readonly group?: ResolvedGroup;
-  };
+export type ResolvedCutItem = Omit<
+  CutItem,
+  "at" | "after" | "duration" | "until" | "source"
+> & {
+  readonly at: number;
+  /** 表示する尺 (秒)。until 指定の item も開始位置の解決後に数値へ求まる。 */
+  readonly duration: number;
+  /** 直前からの遷移 (crossfade)。無ければ undefined。 */
+  readonly transitionIn?: Transition;
+  /** node が塊 (GroupNode) のときの、解決済みの内部 layers。 */
+  readonly group?: ResolvedGroup;
+};
 
 /** timeline() の戻り値の `layers` に入る、`at` が解決済みのアイテム。 */
 export type ResolvedItem = ResolvedFadeItem | ResolvedCutItem;

@@ -1,9 +1,8 @@
-// 使い方: deno task dev [remotion studio の引数...]
+// 使い方: npm run dev -- [remotion studio の引数...]
 //
 // scripts/voice.ts の --watch 相当 (発話の音声キャッシュ生成の監視) を同
-// プロセスで起動してから、remotion studio を子プロセス (deno task studio。
-// stdio 継承、CLI 引数はそのまま渡す) で起こす。Remotion の CLI の版は
-// deno.json の remotion task だけに書くため、ここでは task 経由で起動する。子プロセスの終了で dev.ts も終了し、
+// プロセスで起動してから、remotion studio を子プロセス (stdio 継承、CLI
+// 引数はそのまま渡す) で起こす。子プロセスの終了で dev.ts も終了し、
 // SIGINT/SIGTERM は子に伝えてから終わる。
 
 import { spawn } from "node:child_process";
@@ -17,12 +16,9 @@ const main = async (): Promise<void> => {
 
   const watch = await runVoiceWatch(["--watch"]);
 
-  // process.execPath は実行中の deno の実体。
-  const child = spawn(
-    process.execPath,
-    ["task", "studio", ...process.argv.slice(2)],
-    { stdio: "inherit" },
-  );
+  const child = spawn("remotion", ["studio", ...process.argv.slice(2)], {
+    stdio: "inherit",
+  });
 
   const forwardSignal = (signal: NodeJS.Signals): void => {
     child.kill(signal);

@@ -19,10 +19,12 @@ type Props = {
 export const ThemeRoot: React.FC<Props> = ({ children, style }) => {
   return (
     <AbsoluteFill
-      style={{
-        ...themeCssVars(getSetup().theme.palette, fontFamily),
-        ...style,
-      } as React.CSSProperties}
+      style={
+        {
+          ...themeCssVars(getSetup().theme.palette, fontFamily),
+          ...style,
+        } as React.CSSProperties
+      }
     >
       {children}
     </AbsoluteFill>

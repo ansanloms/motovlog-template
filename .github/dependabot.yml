@@ -1,11 +1,6 @@
 version: 2
-
 updates:
-  # root の deno.json を見る。member (modules/*/deno.json) は root の
-  # workspace から発見される。react は root と member の両方に exact pin が
-  # あり、片方だけ上がると deno task check が落ちるため、group で 1 つの PR に
-  # まとめる。
-  - package-ecosystem: "deno"
+  - package-ecosystem: "npm"
     directory: "/"
     schedule:
       interval: "weekly"
@@ -21,12 +16,15 @@ updates:
           - "react-dom"
           - "@types/react"
     # Remotion は apm.yml の remotion-dev/skills の固定 SHA と同期が要るため
-    # Dependabot の対象外にし、deno task upgrade で更新する (CLAUDE.md「skill の導入」参照)。
+    # Dependabot の対象外にし、手動で更新する (CLAUDE.md「skill の導入」参照)。
     # ignore は security update にも効くので、Remotion の脆弱性修正の PR も作られない。
     ignore:
       - dependency-name: "remotion"
       - dependency-name: "@remotion/*"
-
+      # typescript 7 は scripts/voice/extract.ts が使う 5.x の compiler API を持たないため、
+      # major 更新を対象外にする。
+      - dependency-name: "typescript"
+        update-types: ["version-update:semver-major"]
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:

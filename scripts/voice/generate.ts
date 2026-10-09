@@ -126,9 +126,7 @@ export const generateMissing = async (
 
     if (driftSeconds > 1 / themeFps) {
       deps.warn(
-        `warn: ${slug}/${key}: mora 合計と wav の実尺の差が ${
-          Math.round(driftSeconds * 1000)
-        } ms`,
+        `warn: ${slug}/${key}: mora 合計と wav の実尺の差が ${Math.round(driftSeconds * 1000)} ms`,
       );
     }
 

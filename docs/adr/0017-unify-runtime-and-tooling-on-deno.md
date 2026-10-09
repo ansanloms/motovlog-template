@@ -1,6 +1,7 @@
 ---
-status: accepted
+status: superseded
 date: 2026-10-07T00:00:00Z
+superseded-by: [18]
 refs: [15, 16]
 tags: [tooling, deno, remotion, test, runtime]
 ---
