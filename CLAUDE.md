@@ -45,7 +45,7 @@ Claude Code の `/design-sync` skill は、ローカルの React コンポーネ
 
 ## 開発ツール
 
-実行環境と開発ツールは Node と npm に揃える ([ADR-0018](docs/adr/0018-return-runtime-and-tooling-to-node.md))。Remotion CLI と `scripts/` は Node で実行し、`scripts/` の TypeScript は `tsx` で動かす。依存は `package.json` と `package-lock.json` で管理する。型検査は `tsc`、lint は ESLint、整形は prettier、テストは vitest で行い、`npm run lint` が ESLint・`tsc`・prettier をまとめて実行する。`modules/<name>/` はディレクトリ単位の module で、module 間と `src/` からは拡張子付きの相対パスで import し、境界は ESLint の規則で検査する ([ADR-0015](docs/adr/0015-split-components-into-modules.md))。CI は `modules/` 直下のディレクトリごとに matrix の job (`modules`) を立て、`npx eslint modules/<name>` と `npx vitest run modules/<name> --passWithNoTests` で module 単位に検証する。Deno は使わず、`deno.json`・`deno.lock` は置かない。
+実行環境と開発ツールは Node と npm に揃える ([ADR-0018](docs/adr/0018-return-runtime-and-tooling-to-node.md))。Remotion CLI と `scripts/` は Node で実行し、`scripts/` の TypeScript は `tsx` で動かす。依存は `package.json` と `package-lock.json` で管理する。型検査は `tsc`、lint は ESLint、整形は prettier、テストは vitest で行い、`npm run lint` が ESLint・`tsc`・prettier をまとめて実行する。`modules/<name>/` はディレクトリ単位の module で、module 間と `src/` からは拡張子付きの相対パスで import し、境界は ESLint の規則で検査する ([ADR-0015](docs/adr/0015-split-components-into-modules.md))。CI は `modules/` 直下のディレクトリごとに matrix の job (`modules`) を立て、`npx eslint modules/<name>` と `npx vitest run modules/<name>/ --passWithNoTests` で module 単位に検証する。Deno は使わず、`deno.json`・`deno.lock` は置かない。
 
 ## シェルスクリプト
 

@@ -77,4 +77,4 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npx eslint "modules/${{ matrix.module }}"
-      - run: npx vitest run "modules/${{ matrix.module }}" --passWithNoTests
+      - run: npx vitest run "modules/${{ matrix.module }}/" --passWithNoTests
