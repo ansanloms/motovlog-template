@@ -21,6 +21,10 @@ updates:
     ignore:
       - dependency-name: "remotion"
       - dependency-name: "@remotion/*"
+      # typescript 7 は scripts/voice/extract.ts が使う 5.x の compiler API を持たないため、
+      # major 更新を対象外にする。
+      - dependency-name: "typescript"
+        update-types: ["version-update:semver-major"]
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:

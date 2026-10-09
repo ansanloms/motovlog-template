@@ -1,7 +1,7 @@
 ---
 status: accepted
 date: 2026-10-01T00:00:00Z
-refs: [6, 11, 12, 14]
+refs: [6, 11, 12, 14, 18]
 tags: [layout, package, components, boundary]
 ---
 
@@ -36,6 +36,7 @@ lib の見た目のコンポーネントは `src/components/` に平らに置か
 
 - `modules/<name>/` は `index.ts` を入口に持ち、`package.json` の `exports` の `./modules/*` で `motovlog-template/modules/<name>` として公開される独立した単位 (npm package 相当) とする。コンポーネント専用のディレクトリではなく、コンポーネント以外の単位も置ける。
 - `package.json` は 1 つのまま管理し、npm workspaces にはしない。
+- CI は `modules/` のディレクトリごとに ESLint とテストを実行し、module 単位で検証する ([ADR-0018](./0018-return-runtime-and-tooling-to-node.md))。
 - 初回に置くのは、見た目のコンポーネント 9 個 (`chapter`・`ending`・`photo-showcase`・`thumbnail`・`figure`・`subtitle`・`annotation`・`video`・`audio`) と、共有部品の `core` とする。
 
 ### modules/ に置く基準

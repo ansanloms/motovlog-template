@@ -49,3 +49,32 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run build
+
+  modules-list:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      modules: ${{ steps.list.outputs.modules }}
+    steps:
+      - uses: actions/checkout@v7
+      - id: list
+        run: echo "modules=$(find modules -mindepth 1 -maxdepth 1 -type d -printf '%f\n' | sort | jq -R . | jq -sc .)" >> "$GITHUB_OUTPUT"
+
+  modules:
+    needs: modules-list
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        module: ${{ fromJSON(needs.modules-list.outputs.modules) }}
+    name: modules (${{ matrix.module }})
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npx eslint "modules/${{ matrix.module }}"
+      - run: npx vitest run "modules/${{ matrix.module }}" --passWithNoTests
