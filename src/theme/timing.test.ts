@@ -1,5 +1,4 @@
-import { describe, it } from "@std/testing/bdd";
-import { expect } from "@std/expect";
+import { describe, expect, it } from "vitest";
 import * as timing from "./timing.ts";
 
 // timing.ts の export を全部走査するので、export を足すと自動で検査対象になる。

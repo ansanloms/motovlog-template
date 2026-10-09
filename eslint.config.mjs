@@ -1,11 +1,6 @@
 import { config } from "@remotion/eslint-config-flat";
 import fs from "node:fs";
-
-/**
- * lib の bare specifier の名前 (root の deno.json の imports が src/ の入口に
- * 割り当てる名前)。
- */
-const LIB_NAME = "motovlog-template";
+import pkg from "./package.json" with { type: "json" };
 
 /**
  * lib (src/) が利用側 (app/・theme/・projects/・characters/) を静的に import
@@ -24,7 +19,7 @@ const LIB_NAME = "motovlog-template";
  * - 深さごとにブロックを列挙する (下の SRC_DEPTHS)。src に列挙より深い階層を
  *   足したら、そこにも対応するブロックを足すこと。
  * - 正規形で書かれた相対パスだけを見る (`./../theme/...` のような書き方は
- *   抜ける)。deno fmt と既存の書き方が正規形なので、実務上はこれで足りる。
+ *   抜ける)。prettier と既存の書き方が正規形なので、実務上はこれで足りる。
  */
 const noConsumerImports = (up) => [
   {
@@ -94,8 +89,6 @@ const componentPaths = [
 /**
  * modules/ 直下の module 名 (ADR-0015)。module ごとに「他の module を import
  * しない」設定ブロックを作るため、設定の読み込み時にディレクトリを列挙する。
- * module は Deno の workspace の member で、import は member の名前
- * (@motovlog/<name>、ディレクトリ名と同じ) で書く (ADR-0016)。
  */
 const MODULE_NAMES = fs
   .readdirSync(new URL("./modules/", import.meta.url), { withFileTypes: true })
@@ -143,8 +136,7 @@ const buildOthersMessage = (name, allowed) => {
  * 他の module への依存も許す。
  *
  * module の中は 1 階層 (modules/<name>/<file>) を前提にし、利用側へ戻る up は
- * "../../"、他の module は member の名前 (@motovlog/<other>) と、名前を
- * 使わない相対パス ("../<other>") の両方で判定する。module の中に
+ * "../../"、他の module は "../<other>" で判定する。module の中に
  * サブディレクトリを足したら、そこにも対応する patterns を足すこと。
  */
 const MODULE_BLOCKS = MODULE_NAMES.map((name) => {
@@ -177,18 +169,19 @@ const MODULE_BLOCKS = MODULE_NAMES.map((name) => {
               message:
                 "modules は src/components/index.tsx (全 module の再 export) を import しない (ADR-0015)。",
             },
-            ...(others.length === 0 ? [] : [
-              {
-                group: others.flatMap((other) => [
-                  `@motovlog/${other}`,
-                  `../${other}`,
-                  `../${other}/**`,
-                  `**/modules/${other}`,
-                  `**/modules/${other}/**`,
+            ...(others.length === 0
+              ? []
+              : [
+                  {
+                    group: others.flatMap((other) => [
+                      `../${other}`,
+                      `../${other}/**`,
+                      `**/modules/${other}`,
+                      `**/modules/${other}/**`,
+                    ]),
+                    message: buildOthersMessage(name, allowed),
+                  },
                 ]),
-                message: buildOthersMessage(name, allowed),
-              },
-            ]),
           ],
           paths: componentPaths,
         },
@@ -199,6 +192,15 @@ const MODULE_BLOCKS = MODULE_NAMES.map((name) => {
 
 export default [
   ...config,
+  {
+    // bin ラッパー (プレーンな .mjs、ADR-0012) は tseslint.configs.eslintRecommended
+    // の no-undef 除外 (**/*.ts 等の TypeScript ファイルだけが対象) に乗らない
+    // ため、使っている Node のグローバルをここで宣言する。
+    files: ["scripts/bin/**/*.mjs"],
+    languageOptions: {
+      globals: { process: "readonly", URL: "readonly" },
+    },
+  },
   {
     rules: {
       "no-restricted-globals": [
@@ -292,20 +294,14 @@ export default [
               message:
                 "effects が import してよい module は modules/core だけ (ADR-0015)。",
             },
-            {
-              group: ["@motovlog/*", "!@motovlog/core"],
-              message:
-                "effects が import してよい module は modules/core (@motovlog/core) だけ (ADR-0015)。",
-            },
           ],
         },
       ],
     },
   },
   {
-    // 利用側 (app・theme・projects) は lib の公開面 (root の deno.json の exports
-    // と同じ 5 入口と modules/<name>/index.ts、または member の名前
-    // @motovlog/<name>) だけを見る (ADR-0012・ADR-0015)。characters/** の制限は下のブロックに
+    // 利用側 (app・theme・projects) は lib の公開面 (package.json の exports と
+    // 同じ 5 入口と modules/<name>/index.ts) だけを見る (ADR-0012・ADR-0015)。characters/** の制限は下のブロックに
     // まとめて書く (flat config は同じ rule を後のブロックが置き換えるため)。
     files: ["app/**", "theme/**", "projects/**"],
     rules: {
@@ -337,6 +333,8 @@ export default [
                 "!**/modules/*/",
                 "**/modules/*/*",
                 "!**/modules/*/index.ts",
+                // bare specifier の公開経路 (exports の "./modules/*") は許す。
+                `!${pkg.name}/modules/*`,
               ],
               message:
                 "利用側が import してよい module のファイルは modules/<name>/index.ts だけ (ADR-0015)。",
@@ -347,7 +345,7 @@ export default [
     },
   },
   {
-    // characters/<name>.ts は Deno からそのまま import できる純粋な値の
+    // characters/<name>.ts は Node からそのまま import できる純粋な値の
     // モジュールに保つ (remotion・CSS・src/components を import しない。
     // watcher (scripts/voice/extract.ts) が line().by から voice だけを
     // 読むため、ADR-0011)。
@@ -362,7 +360,7 @@ export default [
               // src/compositions/character.ts だけ (ADR-0011・ADR-0012)。
               // 5 入口 (src/index.ts・src/compositions/index.ts 等) と bare
               // specifier (motovlog-template) は、figure()・line() 経由で
-              // src/components と CSS Modules を辿るため素の Deno から
+              // src/components と CSS Modules を辿るため素の Node から
               // import できなくなり、watcher (scripts/voice/extract.ts) が
               // line().by の voice を読めなくなる。
               //
@@ -375,11 +373,11 @@ export default [
                 "!**/src/compositions/",
                 "**/src/compositions/*",
                 "!**/src/compositions/character.ts",
-                LIB_NAME,
-                `${LIB_NAME}/*`,
+                pkg.name,
+                `${pkg.name}/*`,
               ],
               message:
-                "characters/<name>.ts が lib から import してよいのは src/compositions/character.ts だけ (ADR-0011・ADR-0012)。入口 (src/compositions/index.ts 等) は CSS Modules を辿るため、素の Deno から読めなくなる。",
+                "characters/<name>.ts が lib から import してよいのは src/compositions/character.ts だけ (ADR-0011・ADR-0012)。入口 (src/compositions/index.ts 等) は CSS Modules を辿るため、素の Node から読めなくなる。",
             },
             {
               group: ["remotion", "@remotion/*"],
@@ -397,7 +395,7 @@ export default [
                 "characters/<name>.ts は src/effects を import しない (ADR-0011)。",
             },
             {
-              group: ["**/modules/**", "@motovlog/*"],
+              group: ["**/modules/**"],
               message:
                 "characters/<name>.ts は modules を import しない (ADR-0011・ADR-0015)。",
             },

@@ -1,7 +1,7 @@
 // 利用側の設定値 (ADR-0012)。app/index.ts (ブラウザ) と watcher
-// (scripts/voice.ts、Deno) の両方がこのファイルを読む。
+// (scripts/voice.ts、Node) の両方がこのファイルを読む。
 //
-// Remotion を import しないこと。watcher は Deno からこのファイルを動的
+// Remotion を import しないこと。watcher は Node からこのファイルを動的
 // import() するため、remotion や CSS Modules を辿ると読めなくなる。timeline の
 // 読み込み関数 (loadTimeline) はバンドラの静的解析が要るため app/index.ts に
 // 置き、ここには置かない。

@@ -55,7 +55,7 @@ export const transitionFrames = (params: {
  * (範囲外は Sequence が unmount する)。
  *
  * interpolate() を使わない理由: inFrames=0 のとき inputRange に同じ値が
- * 並んで throw するのを避けるため。純粋関数なのでテストから直接叩ける。
+ * 並んで throw するのを避けるため。純粋関数なので vitest で直接叩ける。
  */
 export const fadeOpacity = (params: {
   /** 区間先頭からのフレーム番号 (0 起点)。 */
@@ -97,9 +97,8 @@ export const fadeGain = (params: {
   const { frame, durationInFrames, inFrames, outFrames } = params;
 
   const inRatio = inFrames > 0 ? frame / inFrames : 1;
-  const outRatio = outFrames > 0
-    ? (durationInFrames - 1 - frame) / outFrames
-    : 1;
+  const outRatio =
+    outFrames > 0 ? (durationInFrames - 1 - frame) / outFrames : 1;
 
   const ratio = Math.min(inRatio, outRatio);
 
@@ -138,9 +137,8 @@ export const crossfadeGain = (params: {
   const { frame, durationInFrames, inFrames, outFrames } = params;
 
   const inRatio = inFrames > 0 ? (frame + 1) / inFrames : 1;
-  const outRatio = outFrames > 0
-    ? (durationInFrames - 1 - frame) / outFrames
-    : 1;
+  const outRatio =
+    outFrames > 0 ? (durationInFrames - 1 - frame) / outFrames : 1;
 
   const ratio = Math.min(inRatio, outRatio);
 

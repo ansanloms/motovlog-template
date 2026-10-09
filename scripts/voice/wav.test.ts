@@ -1,5 +1,4 @@
-import { describe, it } from "@std/testing/bdd";
-import { expect } from "@std/expect";
+import { describe, expect, it } from "vitest";
 import { wavDurationSeconds } from "./wav.ts";
 
 // 24kHz・16bit・mono の WAV バッファを組み立てる。sampleCount 分の無音データを

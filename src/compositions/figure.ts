@@ -20,7 +20,7 @@
 
 import { createElement } from "react";
 import { staticFile } from "remotion";
-import { Figure } from "@motovlog/figure";
+import { Figure } from "../../modules/figure/index.ts";
 import { sample, toFrame } from "../effects/index.ts";
 import type { SampleNode } from "../effects/index.ts";
 import { characterTiming } from "../theme/index.ts";
@@ -356,8 +356,8 @@ export const figureNode = (
 
   const ownSpeech = options.speech.filter((s) => s.by === character);
 
-  const resolvedExpressions: Record<string, readonly FigureLayer[]> = Object
-    .fromEntries(
+  const resolvedExpressions: Record<string, readonly FigureLayer[]> =
+    Object.fromEntries(
       Object.entries(character.expressions).map(([name, layers]) => [
         name,
         layers.map(resolveFigureLayer),

@@ -1,5 +1,4 @@
-import { describe, it } from "@std/testing/bdd";
-import { expect } from "@std/expect";
+import { describe, expect, it } from "vitest";
 import { assertReadingNotation, displayText, readingText } from "./reading.ts";
 
 describe("displayText", () => {
@@ -54,7 +53,7 @@ describe("readingText", () => {
 describe("assertReadingNotation", () => {
   it("正常な {漢字|よみ} は throw しない", () => {
     expect(() =>
-      assertReadingNotation("今日は{浄土平|じょうどだいら}まで走った。")
+      assertReadingNotation("今日は{浄土平|じょうどだいら}まで走った。"),
     ).not.toThrow();
   });
 

@@ -6,8 +6,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { describe, it } from "@std/testing/bdd";
-import { expect } from "@std/expect";
+import { describe, expect, it } from "vitest";
 import { themeCssVars } from "../src/theme/index.ts";
 import { palette } from "./index.ts";
 

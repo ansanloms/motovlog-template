@@ -1,4 +1,4 @@
-// lib の root export (root の deno.json の exports の "." に対応、ADR-0012)。
+// lib の root export (package.json の exports の "." に対応、ADR-0012)。
 // registerRoot() はここでは呼ばない。入口 (registerRoot) は利用側の
 // app/index.ts が持ち、そこで configure() を呼んでから RemotionRoot を登録する。
 export { configure, getSetup } from "./setup.ts";

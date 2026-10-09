@@ -1,6 +1,5 @@
-import { describe, it } from "@std/testing/bdd";
-import { expect } from "@std/expect";
-import { isVoiceCache, VOICE_KEYS } from "./cache.ts";
+import { describe, expect, it } from "vitest";
+import { VOICE_KEYS, isVoiceCache } from "./cache.ts";
 import type { Voice } from "./cache.ts";
 
 const VOICE = {

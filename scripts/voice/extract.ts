@@ -16,7 +16,7 @@
 // - オブジェクトリテラル (キーはリテラルのみ。値は再帰的に評価。
 //   spread (...expr) は評価結果のオブジェクトを展開する)
 // - 識別子 (同じファイルの top-level const、または import の binding。
-//   import は timeline.ts からの相対パスを 動的 import() で読む)
+//   import は timeline.ts からの相対パスを Node の動的 import() で読む)
 // - プロパティアクセス (a.b)
 // それ以外 (関数呼び出し・条件式・置換ありテンプレート・計算式等) は
 // timeline.ts 内の位置 (行:列) 付きで throw する。voice が null リテラルに
@@ -41,6 +41,7 @@
 // narration.ts と同じ関数を使い、静的解析側と実行時側で結果を一致させる)。
 
 import fs from "node:fs";
+import { createRequire } from "node:module";
 import path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import * as ts from "typescript";
@@ -79,17 +80,16 @@ const CHARACTER_MODULE_REALPATHS = realpathAll([
   path.join(LIB_DIR, "index.ts"),
 ]);
 
-// bare specifier を実行中の Deno の import map (deno.json の imports) で
-// 実ファイルの絶対パスへ解決する。import.meta.resolve() は解決するだけで
-// 読み込みは起きない。import map はプロセス全体で 1 つのため、起点は
-// timeline.ts ではなくこのファイルになる (結果は同じ)。解決できない
-// (import map に無い) ときと、ファイル以外 (npm:・jsr: 等) に解決されたときは
-// undefined を返す。
-const resolveBareSpecifier = (specifier: string): string | undefined => {
+// bare specifier (外部リポジトリからの依存) を Node の解決 (node_modules →
+// package.json の exports) で実ファイルの絶対パスへ解決する。require.resolve()
+// は対象が .ts でもパスを返すだけで読み込みは起きない。解決できなければ
+// (依存が無い・存在しない subpath 等) undefined を返す。
+const resolveBareSpecifier = (
+  fileName: string,
+  specifier: string,
+): string | undefined => {
   try {
-    const resolved = import.meta.resolve(specifier);
-
-    return resolved.startsWith("file:") ? fileURLToPath(resolved) : undefined;
+    return createRequire(pathToFileURL(fileName)).resolve(specifier);
   } catch {
     return undefined;
   }
@@ -98,12 +98,12 @@ const resolveBareSpecifier = (specifier: string): string | undefined => {
 /**
  * import の specifier が lib のファイル (moduleRealpaths) に解決されるか
  * どうかを見る。package 名 (motovlog-template 等) との文字列一致ではなく
- * 解決先のファイルで判定する。import map で別名を付けた・fork・改名した
- * 依存でも、実体が lib のファイルであれば判定が壊れないようにするため。
+ * 解決先のファイルで判定する。npm alias・fork・改名した依存でも、実体が
+ * lib のファイルであれば判定が壊れないようにするため。
  *
  * 相対 specifier (./・../) は timeline.ts のディレクトリを起点に
- * path.resolve() で、bare specifier は resolveBareSpecifier() (import map
- * による解決) で絶対パスに解決する。どちらの結果も realpath で正規化してから
+ * path.resolve() で、bare specifier は resolveBareSpecifier() (Node の
+ * 解決) で絶対パスに解決する。どちらの結果も realpath で正規化してから
  * moduleRealpaths と突き合わせる (symlink 経由でも実体のパスで一致させる)。
  * 解決できない・解決先が存在しない場合は lib ではないと見なす。
  */
@@ -116,7 +116,7 @@ const specifierIsLibModule = (
 
   const resolved = isRelative
     ? path.resolve(path.dirname(context.fileName), specifier)
-    : resolveBareSpecifier(specifier);
+    : resolveBareSpecifier(context.fileName, specifier);
 
   if (resolved === undefined) {
     return false;
@@ -225,12 +225,12 @@ const buildContext = (sourceFile: ts.SourceFile): EvalContext => {
   };
 };
 
-// import 先を timeline.ts (fileName) からの相対パスとして解決し、動的
-// import() で読む。同じ specifier は 1 度しか読み込まない。URL に
+// import 先を timeline.ts (fileName) からの相対パスとして解決し、Node の
+// 動的 import() で読む。同じ specifier は 1 度しか読み込まない。URL に
 // ファイルの mtime をクエリとして付ける (dev 中に characters/<name>.ts 等を
-// 書き換えたときに ESM のモジュールキャッシュが古いモジュールを返すのを防ぐ。
+// 書き換えたときに Node の ESM キャッシュが古いモジュールを返すのを防ぐ。
 // `Date` は ESLint で禁止のため mtimeMs (fs.statSync) を使う)。
-const loadModule = (
+const loadModule = async (
   context: EvalContext,
   specifier: string,
   node: ts.Node,
@@ -243,9 +243,7 @@ const loadModule = (
     mtimeMs = fs.statSync(resolved).mtimeMs;
   } catch (error) {
     throw new ExtractLineError(
-      `${
-        positionOf(context.sourceFile, node)
-      }: ${specifier} を読み込めません: ${
+      `${positionOf(context.sourceFile, node)}: ${specifier} を読み込めません: ${
         error instanceof Error ? error.message : String(error)
       }`,
     );
@@ -258,9 +256,7 @@ const loadModule = (
   if (!cached) {
     cached = import(/* @vite-ignore */ url).catch((error: unknown) => {
       throw new ExtractLineError(
-        `${
-          positionOf(context.sourceFile, node)
-        }: ${specifier} を読み込めません: ${
+        `${positionOf(context.sourceFile, node)}: ${specifier} を読み込めません: ${
           error instanceof Error ? error.message : String(error)
         }`,
       );
@@ -287,15 +283,12 @@ const resolveImportedValue = async (
     return mod;
   }
 
-  const exportName = binding.kind === "default"
-    ? "default"
-    : binding.importedName;
+  const exportName =
+    binding.kind === "default" ? "default" : binding.importedName;
 
   if (typeof mod !== "object" || mod === null || !(exportName in mod)) {
     throw new ExtractLineError(
-      `${
-        positionOf(context.sourceFile, node)
-      }: ${binding.specifier} に export ${exportName} がありません`,
+      `${positionOf(context.sourceFile, node)}: ${binding.specifier} に export ${exportName} がありません`,
     );
   }
 
@@ -335,9 +328,7 @@ const resolveIdentifier = async (
   }
 
   throw new ExtractLineError(
-    `${
-      positionOf(sourceFile, node)
-    }: ${label} は同じファイルの const か import の識別子で書いてください (${name} は見つかりません)`,
+    `${positionOf(sourceFile, node)}: ${label} は同じファイルの const か import の識別子で書いてください (${name} は見つかりません)`,
   );
 };
 
@@ -422,30 +413,20 @@ const validateVoice = (
 
   if (typeof value !== "object" || value === null || Array.isArray(value)) {
     throw new ExtractLineError(
-      `${
-        positionOf(sourceFile, node)
-      }: ${label} はオブジェクトで書いてください`,
+      `${positionOf(sourceFile, node)}: ${label} はオブジェクトで書いてください`,
     );
   }
 
   for (const [voiceKey, voiceValue] of Object.entries(value)) {
     if (!(VOICE_KEYS as readonly string[]).includes(voiceKey)) {
       throw new ExtractLineError(
-        `${
-          positionOf(sourceFile, node)
-        }: ${label} に未知のキー ${voiceKey} があります (使えるのは ${
-          VOICE_KEYS.join("・")
-        })`,
+        `${positionOf(sourceFile, node)}: ${label} に未知のキー ${voiceKey} があります (使えるのは ${VOICE_KEYS.join("・")})`,
       );
     }
 
     if (!Number.isFinite(voiceValue)) {
       throw new ExtractLineError(
-        `${
-          positionOf(sourceFile, node)
-        }: ${label}.${voiceKey} は有限の数値で書いてください (${
-          String(voiceValue)
-        })`,
+        `${positionOf(sourceFile, node)}: ${label}.${voiceKey} は有限の数値で書いてください (${String(voiceValue)})`,
       );
     }
   }
@@ -486,9 +467,7 @@ const resolveByVoice = async (
 
     if (!isCharacterCall(unwrapped, context)) {
       throw new ExtractLineError(
-        `${
-          positionOf(sourceFile, node)
-        }: line().by が指す const は character() の呼び出しで書いてください`,
+        `${positionOf(sourceFile, node)}: line().by が指す const は character() の呼び出しで書いてください`,
       );
     }
 
@@ -496,23 +475,17 @@ const resolveByVoice = async (
 
     if (!arg || rest.length > 0 || !ts.isObjectLiteralExpression(arg)) {
       throw new ExtractLineError(
-        `${
-          positionOf(sourceFile, node)
-        }: line().by が指す const は character() の呼び出しで書いてください`,
+        `${positionOf(sourceFile, node)}: line().by が指す const は character() の呼び出しで書いてください`,
       );
     }
 
     let voiceProp:
-      | ts.PropertyAssignment
-      | ts.ShorthandPropertyAssignment
-      | undefined;
+      ts.PropertyAssignment | ts.ShorthandPropertyAssignment | undefined;
 
     for (const prop of arg.properties) {
       if (ts.isSpreadAssignment(prop)) {
         throw new ExtractLineError(
-          `${
-            positionOf(sourceFile, prop)
-          }: character() の引数は voice を「voice: 式」か「voice」の形で書き、spread と computed key は使えません`,
+          `${positionOf(sourceFile, prop)}: character() の引数は voice を「voice: 式」か「voice」の形で書き、spread と computed key は使えません`,
         );
       }
 
@@ -522,9 +495,7 @@ const resolveByVoice = async (
       // が食い違う (#16)。spread と同じく throw で弾く。
       if (ts.isComputedPropertyName(prop.name)) {
         throw new ExtractLineError(
-          `${
-            positionOf(sourceFile, prop)
-          }: character() の引数は voice を「voice: 式」か「voice」の形で書き、spread と computed key は使えません`,
+          `${positionOf(sourceFile, prop)}: character() の引数は voice を「voice: 式」か「voice」の形で書き、spread と computed key は使えません`,
         );
       }
 
@@ -537,9 +508,7 @@ const resolveByVoice = async (
         !ts.isShorthandPropertyAssignment(prop)
       ) {
         throw new ExtractLineError(
-          `${
-            positionOf(sourceFile, prop)
-          }: character() の引数の voice はメソッド・getter の形では書けません (「voice: 式」か「voice」で書いてください)`,
+          `${positionOf(sourceFile, prop)}: character() の引数の voice はメソッド・getter の形では書けません (「voice: 式」か「voice」で書いてください)`,
         );
       }
 
@@ -564,9 +533,7 @@ const resolveByVoice = async (
 
     if (typeof exported !== "object" || exported === null) {
       throw new ExtractLineError(
-        `${
-          positionOf(sourceFile, node)
-        }: line().by はオブジェクトで書いてください`,
+        `${positionOf(sourceFile, node)}: line().by はオブジェクトで書いてください`,
       );
     }
 
@@ -578,9 +545,7 @@ const resolveByVoice = async (
   }
 
   throw new ExtractLineError(
-    `${
-      positionOf(sourceFile, node)
-    }: line().by は同じファイルの const か import の識別子で書いてください (${name} は見つかりません)`,
+    `${positionOf(sourceFile, node)}: line().by は同じファイルの const か import の識別子で書いてください (${name} は見つかりません)`,
   );
 };
 
@@ -648,9 +613,7 @@ const evaluateExpr = async (
           Array.isArray(spread)
         ) {
           throw new ExtractLineError(
-            `${
-              positionOf(sourceFile, prop)
-            }: ${label} の ... はオブジェクトに展開できる式で書いてください`,
+            `${positionOf(sourceFile, prop)}: ${label} の ... はオブジェクトに展開できる式で書いてください`,
           );
         }
 
@@ -660,23 +623,19 @@ const evaluateExpr = async (
 
       if (!ts.isPropertyAssignment(prop)) {
         throw new ExtractLineError(
-          `${
-            positionOf(sourceFile, prop)
-          }: ${label} のプロパティは識別子 = 式か ... の形で書いてください`,
+          `${positionOf(sourceFile, prop)}: ${label} のプロパティは識別子 = 式か ... の形で書いてください`,
         );
       }
 
       const key = ts.isIdentifier(prop.name)
         ? prop.name.text
         : ts.isStringLiteral(prop.name)
-        ? prop.name.text
-        : undefined;
+          ? prop.name.text
+          : undefined;
 
       if (key === undefined) {
         throw new ExtractLineError(
-          `${
-            positionOf(sourceFile, prop)
-          }: ${label} のプロパティキーはリテラルで書いてください`,
+          `${positionOf(sourceFile, prop)}: ${label} のプロパティキーはリテラルで書いてください`,
         );
       }
 
@@ -706,9 +665,7 @@ const evaluateExpr = async (
 
     if (typeof base !== "object" || base === null) {
       throw new ExtractLineError(
-        `${
-          positionOf(sourceFile, expr)
-        }: ${label} はオブジェクトのプロパティにアクセスできません`,
+        `${positionOf(sourceFile, expr)}: ${label} はオブジェクトのプロパティにアクセスできません`,
       );
     }
 
@@ -724,9 +681,7 @@ const evaluateExpr = async (
   }
 
   throw new ExtractLineError(
-    `${
-      positionOf(sourceFile, expr)
-    }: ${label} は評価できません (関数呼び出し・条件式・置換ありテンプレート・計算式等は使えません)`,
+    `${positionOf(sourceFile, expr)}: ${label} は評価できません (関数呼び出し・条件式・置換ありテンプレート・計算式等は使えません)`,
   );
 };
 
@@ -761,9 +716,7 @@ const readTextLiteral = (
       .map((el) => {
         if (!isTextLiteral(el)) {
           throw new ExtractLineError(
-            `${
-              positionOf(sourceFile, el)
-            }: ${label} の配列の要素はリテラル (文字列・置換無しテンプレート) で書いてください`,
+            `${positionOf(sourceFile, el)}: ${label} の配列の要素はリテラル (文字列・置換無しテンプレート) で書いてください`,
           );
         }
 
@@ -773,9 +726,7 @@ const readTextLiteral = (
   }
 
   throw new ExtractLineError(
-    `${
-      positionOf(sourceFile, node)
-    }: ${label} はリテラル (文字列・置換無しテンプレート) か、それらの配列で書いてください`,
+    `${positionOf(sourceFile, node)}: ${label} はリテラル (文字列・置換無しテンプレート) か、それらの配列で書いてください`,
   );
 };
 
@@ -789,9 +740,7 @@ const assertReadingNotationAt = (
     assertReadingNotation(text);
   } catch (error) {
     throw new ExtractLineError(
-      `${positionOf(sourceFile, node)}: ${
-        error instanceof Error ? error.message : String(error)
-      }`,
+      `${positionOf(sourceFile, node)}: ${error instanceof Error ? error.message : String(error)}`,
     );
   }
 };
@@ -836,9 +785,7 @@ const readObjectProps = (
       node = prop.initializer;
     } else {
       throw new ExtractLineError(
-        `${
-          positionOf(sourceFile, prop)
-        }: ${label} のプロパティは識別子 = 式の形で書いてください`,
+        `${positionOf(sourceFile, prop)}: ${label} のプロパティは識別子 = 式の形で書いてください`,
       );
     }
 
@@ -850,9 +797,7 @@ const readObjectProps = (
 
     if (!allowedKeys.includes(key)) {
       throw new ExtractLineError(
-        `${
-          positionOf(sourceFile, prop)
-        }: ${label} に未知のプロパティ ${key} があります`,
+        `${positionOf(sourceFile, prop)}: ${label} に未知のプロパティ ${key} があります`,
       );
     }
 
@@ -892,9 +837,7 @@ const readByObject = (
 
   if (!ts.isIdentifier(characterProp.node)) {
     throw new ExtractLineError(
-      `${
-        positionOf(sourceFile, characterProp.node)
-      }: line().by.character は識別子で書いてください`,
+      `${positionOf(sourceFile, characterProp.node)}: line().by.character は識別子で書いてください`,
     );
   }
 
@@ -921,9 +864,7 @@ const readLineCall = async (
 
   if (!arg || rest.length > 0 || !ts.isObjectLiteralExpression(arg)) {
     throw new ExtractLineError(
-      `${
-        positionOf(sourceFile, call)
-      }: line() はオブジェクトリテラル 1 個で呼び出してください`,
+      `${positionOf(sourceFile, call)}: line() はオブジェクトリテラル 1 個で呼び出してください`,
     );
   }
 
@@ -939,9 +880,7 @@ const readLineCall = async (
 
   if (expressionProp) {
     throw new ExtractLineError(
-      `${
-        positionOf(sourceFile, expressionProp.node)
-      }: expression は by の中に書いてください (by: { character, expression })`,
+      `${positionOf(sourceFile, expressionProp.node)}: expression は by の中に書いてください (by: { character, expression })`,
     );
   }
 
@@ -964,9 +903,7 @@ const readLineCall = async (
 
     if (reading === "") {
       throw new ExtractLineError(
-        `${
-          positionOf(sourceFile, readingProp.node)
-        }: line().reading を空文字にはできません (声無しは voice: null で書いてください)`,
+        `${positionOf(sourceFile, readingProp.node)}: line().reading を空文字にはできません (声無しは voice: null で書いてください)`,
       );
     }
 
@@ -982,9 +919,7 @@ const readLineCall = async (
     if (value === null) {
       if (readingProp) {
         throw new ExtractLineError(
-          `${
-            positionOf(sourceFile, readingProp.node)
-          }: 声無しの行 (voice: null) に reading は書けません`,
+          `${positionOf(sourceFile, readingProp.node)}: 声無しの行 (voice: null) に reading は書けません`,
         );
       }
 
@@ -1005,9 +940,7 @@ const readLineCall = async (
       by = readByObject(sourceFile, byProp.node);
     } else {
       throw new ExtractLineError(
-        `${
-          positionOf(sourceFile, byProp.node)
-        }: line().by は識別子か { character, expression } の形で書いてください`,
+        `${positionOf(sourceFile, byProp.node)}: line().by は識別子か { character, expression } の形で書いてください`,
       );
     }
   }
@@ -1084,7 +1017,7 @@ export type ExtractResult = {
  * (別名を含む) に解決されるものだけを対象にする。text はリテラル (文字列・置換無し
  * テンプレート) か、それらの配列限定、voice は上記の評価器が読める式限定
  * で、それ以外があれば位置情報付きのエラーを投げる。voice の import 解決のため、
- * timeline.ts と同じディレクトリを起点に 動的 import() を行う。
+ * timeline.ts と同じディレクトリを起点に Node の動的 import() を行う。
  * voice: null (声無し) の呼び出しは lines から除外し、件数を silent に
  * 集計する (呼び出し側が「発話が 0 件」を lines.length だけで判定して
  * 誤警告しないため)。

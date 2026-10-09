@@ -1,5 +1,4 @@
-import { describe, it } from "@std/testing/bdd";
-import { expect } from "@std/expect";
+import { describe, expect, it } from "vitest";
 import { formatDateRange, formatRidingTime } from "./endingFormat.ts";
 
 const zdt = (iso: string) => Temporal.ZonedDateTime.from(iso);

@@ -3,47 +3,62 @@
 #
 # Usage: scripts/remotion-upgrade.sh [version]
 #   version - optional Remotion version to upgrade to (defaults to latest)
-#
-# Remotion is pinned with exact npm: specifiers in the root deno.json (imports and
-# the remotion task) and in the workspace member deno.json files (ADR-0016,
-# ADR-0017). All of them must carry the same version, so this script rewrites
-# every pin, then runs deno install to refresh node_modules and deno.lock.
 
 set -euo pipefail
 
 cd "$(dirname "$0")/.."
 
-for cmd in apm gh deno curl jq; do
+for cmd in apm gh npx; do
   if ! command -v "$cmd" >/dev/null 2>&1; then
     echo "error: required command not found: $cmd" >&2
     exit 1
   fi
 done
 
-target="${1:-}"
-if [ -z "$target" ]; then
-  target="$(curl -fsSL https://registry.npmjs.org/remotion/latest | jq -r .version)"
+version="${1:-}"
+
+upgrade_args=(remotion upgrade --skip-skills)
+if [ -n "$version" ]; then
+  upgrade_args+=(--version "$version")
 fi
-if ! printf '%s\n' "$target" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?$'; then
-  echo "error: invalid Remotion version: $target" >&2
+npx "${upgrade_args[@]}"
+
+target="$(node -p "const p=require('./package.json'); p.devDependencies?.remotion ?? p.dependencies?.remotion ?? ''")"
+if [ -z "$target" ]; then
+  echo "error: remotion is not listed in package.json" >&2
   exit 1
 fi
 echo "target Remotion version: $target"
 
-manifests=(deno.json modules/*/deno.json)
-pin_pattern='npm:/?(@remotion/[^@/" ]+|remotion)@[^/" ]+'
-
-# Prints "<file>:<pin>" for every Remotion pin whose version is not $target.
 list_mismatches() {
-  grep -HoE "$pin_pattern" "${manifests[@]}" |
-    awk -v target="$target" '{ n = split($0, parts, "@"); if (parts[n] != target) print }'
+  # shellcheck disable=SC2016 # single quotes are intentional: this is JavaScript, not shell expansion
+  TARGET="$target" node -e '
+    const fs = require("fs");
+    const pkg = JSON.parse(fs.readFileSync("package.json", "utf8"));
+    const target = process.env.TARGET;
+    const sections = ["dependencies", "devDependencies", "peerDependencies"];
+    const mismatches = [];
+    for (const section of sections) {
+      const deps = pkg[section] || {};
+      for (const [name, ver] of Object.entries(deps)) {
+        if ((name === "remotion" || name.startsWith("@remotion/")) && ver !== target) {
+          mismatches.push(`${section}.${name}`);
+        }
+      }
+    }
+    console.log(mismatches.join("\n"));
+  '
 }
 
 mismatches="$(list_mismatches)"
 if [ -n "$mismatches" ]; then
-  echo "aligning Remotion pins to $target:"
-  printf '%s\n' "$mismatches" | sed 's/^/  /'
-  sed -i -E "s#npm:(/?)(@remotion/[^@/\" ]+|remotion)@[^/\" ]+#npm:\\1\\2@${target}#g" "${manifests[@]}"
+  echo "aligning Remotion-related versions to $target:"
+  while IFS= read -r entry; do
+    [ -n "$entry" ] || continue
+    echo "  $entry -> $target"
+    npm pkg set "$entry=$target"
+  done <<<"$mismatches"
+  npm install --no-fund --no-audit
 
   mismatches="$(list_mismatches)"
   if [ -n "$mismatches" ]; then
@@ -52,8 +67,6 @@ if [ -n "$mismatches" ]; then
     exit 1
   fi
 fi
-
-deno install
 
 found_sha=""
 checked=0
@@ -91,12 +104,10 @@ if [ "$installed_version" != "$target" ]; then
   exit 1
 fi
 
-deno task remotion versions
+npx remotion versions
 
-deno task lint
-deno task check
-deno task fmt:check
-deno task test
-deno task bundle
+npm run lint
+npm test
+npm run build
 
 echo "Remotion ${target}, skills ${found_sha}"

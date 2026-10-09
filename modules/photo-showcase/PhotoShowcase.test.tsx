@@ -1,10 +1,9 @@
 import type { ReactElement, ReactNode } from "react";
 import { isValidElement } from "react";
-import { describe, it } from "@std/testing/bdd";
-import { expect } from "@std/expect";
+import { describe, expect, it } from "vitest";
 import { photoShowcase } from "./index.ts";
 import { PhotoShowcase } from "./PhotoShowcase.tsx";
-import { Video } from "@motovlog/video";
+import { Video } from "../video/index.ts";
 
 /** 未知の値を ReactElement に絞り込む (要素で無ければ throw)。 */
 const asElement = (node: unknown): ReactElement => {

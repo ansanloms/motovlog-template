@@ -1,7 +1,7 @@
 import React from "react";
 import { AbsoluteFill, Img } from "remotion";
 import styles from "./PhotoShowcase.module.css";
-import { Video } from "@motovlog/video";
+import { Video } from "../video/index.ts";
 
 /** 写真紹介の枠に置く短い動画。音は出さない (常に無音)。 */
 export type PhotoVideo = {
@@ -55,9 +55,11 @@ export const PhotoShowcase: React.FC<Props> = ({ photos, fit = "cover" }) => {
     <AbsoluteFill>
       <div className={styles.frame} data-fit={fit}>
         {photos.map((photo, index) =>
-          typeof photo === "string"
-            ? <Img key={index} src={photo} className={styles.cell} />
-            : <PhotoVideoCell key={index} photo={photo} fit={fit} />
+          typeof photo === "string" ? (
+            <Img key={index} src={photo} className={styles.cell} />
+          ) : (
+            <PhotoVideoCell key={index} photo={photo} fit={fit} />
+          ),
         )}
       </div>
     </AbsoluteFill>

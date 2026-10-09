@@ -1,5 +1,4 @@
-import { describe, it } from "@std/testing/bdd";
-import { expect } from "@std/expect";
+import { describe, expect, it } from "vitest";
 import { end, start } from "./anchor.ts";
 import { crossfade } from "./crossfade.ts";
 import { cut } from "./cut.ts";
@@ -77,7 +76,7 @@ describe("timeline: 塊 (group)", () => {
   it("明示した duration が内部の内容より短いと throw する", () => {
     const g = group([[cut(null, { duration: 5, at: 0 })]]);
 
-    expect(() => timeline([[cut(g, { at: 0, duration: 3 })]])).toThrow(
+    expect(() => timeline([[cut(g, { at: 0, duration: 3 })]])).toThrowError(
       /塊の中の item が塊の尺を超えています/,
     );
   });

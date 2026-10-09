@@ -1,10 +1,9 @@
 import { isValidElement } from "react";
 import { staticFile } from "remotion";
-import { describe, it } from "@std/testing/bdd";
-import { expect } from "@std/expect";
+import { describe, expect, it } from "vitest";
 import { character } from "./character.ts";
 import type { Character } from "./character.ts";
-import { Figure } from "@motovlog/figure";
+import { Figure } from "../../modules/figure/index.ts";
 import { cut, isSample } from "../effects/index.ts";
 import { fps } from "../theme/timing.ts";
 import type { LipsyncEntry } from "../voice/cache.ts";

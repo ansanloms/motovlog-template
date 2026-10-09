@@ -1,8 +1,4 @@
-import "../test/setup.ts";
-import { afterEach, beforeEach, describe, it } from "@std/testing/bdd";
-import { expect } from "@std/expect";
-import { assertSpyCalls, spy } from "@std/testing/mock";
-import { FakeTime } from "@std/testing/time";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { getSetup } from "../src/setup.ts";
 import {
   createRunQueue,
@@ -60,46 +56,32 @@ describe("noLinesWarning", () => {
 });
 
 describe("createRunQueue", () => {
-  /** setTimeout を差し替える偽の時計。afterEach() で戻す。 */
-  let time: FakeTime | undefined;
-
-  /** 偽の時計を ms 進め、その間に積まれた microtask も流す。 */
-  const tick = async (ms: number) => {
-    await time?.tickAsync(ms);
-  };
-
-  /** 待ちの無い Promise の後続 (microtask) を流す。 */
-  const flush = async () => {
-    await time?.runMicrotasks();
-  };
-
   beforeEach(() => {
-    time = new FakeTime();
+    vi.useFakeTimers();
   });
 
   afterEach(() => {
-    time?.restore();
-    time = undefined;
+    vi.useRealTimers();
   });
 
   it("連続した要求はデバウンスされ、1 回の実行にまとまる", async () => {
-    const run = spy(async () => {});
-    const onError = spy<unknown, [unknown], void>(() => {});
+    const run = vi.fn(async () => {});
+    const onError = vi.fn();
     const request = createRunQueue(run, 200, onError);
 
     request();
     request();
     request();
 
-    await tick(200);
+    await vi.advanceTimersByTimeAsync(200);
 
-    assertSpyCalls(run, 1);
-    assertSpyCalls(onError, 0);
+    expect(run).toHaveBeenCalledTimes(1);
+    expect(onError).not.toHaveBeenCalled();
   });
 
   it("実行中に来た要求は、終了後にもう 1 回だけ走る", async () => {
     let resolveFirst: (() => void) | undefined;
-    const run = spy(
+    const run = vi.fn(
       () =>
         new Promise<void>((resolve) => {
           if (!resolveFirst) {
@@ -110,56 +92,51 @@ describe("createRunQueue", () => {
           resolve();
         }),
     );
-    const request = createRunQueue(run, 200, () => {});
+    const request = createRunQueue(run, 200, vi.fn());
 
     request();
-    await tick(200);
-    assertSpyCalls(run, 1);
+    await vi.advanceTimersByTimeAsync(200);
+    expect(run).toHaveBeenCalledTimes(1);
 
     // 1 回目の実行中に来た要求。
     request();
-    await tick(200);
+    await vi.advanceTimersByTimeAsync(200);
     // 1 回目がまだ実行中なので、この時点ではまだ 1 回のまま。
-    assertSpyCalls(run, 1);
+    expect(run).toHaveBeenCalledTimes(1);
 
     resolveFirst?.();
-    await flush();
-    assertSpyCalls(run, 2);
+    await vi.waitFor(() => expect(run).toHaveBeenCalledTimes(2));
   });
 
   it("run が reject しても running が戻り、次の要求は走る (onError にエラーが渡る)", async () => {
     let call = 0;
-    const run = spy(() => {
+    const run = vi.fn(async () => {
       call += 1;
 
       if (call === 1) {
-        return Promise.reject(new Error("boom"));
+        throw new Error("boom");
       }
-
-      return Promise.resolve();
     });
-    const onError = spy<unknown, [unknown], void>(() => {});
+    const onError = vi.fn();
     const request = createRunQueue(run, 200, onError);
 
     request();
-    await tick(200);
-    await flush();
-    assertSpyCalls(onError, 1);
-    expect(onError.calls[0].args[0]).toBeInstanceOf(Error);
-    assertSpyCalls(run, 1);
+    await vi.advanceTimersByTimeAsync(200);
+    await vi.waitFor(() => expect(onError).toHaveBeenCalledTimes(1));
+    expect(onError.mock.calls[0][0]).toBeInstanceOf(Error);
+    expect(run).toHaveBeenCalledTimes(1);
 
     // reject 後の次の要求。
     request();
-    await tick(200);
-    await flush();
-    assertSpyCalls(run, 2);
-    assertSpyCalls(onError, 1);
+    await vi.advanceTimersByTimeAsync(200);
+    await vi.waitFor(() => expect(run).toHaveBeenCalledTimes(2));
+    expect(onError).toHaveBeenCalledTimes(1);
   });
 
   it("実行中に要求が来て、その実行が reject しても次の 1 回が走る", async () => {
     let call = 0;
     let resolveFirst: (() => void) | undefined;
-    const run = spy(() => {
+    const run = vi.fn(() => {
       call += 1;
 
       if (call === 1) {
@@ -170,24 +147,22 @@ describe("createRunQueue", () => {
 
       return Promise.resolve();
     });
-    const onError = spy<unknown, [unknown], void>(() => {});
+    const onError = vi.fn();
     const request = createRunQueue(run, 200, onError);
 
     request();
-    await tick(200);
-    assertSpyCalls(run, 1);
+    await vi.advanceTimersByTimeAsync(200);
+    expect(run).toHaveBeenCalledTimes(1);
 
     // 1 回目の実行中 (reject する前) に来た要求。
     request();
-    await tick(200);
+    await vi.advanceTimersByTimeAsync(200);
     // 1 回目がまだ実行中なので、この時点ではまだ 1 回のまま。
-    assertSpyCalls(run, 1);
+    expect(run).toHaveBeenCalledTimes(1);
 
     resolveFirst?.();
 
-    await flush();
-    assertSpyCalls(onError, 1);
-    await flush();
-    assertSpyCalls(run, 2);
+    await vi.waitFor(() => expect(onError).toHaveBeenCalledTimes(1));
+    await vi.waitFor(() => expect(run).toHaveBeenCalledTimes(2));
   });
 });

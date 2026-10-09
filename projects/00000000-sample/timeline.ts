@@ -11,9 +11,9 @@
 //
 // 動かし方:
 // - .env に REMOTION_PROJECT=<slug> と VOICEVOX_URL=<VOICEVOX ENGINE の URL>
-//   を書いて `deno task dev`。Studio が起き、発話の音声キャッシュを生成しつつ
+//   を書いて `npm run dev`。Studio が起き、発話の音声キャッシュを生成しつつ
 //   プレビューできる。
-// - `deno task render out/<slug>.mp4` でレンダリング (先に音声キャッシュの
+// - `npm run render -- out/<slug>.mp4` でレンダリング (先に音声キャッシュの
 //   生成が走る)。
 //
 // 正本: README「timeline.ts の書き方」「発話」、
@@ -154,8 +154,7 @@ const n = await narration([
   figure(sampleCharacter, { in: 0.2, out: 0.2, lead: 0.6, tail: 5 }, [
     cut(
       line({
-        text:
-          "{磐梯吾妻|ばんだいあづま}スカイラインを登って、\n{浄土平|じょうどだいら}へ向かう。",
+        text: "{磐梯吾妻|ばんだいあづま}スカイラインを登って、\n{浄土平|じょうどだいら}へ向かう。",
         by: sampleCharacter,
       }),
       { at: 8 },

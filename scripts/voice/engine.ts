@@ -69,7 +69,7 @@ export const checkSpeaker = async (
   }
 
   const known = speakers.some((s) =>
-    s.styles.some((style) => style.id === speaker)
+    s.styles.some((style) => style.id === speaker),
   );
 
   if (!known) {
@@ -84,17 +84,13 @@ export const fetchAudioQuery = async (
   text: string,
   speaker: number,
 ): Promise<AudioQuery> => {
-  const url = `${voicevoxUrl}/audio_query?text=${
-    encodeURIComponent(text)
-  }&speaker=${speaker}`;
+  const url = `${voicevoxUrl}/audio_query?text=${encodeURIComponent(text)}&speaker=${speaker}`;
   const res = await fetchImpl(url, { method: "POST" });
 
   if (!res.ok) {
     const body = await res.text();
     throw new Error(
-      `/audio_query に失敗しました (status ${res.status}): ${
-        body.slice(0, 200)
-      }`,
+      `/audio_query に失敗しました (status ${res.status}): ${body.slice(0, 200)}`,
     );
   }
 

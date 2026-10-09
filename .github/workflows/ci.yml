@@ -19,73 +19,33 @@ jobs:
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v7
-      - uses: denoland/setup-deno@v2.0.5
+      - uses: actions/setup-node@v7
         with:
-          deno-version: "2.9.6"
-      - run: deno install --frozen
-      - run: deno task lint && deno task fmt:check && deno task check
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npm run lint
 
   test:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v7
-      - uses: denoland/setup-deno@v2.0.5
+      - uses: actions/setup-node@v7
         with:
-          deno-version: "2.9.6"
-      - run: deno install --frozen
-      - run: deno task test
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npm test
 
   build:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v7
-      - uses: denoland/setup-deno@v2.0.5
+      - uses: actions/setup-node@v7
         with:
-          deno-version: "2.9.6"
-      - run: deno install --frozen
-      - run: deno task bundle
-
-  modules-list:
-    runs-on: ubuntu-latest
-    timeout-minutes: 5
-    outputs:
-      modules: ${{ steps.list.outputs.modules }}
-    steps:
-      - uses: actions/checkout@v7
-      # 4 つの task が無い member は root の task を呼び返して止まらなくなるため、
-      # matrix に入れる前に落とす (ADR-0016)。
-      - run: |
-          status=0
-          for f in modules/*/deno.json; do
-            if ! missing=$(jq -r '[("check","lint","fmt:check","test") as $t | select((.tasks // {}) | has($t) | not) | $t] | join(" ")' "$f"); then
-              echo "$f: jq failed" >&2
-              status=1
-            elif [ -n "$missing" ]; then
-              echo "$f: missing tasks: $missing" >&2
-              status=1
-            fi
-          done
-          exit "$status"
-      - id: list
-        # deno.json を持つ member だけを matrix に入れる (root の deno task --members と同じ範囲)。
-        run: echo "modules=$(find modules -mindepth 2 -maxdepth 2 -name deno.json -printf '%h\n' | xargs -n1 basename | sort | jq -R . | jq -sc .)" >> "$GITHUB_OUTPUT"
-
-  modules:
-    needs: modules-list
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
-    strategy:
-      fail-fast: false
-      matrix:
-        module: ${{ fromJSON(needs.modules-list.outputs.modules) }}
-    steps:
-      - uses: actions/checkout@v7
-      - uses: denoland/setup-deno@v2.0.5
-        with:
-          deno-version: "2.9.6"
-      # member の npm: 依存は root の nodeModulesDir: "auto" で node_modules に置く。
-      - run: deno install --frozen
-      - working-directory: modules/${{ matrix.module }}
-        run: deno task check && deno task lint && deno task fmt:check && deno task test
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npm run build

@@ -1,8 +1,5 @@
-import "../../test/setup.ts";
 import path from "node:path";
-import { describe, it } from "@std/testing/bdd";
-import { expect } from "@std/expect";
-import { assertSpyCalls, spy } from "@std/testing/mock";
+import { describe, expect, it, vi } from "vitest";
 import { linePath, voiceKey } from "../../src/voice/key.ts";
 import { narrator } from "../../theme/index.ts";
 import { generateMissing } from "./generate.ts";
@@ -92,33 +89,27 @@ const makeDeps = (
   const renames: [string, string][] = [];
   const existingKeys = overrides.existingKeys ?? new Set<string>();
 
-  const fetchImpl: typeof fetch = (input) => {
+  const fetchImpl: typeof fetch = async (input) => {
     const url = String(input);
 
     if (url.includes("/speakers")) {
-      return Promise.resolve(
-        new Response(
-          JSON.stringify([{ styles: [{ id: narrator.speaker }] }]),
-          { status: 200 },
-        ),
+      return new Response(
+        JSON.stringify([{ styles: [{ id: narrator.speaker }] }]),
+        { status: 200 },
       );
     }
 
     if (url.includes("/audio_query")) {
-      return Promise.resolve(
-        new Response(JSON.stringify(AUDIO_QUERY), { status: 200 }),
-      );
+      return new Response(JSON.stringify(AUDIO_QUERY), { status: 200 });
     }
 
     if (url.includes("/synthesis")) {
       // 0.1 秒 (2400 サンプル @ 24kHz) の wav。query の長さ (0.1 秒) と
       // 一致させ、警告が出ない基準ケースにする。
-      return Promise.resolve(
-        new Response(new Uint8Array(buildWav(2400)), { status: 200 }),
-      );
+      return new Response(new Uint8Array(buildWav(2400)), { status: 200 });
     }
 
-    return Promise.resolve(new Response("not found", { status: 404 }));
+    return new Response("not found", { status: 404 });
   };
 
   return {
@@ -232,7 +223,7 @@ describe("generateMissing", () => {
     const deps = makeDeps();
     let speakerCalls = 0;
     const baseFetch = deps.fetchImpl;
-    deps.fetchImpl = ((input, init) => {
+    deps.fetchImpl = (async (input, init) => {
       if (String(input).includes("/speakers")) {
         speakerCalls++;
       }
@@ -255,7 +246,7 @@ describe("generateMissing", () => {
     const deps = makeDeps({ existingKeys: new Set([key1, key2]) });
     let speakerCalls = 0;
     const baseFetch = deps.fetchImpl;
-    deps.fetchImpl = ((input, init) => {
+    deps.fetchImpl = (async (input, init) => {
       if (String(input).includes("/speakers")) {
         speakerCalls++;
       }
@@ -275,47 +266,39 @@ describe("generateMissing", () => {
   it("wav の実尺と mora 合計の差が 1 フレーム分を超えると warn する", async () => {
     const deps = makeDeps();
     // synthesis の wav を 0.2 秒 (query は 0.1 秒) にして差を作る。
-    deps.fetchImpl = ((input: RequestInfo | URL) => {
+    deps.fetchImpl = (async (input: RequestInfo | URL) => {
       const url = String(input);
 
       if (url.includes("/speakers")) {
-        return Promise.resolve(
-          new Response(
-            JSON.stringify([{ styles: [{ id: narrator.speaker }] }]),
-            { status: 200 },
-          ),
+        return new Response(
+          JSON.stringify([{ styles: [{ id: narrator.speaker }] }]),
+          { status: 200 },
         );
       }
       if (url.includes("/audio_query")) {
-        return Promise.resolve(
-          new Response(JSON.stringify(AUDIO_QUERY), { status: 200 }),
-        );
+        return new Response(JSON.stringify(AUDIO_QUERY), { status: 200 });
       }
       if (url.includes("/synthesis")) {
-        return Promise.resolve(
-          new Response(new Uint8Array(buildWav(4800)), { status: 200 }),
-        );
+        return new Response(new Uint8Array(buildWav(4800)), { status: 200 });
       }
-      return Promise.resolve(new Response("not found", { status: 404 }));
+      return new Response("not found", { status: 404 });
     }) as typeof fetch;
 
-    const warn = spy<unknown, [string], void>(() => {});
+    const warn = vi.fn();
     deps.warn = warn;
 
     await generateMissing("00000000-sample", [{ text: "こんにちは" }], deps);
 
-    assertSpyCalls(warn, 1);
-    expect(warn.calls[0].args[0]).toMatch(/mora 合計と wav の実尺の差/);
+    expect(warn).toHaveBeenCalledTimes(1);
+    expect(warn.mock.calls[0][0]).toMatch(/mora 合計と wav の実尺の差/);
   });
 
   it("speaker が /speakers に無ければ throw する", async () => {
     const deps = makeDeps();
-    deps.fetchImpl = (() =>
-      Promise.resolve(
-        new Response(JSON.stringify([{ styles: [{ id: 1 }] }]), {
-          status: 200,
-        }),
-      )) as typeof fetch;
+    deps.fetchImpl = (async () =>
+      new Response(JSON.stringify([{ styles: [{ id: 1 }] }]), {
+        status: 200,
+      })) as typeof fetch;
 
     await expect(
       generateMissing("00000000-sample", [{ text: "こんにちは" }], deps),

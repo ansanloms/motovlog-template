@@ -11,7 +11,7 @@ import { PROJECT_SLUG_PATTERN } from "../../src/project/load.ts";
 // 済むようにする。
 export { PROJECT_SLUG_PATTERN };
 
-export const USAGE = "usage: deno task convert <slug> <入力ファイル>...";
+export const USAGE = "usage: npm run convert -- <slug> <入力ファイル>...";
 
 /**
  * convert-movie.ts の CLI 引数を解釈する。先頭を slug、以降を inputs とする。
@@ -20,8 +20,9 @@ export const USAGE = "usage: deno task convert <slug> <入力ファイル>...";
  *
  * 素の `--` (オプション終端) があれば、それより前だけを上記のオプション判定
  * (`--help`・`-h`・不明なオプション) の対象にし、それより後はすべて位置引数
- * (slug・inputs) として読む。`deno task convert -- <slug> <入力ファイル>...`
- * のように書くと deno task は `--` を落とさずそのまま渡すため、これを
+ * (slug・inputs) として読む。`npm run convert -- <slug> <入力ファイル>...` は
+ * npm が `--` 自体を落として渡すため影響しないが、`npx motovlog-convert --
+ * <slug> <入力ファイル>...` は npx が `--` を落とさずそのまま渡すため、これを
  * 読み飛ばせないと `<slug>` の前に `--` が残って不明なオプション扱いになる。
  */
 export const parseConvertArgs = (
@@ -29,9 +30,8 @@ export const parseConvertArgs = (
 ): { slug: string; inputs: string[] } | null => {
   const separatorIndex = args.indexOf("--");
   const flags = separatorIndex === -1 ? args : args.slice(0, separatorIndex);
-  const positional = separatorIndex === -1
-    ? args
-    : args.slice(separatorIndex + 1);
+  const positional =
+    separatorIndex === -1 ? args : args.slice(separatorIndex + 1);
 
   if (flags.some((arg) => arg === "--help" || arg === "-h")) {
     return null;
@@ -204,7 +204,7 @@ export const previewName = (name: string): string => `${name}.preview`;
 /**
  * 入力ファイルが Studio 用プロキシ (`<basename>.preview.mp4`) かどうかを、
  * basename が `.preview.mp4` で終わるかで判定する。README の後付け手順
- * (`deno task convert <slug> public/projects/<slug>/*.mp4`) の glob は
+ * (`npm run convert -- <slug> public/projects/<slug>/*.mp4`) の glob は
  * 生成済みのプロキシも拾ってしまうため、runConvert 側でこれを使って
  * スキップする (`<name>.preview.preview.mp4` の生成を防ぐ)。
  */
